@@ -35,10 +35,12 @@
   },
   "Outputs": {
     "CollibraBucketName": {
+      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-S3BucketName" }},
       "Value": { "Ref": "CollibraS3Bucket" },
       "Description": "Collibra S3 Bucket Name."
     },
     "CollibraBucketArn": {
+      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-S3BucketArn" }},
       "Value": { "Fn::GetAtt": [ "CollibraS3Bucket", "Arn" ] },
       "Description": "Collibra S3 Bucket ARN."
     }

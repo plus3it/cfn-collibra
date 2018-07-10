@@ -6,21 +6,18 @@
   "Outputs": {
     "AppSg": {
       "Description": "Application-access Security Group",
-      "Value": {
-        "Ref": "AppSg"
-      }
+      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-AppSgId" }},
+      "Value": { "Ref": "AppSg" }
     },
     "NasSg": {
       "Description": "EC2-to-NAS Security Group",
-      "Value": {
-        "Ref": "NasSg"
-      }
+      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-NasSgId" }},
+      "Value": { "Ref": "NasSg" }
     },
     "RdsSg": {
       "Description": "EC2-to-RDS Security Group",
-      "Value": {
-        "Ref": "RdsSg"
-      }
+      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-RdsSgId" }},
+      "Value": { "Ref": "RdsSg" }
     }
   },
   "Parameters": {
