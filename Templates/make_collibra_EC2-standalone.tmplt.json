@@ -44,8 +44,7 @@
         {
           "Fn::FindInMap": [
             "InstanceTypeMap",
-            { "Ref": "InstanceType" },
-            "SupportsNvme"
+            { "Ref": "InstanceType" }, "SupportsNvme"
           ]
         },
         "true"
@@ -85,45 +84,19 @@
   "Description": "This template deploys the Collibra web-application onto a STIG-hardened EL7-based Linux instance",
   "Mappings": {
     "InstanceTypeMap": {
-      "c4.large": {
-        "SupportsNvme": "false"
-      },
-      "c4.xlarge": {
-        "SupportsNvme": "false"
-      },
-      "c5.large": {
-        "SupportsNvme": "true"
-      },
-      "c5.xlarge": {
-        "SupportsNvme": "true"
-      },
-      "m4.large": {
-        "SupportsNvme": "false"
-      },
-      "m4.xlarge": {
-        "SupportsNvme": "false"
-      },
-      "m5.large": {
-        "SupportsNvme": "true"
-      },
-      "m5.xlarge": {
-        "SupportsNvme": "true"
-      },
-      "t2.large": {
-        "SupportsNvme": "false"
-      },
-      "t2.medium": {
-        "SupportsNvme": "false"
-      },
-      "t2.micro": {
-        "SupportsNvme": "false"
-      },
-      "t2.small": {
-        "SupportsNvme": "false"
-      },
-      "t2.xlarge": {
-        "SupportsNvme": "false"
-      }
+      "c4.large": { "SupportsNvme": "false" },
+      "c4.xlarge": { "SupportsNvme": "false" },
+      "c5.large": { "SupportsNvme": "true" },
+      "c5.xlarge": { "SupportsNvme": "true" },
+      "m4.large": { "SupportsNvme": "false" },
+      "m4.xlarge": { "SupportsNvme": "false" },
+      "m5.large": { "SupportsNvme": "true" },
+      "m5.xlarge": { "SupportsNvme": "true" },
+      "t2.large": { "SupportsNvme": "false" },
+      "t2.medium": { "SupportsNvme": "false" },
+      "t2.micro": { "SupportsNvme": "false" },
+      "t2.small": { "SupportsNvme": "false" },
+      "t2.xlarge": { "SupportsNvme": "false" }
     }
   },
   "Metadata": {
@@ -208,25 +181,47 @@
     "Version": "1.4.3"
   },
   "Outputs": {
-    "InstanceId": {
-      "Description": "Instance ID",
-      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-InstanceID" }},
-      "Value": { "Ref": "CollibraHost" }
-    },
-    "InstanceAz": {
-      "Description": "Availability-zone hosting the instance",
-      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-InstanceAz" }},
-      "Value": { "Fn::GetAtt": [ "CollibraHost", "AvailabilityZone" ] }
-    },
-    "InstancePrivateIPv4": {
-      "Description": "Instance private IPv4 IP address",
-      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-InstancePrivateIPv4" }},
-      "Value": { "Fn::GetAtt": [ "CollibraHost", "PrivateIp" ] }
-    },
     "CollibraHostLogGroupName": {
       "Condition": "InstallCloudWatchAgent",
       "Description": "Log Group Name",
       "Value": { "Ref": "CollibraLogGroup" }
+    },
+    "InstanceAz": {
+      "Description": "Availability-zone hosting the instance",
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-InstanceAz"
+        }
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "CollibraHost",
+          "AvailabilityZone"
+        ]
+      }
+    },
+    "InstanceId": {
+      "Description": "Instance ID",
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-InstanceID"
+        }
+      },
+      "Value": { "Ref": "CollibraHost" }
+    },
+    "InstancePrivateIPv4": {
+      "Description": "Instance private IPv4 IP address",
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-InstancePrivateIPv4"
+        }
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "CollibraHost",
+          "PrivateIp"
+        ]
+      }
     }
   },
   "Parameters": {
@@ -299,14 +294,14 @@
       "Description": "(Optional) S3 URL to CloudWatch Agent installer. Example: s3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip",
       "Type": "String"
     },
-    "InstanceRoleProfile": {
-      "Default": "",
-      "Description": "(Optional) IAM instance profile-name to apply to the instance",
-      "Type": "String"
-    },
     "InstanceRoleName": {
       "Default": "",
       "Description": "(Optional) IAM instance role-name to use for signalling",
+      "Type": "String"
+    },
+    "InstanceRoleProfile": {
+      "Default": "",
+      "Description": "(Optional) IAM instance profile-name to apply to the instance",
       "Type": "String"
     },
     "InstanceType": {
@@ -550,12 +545,12 @@
                     [
                       "{",
                       "  \"logs\": {\n",
-                      "    \"logs_collected\": {\n",
-                      "      \"files\": {\n",
-                      "        \"collect_list\": [\n",
-                      "          {\n",
-                      "            \"file_path\": \"/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log\",\n",
-                      "            \"log_group_name\": \"",
+                      "  \"logs_collected\": {\n",
+                      "    \"files\": {\n",
+                      "    \"collect_list\": [\n",
+                      "      {\n",
+                      "      \"file_path\": \"/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log\",\n",
+                      "      \"log_group_name\": \"",
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
@@ -564,12 +559,12 @@
                         ]
                       },
                       "\",\n",
-                      "            \"log_stream_name\": \"cloudwatch_agent_logs_{instance_id}\",\n",
-                      "            \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                      "          },\n",
-                      "          {\n",
-                      "            \"file_path\": \"/var/log/cfn-init.log\",\n",
-                      "            \"log_group_name\": \"",
+                      "      \"log_stream_name\": \"cloudwatch_agent_logs_{instance_id}\",\n",
+                      "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                      "      },\n",
+                      "      {\n",
+                      "      \"file_path\": \"/var/log/cfn-init.log\",\n",
+                      "      \"log_group_name\": \"",
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
@@ -578,12 +573,12 @@
                         ]
                       },
                       "\",\n",
-                      "            \"log_stream_name\": \"cfn_init_logs_{instance_id}\",\n",
-                      "            \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                      "          },\n",
-                      "          {\n",
-                      "            \"file_path\": \"/var/log/messages\",\n",
-                      "            \"log_group_name\": \"",
+                      "      \"log_stream_name\": \"cfn_init_logs_{instance_id}\",\n",
+                      "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                      "      },\n",
+                      "      {\n",
+                      "      \"file_path\": \"/var/log/messages\",\n",
+                      "      \"log_group_name\": \"",
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
@@ -592,12 +587,12 @@
                         ]
                       },
                       "\",\n",
-                      "            \"log_stream_name\": \"messages_logs_{instance_id}\",\n",
-                      "            \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                      "          },\n",
-                      "          {\n",
-                      "            \"file_path\": \"/var/log/watchmaker/watchmaker.log\",\n",
-                      "            \"log_group_name\": \"",
+                      "      \"log_stream_name\": \"messages_logs_{instance_id}\",\n",
+                      "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                      "      },\n",
+                      "      {\n",
+                      "      \"file_path\": \"/var/log/watchmaker/watchmaker.log\",\n",
+                      "      \"log_group_name\": \"",
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
@@ -606,12 +601,12 @@
                         ]
                       },
                       "\",\n",
-                      "            \"log_stream_name\": \"watchmaker_logs_{instance_id}\",\n",
-                      "            \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                      "          },\n",
-                      "          {\n",
-                      "            \"file_path\": \"/var/log/watchmaker/salt_call.debug.log\",\n",
-                      "            \"log_group_name\": \"",
+                      "      \"log_stream_name\": \"watchmaker_logs_{instance_id}\",\n",
+                      "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                      "      },\n",
+                      "      {\n",
+                      "      \"file_path\": \"/var/log/watchmaker/salt_call.debug.log\",\n",
+                      "      \"log_group_name\": \"",
                       {
                         "Fn::If": [
                           "InstallCloudWatchAgent",
@@ -620,13 +615,13 @@
                         ]
                       },
                       "\",\n",
-                      "            \"log_stream_name\": \"salt_call_debug_logs_{instance_id}\",\n",
-                      "            \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                      "          }\n",
-                      "        ]\n",
+                      "      \"log_stream_name\": \"salt_call_debug_logs_{instance_id}\",\n",
+                      "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
                       "      }\n",
-                      "    },\n",
-                      "    \"log_stream_name\": \"default_logs_{instance_id}\"\n",
+                      "    ]\n",
+                      "    }\n",
+                      "  },\n",
+                      "  \"log_stream_name\": \"default_logs_{instance_id}\"\n",
                       "  }\n",
                       "}\n"
                     ]
@@ -1113,7 +1108,7 @@
             "DeviceName": "/dev/sda1",
             "Ebs": {
               "DeleteOnTermination": "true",
-              "VolumeSize" : { "Ref" : "RootVolumeSize" },
+              "VolumeSize": { "Ref": "RootVolumeSize" },
               "VolumeType": "gp2"
             }
           },

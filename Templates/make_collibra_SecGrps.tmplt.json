@@ -45,9 +45,7 @@
             "Value": "Collibra EC2/application Security Group"
           }
         ],
-        "VpcId": {
-          "Ref": "TargetVPC"
-        }
+        "VpcId": { "Ref": "TargetVPC" }
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
@@ -60,9 +58,7 @@
             "Value": "Collibra EC2/Storage Security Group"
           }
         ],
-        "VpcId": {
-          "Ref": "TargetVPC"
-        }
+        "VpcId": { "Ref": "TargetVPC" }
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
@@ -75,9 +71,7 @@
             "Value": "Collibra EC2/RDS Security Group"
           }
         ],
-        "VpcId": {
-          "Ref": "TargetVPC"
-        }
+        "VpcId": { "Ref": "TargetVPC" }
       },
       "Type": "AWS::EC2::SecurityGroup"
     },
@@ -85,13 +79,9 @@
       "DependsOn": "AppSg",
       "Properties": {
         "FromPort": "4400",
-        "GroupId": {
-          "Ref": "AppSg"
-        },
+        "GroupId": { "Ref": "AppSg" },
         "IpProtocol": "tcp",
-        "SourceSecurityGroupId": {
-          "Ref": "AppSg"
-        },
+        "SourceSecurityGroupId": { "Ref": "AppSg" },
         "ToPort": "4404"
       },
       "Type": "AWS::EC2::SecurityGroupIngress"
@@ -100,13 +90,9 @@
       "DependsOn": "AppSg",
       "Properties": {
         "FromPort": "4430",
-        "GroupId": {
-          "Ref": "AppSg"
-        },
+        "GroupId": { "Ref": "AppSg" },
         "IpProtocol": "tcp",
-        "SourceSecurityGroupId": {
-          "Ref": "AppSg"
-        },
+        "SourceSecurityGroupId": { "Ref": "AppSg" },
         "ToPort": "4430"
       },
       "Type": "AWS::EC2::SecurityGroupIngress"
@@ -115,13 +101,9 @@
       "DependsOn": "NasSg",
       "Properties": {
         "FromPort": "0",
-        "GroupId": {
-          "Ref": "NasSg"
-        },
+        "GroupId": { "Ref": "NasSg" },
         "IpProtocol": "tcp",
-        "SourceSecurityGroupId": {
-          "Ref": "NasSg"
-        },
+        "SourceSecurityGroupId": { "Ref": "NasSg" },
         "ToPort": "65535"
       },
       "Type": "AWS::EC2::SecurityGroupIngress"
@@ -130,13 +112,9 @@
       "DependsOn": "RdsSg",
       "Properties": {
         "FromPort": "5432",
-        "GroupId": {
-          "Ref": "RdsSg"
-        },
+        "GroupId": { "Ref": "RdsSg" },
         "IpProtocol": "tcp",
-        "SourceSecurityGroupId": {
-          "Ref": "RdsSg"
-        },
+        "SourceSecurityGroupId": { "Ref": "RdsSg" },
         "ToPort": "5432"
       },
       "Type": "AWS::EC2::SecurityGroupIngress"
