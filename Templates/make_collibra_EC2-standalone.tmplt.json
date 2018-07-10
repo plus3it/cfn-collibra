@@ -210,7 +210,18 @@
   "Outputs": {
     "InstanceId": {
       "Description": "Instance ID",
+      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-InstanceID" }},
       "Value": { "Ref": "CollibraHost" }
+    },
+    "InstanceAz": {
+      "Description": "Availability-zone hosting the instance",
+      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-InstanceAz" }},
+      "Value": { "Fn::GetAtt": [ "CollibraHost", "AvailabilityZone" ] }
+    },
+    "InstancePrivateIPv4": {
+      "Description": "Instance private IPv4 IP address",
+      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-InstancePrivateIPv4" }},
+      "Value": { "Fn::GetAtt": [ "CollibraHost", "PrivateIp" ] }
     },
     "CollibraHostLogGroupName": {
       "Condition": "InstallCloudWatchAgent",
