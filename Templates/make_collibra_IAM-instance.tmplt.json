@@ -5,6 +5,11 @@
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "RolePrefix" }, "" ] }
       ]
+    },
+    "SetupForCloudwatch": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "CloudwatchBucketName"}, "" ] }
+      ]
     }
   },
   "Description": "This template sets up the IAM role needed by an Collibra instance",
@@ -28,6 +33,10 @@
   "Parameters": {
     "BackupBucketArn": {
       "Description": "ARN of S3 Bucket to host Collibra backups",
+      "Type": "String"
+    },
+    "CloudwatchBucketName": {
+      "Description": "Name of the S3 Bucket hosting the CloudWatch agent archive files",
       "Type": "String"
     },
     "RolePrefix": {
@@ -121,19 +130,31 @@
                 "s3:ListMultipartUploadParts"
               ],
               "Effect": "Allow",
-              "Resource": {
-                "Fn::Join": [
-                  "",
-                  [
+              "Resource": [
+                {
+                  "Fn::If": [
+                    "SetupForCloudwatch",
+                    { "Fn::Join": [ "",
+                        [
+                          "arn:",
+                          { "Ref": "AWS::Partition" },
+                          ":s3:::",
+                          { "Ref": "CloudwatchBucketName" },
+                          "/*"
+                        ]
+                    ]},
+                    { "Ref": "AWS::NoValue" }
+                  ]
+                },
+                { "Fn::Join": [ "", [
                     "arn:",
                     { "Ref": "AWS::Partition" },
                     ":s3:::ssm-",
                     { "Ref": "AWS::AccountId" },
                     "/*"
-                  ]
-                ]
-              },
-              "Sid": "AcctSsmBucket"
+                ]]}
+              ],
+              "Sid": "CSPBuckets"
             },
             {
               "Action": "s3:ListBucket",
