@@ -22,7 +22,13 @@ pipeline {
          string(name: 'GitProjUrl', description: 'SSH URL from which to download the Sonarqube git project')
          string(name: 'GitProjBranch', description: 'Project-branch to use from the Sonarqube git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
-         string(name: 'CollibraBackupBucket', description: '(Optional) Name to assign to created bucket')
+         string(name: 'BackupBucket', description: '(Optional) Name to assign to created bucket')
+         string(name: 'BackupBucketInventoryTracking', defaultValue: 'false', description: '')
+         string(name: 'BackupReportingBucket', description: '(Optional) Destination for storing analytics data. Must be provided in ARN format')
+         string(name: 'FinalExpirationDays', defaultValue: '30', description: 'Number of days to retain objects before aging them out of the bucket')
+         string(name: 'RetainIncompleteDays', defaultValue: '3', description: 'Number of days to retain objects that were not completely uploaded')
+         string(name: 'TierToGlacierDays', defaultValue: '7', description: 'Number of days to retain objects in standard storage tier')
+
     }
 
     stages {
@@ -36,8 +42,28 @@ pipeline {
                    text: /
                          [
                              {
-                                 "ParameterKey": "CollibraBackupBucket",
-                                 "ParameterValue": "${env.CollibraBackupBucket}"
+                                 "ParameterKey": "BackupBucket",
+                                 "ParameterValue": "${env.BackupBucket}"
+                             },
+                             {
+                                 "ParameterKey": "BackupBucketInventoryTracking",
+                                 "ParameterValue": "${env.BackupBucketInventoryTracking}"
+                             },
+                             {
+                                 "ParameterKey": "BackupReportingBucket",
+                                 "ParameterValue": "${env.BackupReportingBucket}"
+                             },
+                             {
+                                 "ParameterKey": "FinalExpirationDays",
+                                 "ParameterValue": "${env.FinalExpirationDays}"
+                             },
+                             {
+                                 "ParameterKey": "RetainIncompleteDays",
+                                 "ParameterValue": "${env.RetainIncompleteDays}"
+                             },
+                             {
+                                 "ParameterKey": "TierToGlacierDays",
+                                 "ParameterValue": "${env.TierToGlacierDays}"
                              }
                          ]
                    /
