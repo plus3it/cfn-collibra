@@ -19,11 +19,6 @@
     "CreateAppVolume": {
       "Fn::Equals": [ { "Ref": "AppVolumeDevice" }, "true" ]
     },
-    "ExecuteAppScript": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "AppScriptUrl" }, "" ] }
-      ]
-    },
     "InstallCloudWatchAgent": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "CloudWatchAgentUrl" }, "" ] }
@@ -109,12 +104,27 @@
           "Parameters": [
             "AmiId",
             "InstanceType",
-            "InstanceRoleName",
+            "RootVolumeSize",
             "KeyPairName",
+            "InstanceRoleName",
+            "InstanceRoleProfile",
+            "SubnetId",
+            "SecurityGroupIds",
+            "PrivateIp",
             "NoPublicIp",
             "NoReboot",
-            "NoUpdates",
-            "SecurityGroupIds"
+            "NoUpdates"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Application Volume"
+          },
+          "Parameters": [
+            "AppVolumeDevice",
+            "AppVolumeMountPath",
+            "AppVolumeSize",
+            "AppVolumeType"
           ]
         },
         {
@@ -129,35 +139,6 @@
             "WatchmakerComputerName",
             "WatchmakerAdminGroups",
             "WatchmakerAdminUsers"
-          ]
-        },
-        {
-          "Label": {
-            "default": "EC2 Application Configuration"
-          },
-          "Parameters": [
-            "AppScriptUrl",
-            "AppScriptParams"
-          ]
-        },
-        {
-          "Label": {
-            "default": "EC2 Application EBS Volume"
-          },
-          "Parameters": [
-            "AppVolumeDevice",
-            "AppVolumeMountPath",
-            "AppVolumeSize",
-            "AppVolumeType"
-          ]
-        },
-        {
-          "Label": {
-            "default": "Network Configuration"
-          },
-          "Parameters": [
-            "PrivateIp",
-            "SubnetId"
           ]
         },
         {
@@ -230,17 +211,6 @@
       "Description": "ID of the AMI to launch",
       "Type": "String"
     },
-    "AppScriptParams": {
-      "Description": "Parameter string to pass to the application script. Ignored if \"AppScriptUrl\" is blank",
-      "Type": "String"
-    },
-    "AppScriptUrl": {
-      "AllowedPattern": "^$|^https://(.*)$|^s3://(.*)$",
-      "ConstraintDescription": "Must use an S3 URL (starts with \"s3://\")",
-      "Default": "",
-      "Description": "(Optional) S3 URL to the application script in an S3 bucket (s3://). Leave blank to launch without an application script. If specified, an appropriate \"InstanceRole\" is required",
-      "Type": "String"
-    },
     "AppVolumeDevice": {
       "AllowedValues": [
         "true",
@@ -252,7 +222,7 @@
     },
     "AppVolumeMountPath": {
       "AllowedPattern": "/.*",
-      "Default": "/opt/data",
+      "Default": "/opt/collibra",
       "Description": "Filesystem path to mount the extra app volume. Ignored if \"AppVolumeDevice\" is false",
       "Type": "String"
     },
@@ -440,6 +410,42 @@
       },
       "Metadata": {
         "AWS::CloudFormation::Init": {
+          "collibrainstall": {
+            "files": {
+              "/etc/cfn/files/collibra.answer.json": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "{\n",
+                      "    \"installationDirectory\": \"/opt/collibra/software\",\n",
+                      "    \"dataDirectory\": \"/opt/collibra/data/\",\n",
+                      "    \"repositoryMemory\": 1024,\n",
+                      "    \"dgcMinMemory\": 1024,\n",
+                      "    \"dgcMaxMemory\": 2048,\n",
+                      "    \"dgcPort\": 4400,\n",
+                      "    \"agentPort\": 4401,\n",
+                      "    \"consolePort\": 4402,\n",
+                      "    \"repositoryPort\": 4403,\n",
+                      "    \"jobserverPort\": 4404,\n",
+                      "    \"dgcShutdownPort\": 4430,\n",
+                      "    \"dgcContextPath\": \"\",\n",
+                      "    \"consoleContextPath\": \"\",\n",
+                      "    \"upgradePath\": [ \"5.4\" ],\n",
+                      "    \"initDaemon\": \"SYSTEMD\",\n",
+                      "    \"repoAdminPassword\": \"ItsaFree4All\",\n",
+                      "    \"repoDgcPassword\": \"ItsaFree4All\",\n",
+                      "    \"componentSet\": [ \"CONSOLE\", \"JOBSERVER\", \"AGENT\", \"REPOSITORY\", \"DGC\" ]\n",
+                      "}\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000600",
+                "owner": "root"
+              }
+            }
+          },
           "configSets": {
             "launch": [
               "setup",
@@ -452,13 +458,7 @@
               },
               "watchmaker-install",
               "watchmaker-launch",
-              {
-                "Fn::If": [
-                  "ExecuteAppScript",
-                  "make-app",
-                  { "Ref": "AWS::NoValue" }
-                ]
-              },
+              "collibrainstall",
               "finalize",
               {
                 "Fn::If": [
@@ -479,13 +479,7 @@
               },
               "watchmaker-install",
               "watchmaker-update",
-              {
-                "Fn::If": [
-                  "ExecuteAppScript",
-                  "make-app",
-                  { "Ref": "AWS::NoValue" }
-                ]
-              },
+              "collibrainstall",
               "finalize",
               {
                 "Fn::If": [
@@ -682,37 +676,6 @@
             "commands": {
               "10-install-updates": {
                 "command": "yum -y update"
-              }
-            }
-          },
-          "make-app": {
-            "commands": {
-              "05-get-appscript": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "mkdir -p /etc/cfn/scripts &&",
-                      " aws s3 cp ",
-                      { "Ref": "AppScriptUrl" },
-                      " /etc/cfn/scripts/make-app",
-                      " &&",
-                      " chown root:root /etc/cfn/scripts/make-app &&",
-                      " chmod 700 /etc/cfn/scripts/make-app"
-                    ]
-                  ]
-                }
-              },
-              "10-make-app": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "bash -xe /etc/cfn/scripts/make-app ",
-                      { "Ref": "AppScriptParams" }
-                    ]
-                  ]
-                }
               }
             }
           },
