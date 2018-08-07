@@ -11,23 +11,17 @@
   "Outputs": {
     "InstanceRole": {
       "Description": "Name of the instance role",
-      "Export": {
-        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRole" }
-      },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRole" } },
       "Value": { "Ref": "InstanceRole" }
     },
     "InstanceRoleArn": {
       "Description": "ARN of the instance role",
-      "Export": {
-        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleArn" }
-      },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleArn" } },
       "Value": { "Fn::GetAtt": [ "InstanceRole", "Arn" ] }
     },
     "InstanceRoleProfile": {
       "Description": "Profile of the instance role",
-      "Export": {
-        "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleProfile" }
-      },
+      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleProfile" } },
       "Value": { "Ref": "InstanceProfile" }
     }
   },
@@ -54,14 +48,24 @@
               ],
               "Effect": "Allow",
               "Resource": [
-                { "Fn::Join": [ "", [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
                       { "Ref": "BackupBucketArn" },
                       ""
-                ]]},
-                { "Fn::Join": [ "", [
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
                       { "Ref": "BackupBucketArn" },
                       "/*"
-                ]]}
+                    ]
+                  ]
+                }
               ],
               "Sid": "BackupsAccess"
             },
@@ -185,7 +189,8 @@
         "Path": "/",
         "RoleName": {
           "Fn::If": [
-            "PrettyRole", {
+            "PrettyRole",
+            {
               "Fn::Join": [
                 "-",
                 [
