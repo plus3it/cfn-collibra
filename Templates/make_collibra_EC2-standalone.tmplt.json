@@ -264,6 +264,12 @@
       "Description": "(Optional) S3 URL to CloudWatch Agent installer. Example: s3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip",
       "Type": "String"
     },
+    "CollibraInstallerUrl": {
+      "AllowedPattern": "^$|^s3://.*$",
+      "Default": "",
+      "Description": "URL from which to download the Collibra installer SHAR-file",
+      "Type": "String"
+    },
     "InstanceRoleName": {
       "Default": "",
       "Description": "(Optional) IAM instance role-name to use for signalling",
@@ -411,6 +417,43 @@
       "Metadata": {
         "AWS::CloudFormation::Init": {
           "collibrainstall": {
+            "commands": {
+              "01-get-collibra-installer": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "install -Dbm 000755 -o root -g root /dev/null",
+                      " /etc/cfn/files/dgc-linux-installer.sh &&",
+                      " aws s3 cp ",
+                      { "Ref": "CollibraInstallerUrl" },
+                      " - > /etc/cfn/files/dgc-linux-installer.sh"
+                    ]
+                  ]
+                }
+              },
+              "02-relax-tmp": {
+                "command": "mount -o remount,exec /tmp"
+              },
+              "03-precreate-user": {
+                "command": "useradd -s /bin/true collibra"
+              },
+              "04-runinstaller": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "umask 000 &&",
+                      " bash -xe /etc/cfn/files/dgc-linux-installer.sh",
+                      " -- -c /etc/cfn/files/collibra.answer.json"
+                    ]
+                  ]
+                }
+              },
+              "05-resecure-tmp": {
+                "command": "mount -o remount,exec /tmp"
+              }
+            },
             "files": {
               "/etc/cfn/files/collibra.answer.json": {
                 "content": {
@@ -432,7 +475,6 @@
                       "    \"dgcContextPath\": \"\",\n",
                       "    \"consoleContextPath\": \"\",\n",
                       "    \"upgradePath\": [ \"5.4\" ],\n",
-                      "    \"initDaemon\": \"SYSTEMD\",\n",
                       "    \"repoAdminPassword\": \"ItsaFree4All\",\n",
                       "    \"repoDgcPassword\": \"ItsaFree4All\",\n",
                       "    \"componentSet\": [ \"CONSOLE\", \"JOBSERVER\", \"AGENT\", \"REPOSITORY\", \"DGC\" ]\n",
