@@ -78,6 +78,28 @@
   },
   "Description": "This template deploys the Collibra web-application onto a STIG-hardened EL7-based Linux instance",
   "Mappings": {
+    "CollibraNodeType": {
+      "AGENT": {
+        "FwPort": "4401",
+        "SystemdSvc": ""
+      },
+      "CONSOLE": {
+        "FwPort": "4402",
+        "SystemdSvc": "collibra-console"
+      },
+      "DGC": {
+        "FwPort": "4400",
+        "SystemdSvc": "collibra-agent"
+      },
+      "JOBSERVER": {
+        "FwPort": "4404",
+        "SystemdSvc": ""
+      },
+      "REPOSITORY": {
+        "FwPort": "4403",
+        "SystemdSvc": ""
+      }
+    },
     "InstanceTypeMap": {
       "c4.large": { "SupportsNvme": "false" },
       "c4.xlarge": { "SupportsNvme": "false" },
@@ -470,10 +492,13 @@
               "02-relax-tmp": {
                 "command": "mount -o remount,exec /tmp"
               },
-              "03-precreate-user": {
+              "03-relax-selinux": {
+                "command": "setenforce 0"
+              },
+              "04-precreate-user": {
                 "command": "useradd -s /bin/true collibra"
               },
-              "04-runinstaller": {
+              "05-runinstaller": {
                 "command": {
                   "Fn::Join": [
                     "",
@@ -485,8 +510,41 @@
                   ]
                 }
               },
-              "05-resecure-tmp": {
-                "command": "mount -o remount,exec /tmp"
+              "06-enable-service": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "systemctl enable ",
+                      {
+                        "Fn::FindInMap": [
+                          "CollibraNodeType",
+                          { "Ref": "CollibraDgcComponent" },
+                          "SystemdSvc"
+                        ]
+                      },
+                      "\n"
+                    ]
+                  ]
+                }
+              },
+              "07-open-firewall-port": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "firewall-cmd --add-port=",
+                      {
+                        "Fn::FindInMap": [
+                          "CollibraNodeType",
+                          { "Ref": "CollibraDgcComponent" },
+                          "FwPort"
+                        ]
+                      },
+                      "/tcp --permanent\n"
+                    ]
+                  ]
+                }
               }
             },
             "files": {
@@ -514,6 +572,7 @@
                       "    \"dgcContextPath\": \"\",\n",
                       "    \"consoleContextPath\": \"\",\n",
                       "    \"upgradePath\": [ \"5.4\" ],\n",
+                      "    \"initDaemon\": \"SYSTEMD\",\n",
                       "    \"repoAdminPassword\": \"",
 		       { "Ref": "CollibraRepoPassword" },
                        "\",\n",
