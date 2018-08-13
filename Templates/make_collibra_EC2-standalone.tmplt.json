@@ -264,10 +264,45 @@
       "Description": "(Optional) S3 URL to CloudWatch Agent installer. Example: s3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip",
       "Type": "String"
     },
+    "CollibraConsolePassword": {
+      "AllowedPattern": "^[a-zA-Z0-9]{8,12}$",
+      "Description": "Password to use for accessing the Collibra DGC console",
+      "NoEcho": "True",
+      "Type": "String"
+    },
+    "CollibraDataDir": {
+      "AllowedPattern": "/.*",
+      "Default": "/opt/collibra/data",
+      "Description": "Location where Collibra application-data should be rooted",
+      "Type": "String"
+    },
+    "CollibraDgcComponent": {
+      "AllowedValues": [
+        "CONSOLE",
+        "JOBSERVER",
+        "AGENT",
+        "REPOSITORY",
+        "DGC"
+      ],
+      "Description": "Which Collibra element to deploy",
+      "Type": "String"
+    },
     "CollibraInstallerUrl": {
       "AllowedPattern": "^$|^s3://.*$",
       "Default": "",
       "Description": "URL from which to download the Collibra installer SHAR-file",
+      "Type": "String"
+    },
+    "CollibraRepoPassword": {
+      "AllowedPattern": "^[a-zA-Z0-9]{8,12}$",
+      "Description": "Password to use for accessing the Repository database",
+      "NoEcho": "True",
+      "Type": "String"
+    },
+    "CollibraSoftwareDir": {
+      "AllowedPattern": "/.*",
+      "Default": "/opt/collibra/software",
+      "Description": "Location where Collibra application-software should be rooted",
       "Type": "String"
     },
     "InstanceRoleName": {
@@ -461,8 +496,12 @@
                     "",
                     [
                       "{\n",
-                      "    \"installationDirectory\": \"/opt/collibra/software\",\n",
-                      "    \"dataDirectory\": \"/opt/collibra/data/\",\n",
+                      "    \"installationDirectory\": \"",
+                       { "Ref": "CollibraSoftwareDir" },
+                       "\",\n",
+                      "    \"dataDirectory\": \"",
+                       { "Ref": "CollibraDataDir" },
+                       "\",\n",
                       "    \"repositoryMemory\": 1024,\n",
                       "    \"dgcMinMemory\": 1024,\n",
                       "    \"dgcMaxMemory\": 2048,\n",
@@ -475,9 +514,15 @@
                       "    \"dgcContextPath\": \"\",\n",
                       "    \"consoleContextPath\": \"\",\n",
                       "    \"upgradePath\": [ \"5.4\" ],\n",
-                      "    \"repoAdminPassword\": \"ItsaFree4All\",\n",
-                      "    \"repoDgcPassword\": \"ItsaFree4All\",\n",
-                      "    \"componentSet\": [ \"CONSOLE\", \"JOBSERVER\", \"AGENT\", \"REPOSITORY\", \"DGC\" ]\n",
+                      "    \"repoAdminPassword\": \"",
+		       { "Ref": "CollibraRepoPassword" },
+                       "\",\n",
+                      "    \"repoDgcPassword\": \"",
+		       { "Ref": "CollibraConsolePassword" },
+                       "\",\n",
+                      "    \"componentSet\": [ \"",
+                       { "Ref": "CollibraDgcComponent" },
+                       "\" ]\n",
                       "}\n"
                     ]
                   ]
@@ -830,6 +875,24 @@
                 },
                 "group": "root",
                 "mode": "000400",
+                "owner": "root"
+              },
+              "/etc/cfn/Collibra.envs": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+		    [
+		      "DGC_CONSOLE_PASSWD=",
+                       { "Ref": "CollibraConsolePassword" },
+		       "\n",
+                      "DGC_REPO_PASSWD=",
+                       { "Ref": "CollibraRepoPassword" },
+		       "\n"
+		    ]
+		  ]
+		},
+                "group": "root",
+                "mode": "000640",
                 "owner": "root"
               },
               "/etc/cfn/scripts/watchmaker-install.sh": {
