@@ -22,6 +22,7 @@ pipeline {
          string(name: 'GitProjUrl', description: 'SSH URL from which to download the Sonarqube git project')
          string(name: 'GitProjBranch', description: 'Project-branch to use from the Sonarqube git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
+         string(name: 'TemplateUrl', description: 'S3-hosted URL for the EC2 template file')
          string(name: 'AmiId', description: '')
          string(name: 'AppVolumeDevice', description: '')
          string(name: 'AppVolumeMountPath', description: '')
@@ -229,7 +230,7 @@ pipeline {
                     sh '''#!/bin/bash
                        echo "Attempting to create stack ${CfnStackRoot}-Ec2-${CollibraDgcComponent}..."
                        aws cloudformation create-stack --stack-name ${CfnStackRoot}-Ec2-${CollibraDgcComponent} \
-                           --template-body file://Templates/make_collibra_EC2-standalone.tmplt.json \
+                           --template-url "${TemplateUrl}" \
                            --parameters file://EC2.parms.json
                        sleep 5
 
