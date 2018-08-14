@@ -52,6 +52,8 @@
         },
         {
             "Action": [
+                "logs:CreateLogGroup",
+                "logs:DeleteLogGroup",
                 "logs:DescribeLogGroups"
             ],
             "Effect": "Allow",
