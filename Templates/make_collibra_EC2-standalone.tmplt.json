@@ -29,6 +29,21 @@
         { "Fn::Equals": [ { "Ref": "NoUpdates" }, "true" ] }
       ]
     },
+    "IsAgentServer": {
+      "Fn::Equals": [ { "Ref": "CollibraDgcComponent" }, "AGENT" ]
+    },
+    "IsConsoleServer": {
+      "Fn::Equals": [ { "Ref": "CollibraDgcComponent" }, "CONSOLE" ]
+    },
+    "IsDgcServer": {
+      "Fn::Equals": [ { "Ref": "CollibraDgcComponent" }, "DGC" ]
+    },
+    "IsJobServer": {
+      "Fn::Equals": [ { "Ref": "CollibraDgcComponent" }, "JOBSERVER" ]
+    },
+    "IsRepositoryServer": {
+      "Fn::Equals": [ { "Ref": "CollibraDgcComponent" }, "REPOSITORY" ]
+    },
     "Reboot": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "NoReboot" }, "true" ] }
@@ -81,7 +96,7 @@
     "CollibraNodeType": {
       "AGENT": {
         "FwPort": "4401",
-        "SystemdSvc": ""
+        "SystemdSvc": "collibra-agent"
       },
       "CONSOLE": {
         "FwPort": "4402",
@@ -93,11 +108,11 @@
       },
       "JOBSERVER": {
         "FwPort": "4404",
-        "SystemdSvc": ""
+        "SystemdSvc": "collibra-agent"
       },
       "REPOSITORY": {
         "FwPort": "4403",
-        "SystemdSvc": ""
+        "SystemdSvc": "collibra-repository"
       }
     },
     "InstanceTypeMap": {
@@ -555,33 +570,84 @@
                     [
                       "{\n",
                       "    \"installationDirectory\": \"",
-                       { "Ref": "CollibraSoftwareDir" },
-                       "\",\n",
+                           { "Ref": "CollibraSoftwareDir" },
+                           "\",\n",
                       "    \"dataDirectory\": \"",
-                       { "Ref": "CollibraDataDir" },
-                       "\",\n",
-                      "    \"repositoryMemory\": 1024,\n",
-                      "    \"dgcMinMemory\": 1024,\n",
-                      "    \"dgcMaxMemory\": 2048,\n",
-                      "    \"dgcPort\": 4400,\n",
-                      "    \"agentPort\": 4401,\n",
-                      "    \"consolePort\": 4402,\n",
-                      "    \"repositoryPort\": 4403,\n",
-                      "    \"jobserverPort\": 4404,\n",
-                      "    \"dgcShutdownPort\": 4430,\n",
-                      "    \"dgcContextPath\": \"\",\n",
-                      "    \"consoleContextPath\": \"\",\n",
+                           { "Ref": "CollibraDataDir" },
+                           "\",\n",
+                      {
+                        "Fn::If": [
+                          "IsDgcServer",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                "    \"repoDgcPassword\": \"",
+                                     { "Ref": "CollibraConsolePassword" },
+                                     "\",\n",
+                                "    \"dgcMinMemory\": 1024,\n",
+                                "    \"dgcMaxMemory\": 2048,\n",
+                                "    \"dgcPort\": 4400,\n",
+                                "    \"dgcShutdownPort\": 4430,\n",
+                                "    \"dgcContextPath\": \"\",\n"
+                              ]
+                            ]
+                          },
+                          { "Ref": "AWS::NoValue" }
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "IsConsoleServer",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                "    \"consolePort\": 4402,\n",
+                                "    \"consoleContextPath\": \"\",\n"
+                              ]
+                            ]
+                          },
+                          { "Ref": "AWS::NoValue" }
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "IsJobServer",
+                          "    \"jobserverPort\": 4404,\n",
+                          { "Ref": "AWS::NoValue" }
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "IsRepositoryServer",
+                          {
+                            "Fn::Join": [
+                              "",
+                              [
+                                "    \"repositoryMemory\": 1024,\n",
+                                "    \"repositoryPort\": 4403,\n",
+                                "    \"repoAdminPassword\": \"",
+                                     { "Ref": "CollibraRepoPassword" },
+                                     "\",\n"
+                              ]
+                            ]
+                          },
+                          { "Ref": "AWS::NoValue" }
+                        ]
+                      },
+                      {
+                        "Fn::If": [
+                          "IsAgentServer",
+                          "    \"agentPort\": 4401,\n",
+                          { "Ref": "AWS::NoValue" }
+                        ]
+                      },
                       "    \"upgradePath\": [ \"5.4\" ],\n",
                       "    \"initDaemon\": \"SYSTEMD\",\n",
-                      "    \"repoAdminPassword\": \"",
-		       { "Ref": "CollibraRepoPassword" },
-                       "\",\n",
-                      "    \"repoDgcPassword\": \"",
-		       { "Ref": "CollibraConsolePassword" },
-                       "\",\n",
                       "    \"componentSet\": [ \"",
-                       { "Ref": "CollibraDgcComponent" },
-                       "\" ]\n",
+                           { "Ref": "CollibraDgcComponent" },
+                           "\" ]\n",
                       "}\n"
                     ]
                   ]
@@ -940,16 +1006,16 @@
                 "content": {
                   "Fn::Join": [
                     "",
-		    [
-		      "DGC_CONSOLE_PASSWD=",
+                    [
+                      "DGC_CONSOLE_PASSWD=",
                        { "Ref": "CollibraConsolePassword" },
-		       "\n",
+                       "\n",
                       "DGC_REPO_PASSWD=",
                        { "Ref": "CollibraRepoPassword" },
-		       "\n"
-		    ]
-		  ]
-		},
+                       "\n"
+                    ]
+                  ]
+                },
                 "group": "root",
                 "mode": "000640",
                 "owner": "root"
