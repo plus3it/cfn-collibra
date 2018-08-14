@@ -1,0 +1,44 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {},
+  "Description": "This template sets up the R53 record used by other Collibra instances to talk to a given service-instance.",
+  "Outputs": {},
+  "Parameters": {
+    "DependsOnStack": {
+      "Description": "EC2 stack this template pulls information from",
+      "Type": "String"
+    },
+    "PrivateR53Fqdn": {
+      "Description": "The fully-qualified domain-name of the instance for which to create a private Route53 host-record",
+      "Type": "String"
+    },
+    "PrivateR53ZoneId": {
+      "AllowedPattern": "^Z[A-Z0-9]{13,31}$",
+      "Description": "The Route53 Zone-ID string of the DNS zone in which to add the private DNS record.",
+      "Type": "String"
+    },
+    "ZoneTtl": {
+      "ConstraintDescription": "Must be a value between 30 and 28800 (seconds)",
+      "Default": "300",
+      "Description": "Maximum time - in seconds - before records expires in non-authoritative DNS servers' cache.",
+      "MaxValue": "28800",
+      "MinValue": "30",
+      "Type": "Number"
+    }
+  },
+  "Resources": {
+    "InternalDNSRecord": {
+      "Properties": {
+        "Comment": "Private DNS name for my instance.",
+        "HostedZoneId": { "Ref": "PrivateR53ZoneId" },
+        "Name": { "Ref": "PrivateR53Fqdn" },
+        "ResourceRecords": [
+          { "Fn::ImportValue": { "Fn::Sub": "${DependsOnStack}-InstancePrivateIPv4" } }
+        ],
+        "TTL": { "Ref": "ZoneTtl" },
+        "Type": "A"
+      },
+      "Type": "AWS::Route53::RecordSet"
+    }
+  }
+}
