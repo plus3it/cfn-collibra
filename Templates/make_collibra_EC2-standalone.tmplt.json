@@ -303,7 +303,7 @@
     },
     "CollibraConsolePassword": {
       "AllowedPattern": "^[a-zA-Z0-9]{8,12}$",
-      "Description": "Password to use for accessing the Collibra DGC console",
+      "Description": "Password to link the Collibra DGC and Console services",
       "NoEcho": "True",
       "Type": "String"
     },
