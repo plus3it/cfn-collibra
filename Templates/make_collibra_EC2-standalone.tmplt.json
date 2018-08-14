@@ -518,9 +518,11 @@
                   "Fn::Join": [
                     "",
                     [
-                      "umask 000 &&",
-                      " bash -xe /etc/cfn/files/dgc-linux-installer.sh",
-                      " -- -c /etc/cfn/files/collibra.answer.json"
+                      "umask 000",
+                      " && ",
+                      "bash -xe /etc/cfn/files/dgc-linux-installer.sh",
+                      " -- -c /etc/cfn/files/collibra.answer.json",
+                      "\n"
                     ]
                   ]
                 }
