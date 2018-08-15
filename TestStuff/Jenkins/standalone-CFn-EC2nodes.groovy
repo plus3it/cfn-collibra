@@ -230,7 +230,7 @@ pipeline {
                     sh '''#!/bin/bash
                        echo "Attempting to create stack ${CfnStackRoot}-Ec2-${CollibraDgcComponent}..."
                        aws cloudformation create-stack --stack-name ${CfnStackRoot}-Ec2-${CollibraDgcComponent} \
-                           --template-url "${TemplateUrl}" \
+                           --disable-rollback --template-url "${TemplateUrl}" \
                            --parameters file://EC2.parms.json
                        sleep 5
 
