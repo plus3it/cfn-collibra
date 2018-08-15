@@ -112,7 +112,7 @@
       },
       "REPOSITORY": {
         "FwPort": "4403",
-        "SystemdSvc": "collibra-repository"
+        "SystemdSvc": "collibra-agent"
       }
     },
     "InstanceTypeMap": {
@@ -547,7 +547,8 @@
                           "FwPort"
                         ]
                       },
-                      "/tcp --permanent\n"
+                      "/tcp --permanent\n",
+                      "firewall-cmd --add-port=4401/tcp --permanent\n"
                     ]
                   ]
                 }
