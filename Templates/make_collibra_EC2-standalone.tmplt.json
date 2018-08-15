@@ -421,8 +421,8 @@
     "ProvisionUser": {
       "AllowedPattern": "[a-z0-9-]{6,12}+",
       "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
-      "Default": "jenkagent",
-      "Description": "Default login user account name (do not use \"jenkins\").",
+      "Default": "ec2-user",
+      "Description": "Default login user account name",
       "Type": "String"
     },
     "PypiIndexUrl": {
