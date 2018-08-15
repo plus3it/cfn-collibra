@@ -23,6 +23,8 @@ pipeline {
          string(name: 'GitProjBranch', description: 'Project-branch to use from the Sonarqube git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
          string(name: 'TemplateUrl', description: 'S3-hosted URL for the EC2 template file')
+         string(name: 'AdminPubkeyURL', defaultValue: '', description: '(Optional) URL of file containing admin groups SSH public-keys')
+
          string(name: 'AmiId', description: 'ID of the AMI to launch')
          string(name: 'AppVolumeDevice', defaultValue: 'false', description: 'Whether to attach a secondary volume to host application contents')
          string(name: 'AppVolumeMountPath', defaultValue: '/opt/collibra', description: 'Filesystem path to mount the extra app volume. Ignored if "AppVolumeDevice" is false')
@@ -45,6 +47,7 @@ pipeline {
          string(name: 'NoReboot', defaultValue: 'false', description: 'Whether to prevent the instance from rebooting at completion of build')
          string(name: 'NoUpdates', defaultValue: 'false', description: 'Whether to prevent updating all installed RPMs as part of build process')
          string(name: 'PrivateIp', description: 'If set to a dotted-quad, attempt to set the requested private IP address on instance')
+         string(name: 'ProvisionUser', defaultValue: 'ec2-user', description: 'Default login-user to create upon instance-launch')
          string(name: 'PypiIndexUrl', description: 'Source from which to pull Pypi packages')
          string(name: 'RootVolumeSize', defaultValue: '20', description: 'How big to make the root EBS volume (ensure value specified is at least as big as the AMI-default)')
          string(name: 'SecurityGroupIds', description: 'Comma-separated list of EC2 security-groups to apply to the instance')
@@ -68,6 +71,10 @@ pipeline {
                 writeFile file: 'EC2.parms.json',
                    text: /
                          [
+                             {
+                                 "ParameterKey": "AdminPubkeyURL",
+                                 "ParameterValue": "${env.AdminPubkeyURL}"
+                             },
                              {
                                  "ParameterKey": "AmiId",
                                  "ParameterValue": "${env.AmiId}"
@@ -155,6 +162,10 @@ pipeline {
                              {
                                  "ParameterKey": "PrivateIp",
                                  "ParameterValue": "${env.PrivateIp}"
+                             },
+                             {
+                                 "ParameterKey": "ProvisionUser",
+                                 "ParameterValue": "${env.ProvisionUser}"
                              },
                              {
                                  "ParameterKey": "PypiIndexUrl",
