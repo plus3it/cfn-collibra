@@ -514,18 +514,7 @@
                 "command": "useradd -s /bin/true collibra"
               },
               "05-runinstaller": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "umask 000",
-                      " && ",
-                      "bash -xe /etc/cfn/files/dgc-linux-installer.sh",
-                      " -- -c /etc/cfn/files/collibra.answer.json",
-                      "\n"
-                    ]
-                  ]
-                }
+                "command": "bash -xe /etc/cfn/files/collibra-wrapper.sh"
               },
               "06-enable-service": {
                 "command": {
@@ -656,6 +645,30 @@
                 },
                 "group": "root",
                 "mode": "000600",
+                "owner": "root"
+              },
+              "/etc/cfn/files/collibra-wrapper.sh": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n",
+                      "export SHELL=/bin/bash\n",
+                      "export HOME=/root\n",
+                      "export USERNAME=root\n",
+                      "export TERM=vt100\n",
+                      "\n",
+                      "source /etc/profile\n",
+                      "source /root/.bash_profile\n",
+                      "\n",
+                      "umask 022\n",
+                      "\n",
+                      "/etc/cfn/files/dgc-linux-installer.sh -- -c /etc/cfn/files/collibra.answer.json\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000755",
                 "owner": "root"
               }
             }
