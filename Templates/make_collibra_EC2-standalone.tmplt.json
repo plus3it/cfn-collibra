@@ -80,6 +80,11 @@
         { "Fn::Equals": [ { "Ref": "WatchmakerEnvironment" }, "" ] }
       ]
     },
+    "UseKeyPair": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "KeyPairName" }, "" ] }
+      ]
+    },
     "UseOuPath": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "WatchmakerOuPath" }, "" ] }
@@ -112,7 +117,7 @@
       },
       "REPOSITORY": {
         "FwPort": "4403",
-        "SystemdSvc": "collibra-repository"
+        "SystemdSvc": "collibra-agent"
       }
     },
     "InstanceTypeMap": {
@@ -243,6 +248,11 @@
     }
   },
   "Parameters": {
+    "AdminPubkeyURL": {
+      "AllowedPattern": "^http[s]?://.*|^$",
+      "Description": "(Optional) URL of file containing admin group's SSH public-keys",
+      "Type": "String"
+    },
     "AmiId": {
       "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
       "Description": "ID of the AMI to launch",
@@ -303,7 +313,7 @@
     },
     "CollibraConsolePassword": {
       "AllowedPattern": "^[a-zA-Z0-9]{8,12}$",
-      "Description": "Password to use for accessing the Collibra DGC console",
+      "Description": "Password to link the Collibra DGC and Console services",
       "NoEcho": "True",
       "Type": "String"
     },
@@ -373,8 +383,8 @@
       "Type": "String"
     },
     "KeyPairName": {
-      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
-      "Type": "AWS::EC2::KeyPair::KeyName"
+      "Description": "(Optional) Public/private key pairs allow you to securely connect to your instance after it launches",
+      "Type": "String"
     },
     "NoPublicIp": {
       "AllowedValues": [
@@ -406,6 +416,13 @@
     "PrivateIp": {
       "Default": "",
       "Description": "(Optional) Set a static, primary private IP. Leave blank to auto-select a free IP",
+      "Type": "String"
+    },
+    "ProvisionUser": {
+      "AllowedPattern": "[a-z0-9-]{6,12}+",
+      "ConstraintDescription": "Alphanumeric string between 6 and 12 characters.",
+      "Default": "ec2-user",
+      "Description": "Default login user account name",
       "Type": "String"
     },
     "PypiIndexUrl": {
@@ -488,6 +505,44 @@
       },
       "Metadata": {
         "AWS::CloudFormation::Init": {
+          "admkey-install": {
+            "commands": {
+              "1-install-keyfile": {
+                "command": "bash -xe /etc/cfn/scripts/admkey.sh"
+              }
+            },
+            "files": {
+              "/etc/cfn/files/AdminKeys.pub": {
+                "source": { "Ref": "AdminPubkeyURL" },
+                "group": "root",
+                "mode": "000600",
+                "owner": "root"
+              },
+              "/etc/cfn/scripts/admkey.sh": {
+              "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n\n",
+                      "PROVHOME=$(getent passwd ",
+                      { "Ref": "ProvisionUser" },
+                      " | awk -F\":\" '{print $6}')\n",
+                      "\n",
+                      "install -b -m 000600 -o ",
+                      { "Ref": "ProvisionUser" },
+                      " -g ",
+                      { "Ref": "ProvisionUser" },
+                      " /etc/cfn/files/AdminKeys.pub ${PROVHOME}/.ssh/authorized_keys\n",
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            }
+          },
           "collibrainstall": {
             "commands": {
               "01-get-collibra-installer": {
@@ -514,18 +569,7 @@
                 "command": "useradd -s /bin/true collibra"
               },
               "05-runinstaller": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "umask 000",
-                      " && ",
-                      "bash -xe /etc/cfn/files/dgc-linux-installer.sh",
-                      " -- -c /etc/cfn/files/collibra.answer.json",
-                      "\n"
-                    ]
-                  ]
-                }
+                "command": "bash -xe /etc/cfn/files/collibra-wrapper.sh"
               },
               "06-enable-service": {
                 "command": {
@@ -558,7 +602,8 @@
                           "FwPort"
                         ]
                       },
-                      "/tcp --permanent\n"
+                      "/tcp --permanent\n",
+                      "firewall-cmd --add-port=4401/tcp --permanent\n"
                     ]
                   ]
                 }
@@ -657,12 +702,37 @@
                 "group": "root",
                 "mode": "000600",
                 "owner": "root"
+              },
+              "/etc/cfn/files/collibra-wrapper.sh": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "#!/bin/bash\n",
+                      "export SHELL=/bin/bash\n",
+                      "export HOME=/root\n",
+                      "export USERNAME=root\n",
+                      "export TERM=vt100\n",
+                      "\n",
+                      "source /etc/profile\n",
+                      "source /root/.bash_profile\n",
+                      "\n",
+                      "umask 022\n",
+                      "\n",
+                      "/etc/cfn/files/dgc-linux-installer.sh -- -c /etc/cfn/files/collibra.answer.json\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000755",
+                "owner": "root"
               }
             }
           },
           "configSets": {
             "launch": [
               "setup",
+              "admkey-install",
               {
                 "Fn::If": [
                   "InstallCloudWatchAgent",
@@ -684,6 +754,7 @@
             ],
             "update": [
               "setup",
+              "admkey-install",
               {
                 "Fn::If": [
                   "InstallUpdates",
@@ -1331,7 +1402,13 @@
         },
         "ImageId": { "Ref": "AmiId" },
         "InstanceType": { "Ref": "InstanceType" },
-        "KeyName": { "Ref": "KeyPairName" },
+        "KeyName": {
+          "Fn::If": [
+            "UseKeyPair",
+            { "Ref": "KeyPairName" },
+            { "Ref": "AWS::NoValue" }
+          ]
+        },
         "NetworkInterfaces": [
           {
             "AssociatePublicIpAddress": {
@@ -1381,6 +1458,14 @@
                 "Content-Disposition: attachment; filename=\"cloud.cfg\"\n",
                 "\n",
                 "#cloud-config\n",
+                "\n",
+                "system_info:\n",
+                "  default_user:\n",
+                "    name: ",
+                { "Ref": "ProvisionUser" },
+                "\n",
+                "users:\n",
+                "  - default\n",
                 "\n",
                 "hostname: ",
                 { "Ref": "WatchmakerComputerName" },
