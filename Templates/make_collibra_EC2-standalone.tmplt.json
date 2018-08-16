@@ -1504,7 +1504,7 @@
                           },
                           ", ",
                           { "Ref": "AppVolumeMountPath" },
-                          " ]\n"
+                          " , \"auto\", \"defaults,x-initrd.mount\", \"0\", \"0\" ]\n"
                         ]
                       ]
                     },
