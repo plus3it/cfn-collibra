@@ -55,6 +55,20 @@
       },
       "Value": { "Ref": "CollibraPubAlbTgroup" }
     },
+    "CollibraAlbZoneId": {
+      "Description": "R53 Hosted Zone-ID of the Collibra ALB",
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-AlbZoneId"
+        }
+      },
+      "Value": {
+        "Fn::GetAtt": [
+          "CollibraPubAlbLoadBalancer",
+          "CanonicalHostedZoneID"
+        ]
+      }
+    },
     "CollibraRawAlbUrl": {
       "Description": "Collibra front-end's IP address",
       "Export": {
