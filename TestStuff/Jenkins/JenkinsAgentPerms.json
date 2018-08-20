@@ -79,6 +79,17 @@
         },
         {
             "Action": [
+                "route53:ChangeResourceRecordSets",
+                "route53:GetChange",
+                "route53:GetHostedZone",
+                "route53:ListResourceRecordSets"
+            ],
+            "Effect": "Allow",
+            "Resource": "*",
+            "Sid": "Route53Permissions"
+        },
+        {
+            "Action": [
                 "s3:CreateBucket",
                 "s3:DeleteBucket",
                 "s3:GetAnalyticsConfiguration",
