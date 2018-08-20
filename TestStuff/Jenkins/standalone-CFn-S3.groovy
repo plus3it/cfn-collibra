@@ -6,7 +6,7 @@ pipeline {
     options {
         buildDiscarder(logRotator(numToKeepStr: '5'))
         disableConcurrentBuilds()
-        timeout(time: 5, unit: 'MINUTES')
+        timeout(time: 15, unit: 'MINUTES')
     }
 
     environment {
@@ -19,8 +19,8 @@ pipeline {
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
-         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Sonarqube git project')
-         string(name: 'GitProjBranch', description: 'Project-branch to use from the Sonarqube git project')
+         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
+         string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
          string(name: 'BackupBucket', description: '(Optional) Name to assign to created bucket')
          string(name: 'BackupBucketInventoryTracking', defaultValue: 'false', description: '')
@@ -89,7 +89,7 @@ pipeline {
                 }
             }
         }
-        stage ('Launch SecGrp Template') {
+        stage ('Launch Bucket Template') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
