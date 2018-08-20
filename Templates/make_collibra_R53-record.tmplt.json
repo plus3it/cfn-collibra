@@ -13,7 +13,7 @@
       "Type": "String"
     },
     "PrivateR53ZoneId": {
-      "AllowedPattern": "^Z[A-Z0-9]{13,31}$",
+      "AllowedPattern": "^Z[A-Z0-9]{10,31}$",
       "Description": "The Route53 Zone-ID string of the DNS zone in which to add the private DNS record.",
       "Type": "String"
     },
