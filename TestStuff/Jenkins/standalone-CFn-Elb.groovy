@@ -23,10 +23,10 @@ pipeline {
          string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
          string(name: 'FrontedService', description: 'Which DGC component this ELB proxies (DGC|CONSOLE|etc.)')
-         string(name: 'BackendTimeout', description: 'How long - in seconds - back-end connection may be idle before attempting session-cleanup')
+         string(name: 'BackendTimeout', defaultValue: '600', description: 'How long - in seconds - back-end connection may be idle before attempting session-cleanup')
          string(name: 'ProxyPrettyName', description: 'A short, human-friendly label to assign to the ELB (no capital letters)')
          string(name: 'CollibraInstanceId', defaultValue: '', description: 'ID of the EC2-instance this template should create a proxy for (typically left blank)')
-         string(name: 'CollibraListenPort', description: 'Public-facing TCP Port number on which the ELB listens for requests to proxy')
+         string(name: 'CollibraListenPort', defaultValue: '443', description: 'Public-facing TCP Port number on which the ELB listens for requests to proxy')
          string(name: 'HaSubnets', description: 'IDs of public-facing subnets in which to create service-listeners')
          string(name: 'CollibraListenerCert', description: 'AWS Certificate Manager Certificate ID to bind to SSL listener')
          string(name: 'CollibraServicePort', description: 'TCP port the Collibra EC2 listens on')
@@ -43,42 +43,44 @@ pipeline {
                     url: "${GitProjUrl}"
                 writeFile file: 'ELB.parms.json',
                    text: /
-                       {
-                           "ParameterKey": "BackendTimeout",
-                           "ParameterValue": "${env.BackendTimeout}"
-                       },
-                       {
-                           "ParameterKey": "CollibraInstanceId",
-                           "ParameterValue": "${env.CollibraInstanceId}"
-                       },
-                       {
-                           "ParameterKey": "CollibraListenPort",
-                           "ParameterValue": "${env.CollibraListenPort}"
-                       },
-                       {
-                           "ParameterKey": "CollibraListenerCert",
-                           "ParameterValue": "${env.CollibraListenerCert}"
-                       },
-                       {
-                           "ParameterKey": "CollibraServicePort",
-                           "ParameterValue": "${env.CollibraServicePort}"
-                       },
-                       {
-                           "ParameterKey": "HaSubnets",
-                           "ParameterValue": "${env.HaSubnets}"
-                       },
-                       {
-                           "ParameterKey": "ProxyPrettyName",
-                           "ParameterValue": "${env.ProxyPrettyName}"
-                       },
-                       {
-                           "ParameterKey": "SecurityGroupIds",
-                           "ParameterValue": "${env.SecurityGroupIds}"
-                       },
-                       {
-                           "ParameterKey": "TargetVPC",
-                           "ParameterValue": "${env.TargetVPC}"
-                       }
+                       [
+                           {
+                               "ParameterKey": "BackendTimeout",
+                               "ParameterValue": "${env.BackendTimeout}"
+                           },
+                           {
+                               "ParameterKey": "CollibraInstanceId",
+                               "ParameterValue": "${env.CollibraInstanceId}"
+                           },
+                           {
+                               "ParameterKey": "CollibraListenPort",
+                               "ParameterValue": "${env.CollibraListenPort}"
+                           },
+                           {
+                               "ParameterKey": "CollibraListenerCert",
+                               "ParameterValue": "${env.CollibraListenerCert}"
+                           },
+                           {
+                               "ParameterKey": "CollibraServicePort",
+                               "ParameterValue": "${env.CollibraServicePort}"
+                           },
+                           {
+                               "ParameterKey": "HaSubnets",
+                               "ParameterValue": "${env.HaSubnets}"
+                           },
+                           {
+                               "ParameterKey": "ProxyPrettyName",
+                               "ParameterValue": "${env.ProxyPrettyName}"
+                           },
+                           {
+                               "ParameterKey": "SecurityGroupIds",
+                               "ParameterValue": "${env.SecurityGroupIds}"
+                           },
+                           {
+                               "ParameterKey": "TargetVPC",
+                               "ParameterValue": "${env.TargetVPC}"
+                           }
+                       ]
                    /
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
@@ -108,7 +110,7 @@ pipeline {
                     sh '''#!/bin/bash
                        echo "Attempting to create stack ${CfnStackRoot}-ElbRes-${FrontedService}..."
                        aws cloudformation create-stack --stack-name ${CfnStackRoot}-ElbRes-${FrontedService} \
-                           --template-body file://Templates/make_collibra_SecGrps.tmplt.json \
+                           --template-body file://Templates/make_collibra_ELBv2.tmplt.json \
                            --parameters file://ELB.parms.json
                        sleep 5
 
