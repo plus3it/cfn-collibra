@@ -24,7 +24,9 @@ pipeline {
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
          string(name: 'FrontedService', description: 'Which DGC component this ELB proxies (DGC|CONSOLE|etc.)')
          string(name: 'BackendTimeout', defaultValue: '600', description: 'How long - in seconds - back-end connection may be idle before attempting session-cleanup')
-         string(name: 'ProxyPrettyName', description: 'A short, human-friendly label to assign to the ELB (no capital letters)')
+         string(name: 'UserProxyFqdn', description: 'FQDN of name to register within R53 for ELB')
+         string(name: 'R53ZoneId', description: 'Route53 ZoneId to create proxy-alias DNS record')
+         string(name: 'ElbShortName', description: 'A short, human-friendly label to assign to the ELB (no capital letters)')
          string(name: 'CollibraInstanceId', defaultValue: '', description: 'ID of the EC2-instance this template should create a proxy for (typically left blank)')
          string(name: 'CollibraListenPort', defaultValue: '443', description: 'Public-facing TCP Port number on which the ELB listens for requests to proxy')
          string(name: 'HaSubnets', description: 'IDs of public-facing subnets in which to create service-listeners')
@@ -70,7 +72,7 @@ pipeline {
                            },
                            {
                                "ParameterKey": "ProxyPrettyName",
-                               "ParameterValue": "${env.ProxyPrettyName}"
+                               "ParameterValue": "${env.ElbShortName}"
                            },
                            {
                                "ParameterKey": "SecurityGroupIds",
@@ -84,6 +86,23 @@ pipeline {
                    /
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
+                       echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${FrontedService} stacks..."
+                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${FrontedService} || true
+                       sleep 5
+
+                       # Pause if delete is slow
+                       while [[ $(
+                                   aws cloudformation describe-stacks \
+                                     --stack-name ${CfnStackRoot}-R53AliasRes-${FrontedService} \
+                                     --query 'Stacks[].{Status:StackStatus}' \
+                                     --out text 2> /dev/null | \
+                                   grep -q DELETE_IN_PROGRESS
+                                  )$? -eq 0 ]]
+                       do
+                          echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${FrontedService} to delete..."
+                          sleep 30
+                       done
+
                        echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${FrontedService} stacks..."
                        aws cloudformation delete-stack --stack-name ${CfnStackRoot}-ElbRes-${FrontedService} || true
                        sleep 5
@@ -140,6 +159,36 @@ pipeline {
                           echo "Stack-creation ended with non-successful state"
                           exit 1
                        fi
+                    '''
+                }
+            }
+        }
+        stage ('Create R53 Alias') {
+            steps {
+                writeFile file: 'R53alias.parms.json',
+                   text: /
+                       [
+                           {
+                               "ParameterKey": "AliasName",
+                               "ParameterValue": "${env.UserProxyFqdn}"
+                           },
+                           {
+                               "ParameterKey": "AliasR53ZoneId",
+                               "ParameterValue": "${env.R53ZoneId}"
+                           },
+                           {
+                               "ParameterKey": "DependsOnStack",
+                               "ParameterValue": "${CfnStackRoot}-ElbRes-${FrontedService}"
+                           }
+                       ]
+                   /
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                    sh '''#!/bin/bash
+                       echo "Bind a R53 Alias to the ELB"
+                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-R53AliasRes-${FrontedService} \
+                           --template-body file://Templates/make_collibra_R53-ElbAlias.tmplt.json \
+                           --parameters file://R53alias.parms.json
+                       sleep 5
                     '''
                 }
             }
