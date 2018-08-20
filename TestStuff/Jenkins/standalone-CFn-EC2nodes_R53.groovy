@@ -300,16 +300,20 @@ pipeline {
                    text: /
                          [
                              {
-                                 "ParameterKey": "AliasName",
+                                 "ParameterKey": "DependsOnStack",
+                                 "ParameterValue": "${CfnStackRoot}-Ec2Res-${CollibraDgcComponent}"
+                             },
+                             {
+                                 "ParameterKey": "PrivateR53Fqdn",
                                  "ParameterValue": "${env.WatchmakerComputerName}"
                              },
                              {
-                                 "ParameterKey": "AliasR53ZoneId",
+                                 "ParameterKey": "PrivateR53ZoneId",
                                  "ParameterValue": "${env.R53ZoneId}"
                              },
                              {
-                                 "ParameterKey": "DependsOnStack",
-                                 "ParameterValue": "${CfnStackRoot}-Ec2Res-${CollibraDgcComponent}"
+                                 "ParameterKey": "ZoneTtl",
+                                 "ParameterValue": "60"
                              }
                          ]
                    /
