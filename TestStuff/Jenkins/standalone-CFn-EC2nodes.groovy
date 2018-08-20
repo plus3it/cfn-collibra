@@ -49,6 +49,7 @@ pipeline {
          string(name: 'PrivateIp', description: 'If set to a dotted-quad, attempt to set the requested private IP address on instance')
          string(name: 'ProvisionUser', defaultValue: 'ec2-user', description: 'Default login-user to create upon instance-launch')
          string(name: 'PypiIndexUrl', description: 'Source from which to pull Pypi packages')
+         string(name: 'R53ZoneId', description: 'Route53 ZoneId to create proxy-alias DNS record')
          string(name: 'RootVolumeSize', defaultValue: '20', description: 'How big to make the root EBS volume (ensure value specified is at least as big as the AMI-default)')
          string(name: 'SecurityGroupIds', description: 'Comma-separated list of EC2 security-groups to apply to the instance')
          string(name: 'SubnetId', description: 'Subnet-ID to deploy EC2 instance into')
@@ -215,20 +216,37 @@ pipeline {
                    /
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
-                       echo "Attempting to delete any active ${CfnStackRoot}-Ec2-${CollibraDgcComponent} stacks..."
-                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-Ec2-${CollibraDgcComponent} || true
+                       echo "Attempting to delete any active ${CfnStackRoot}-R53Res-${CollibraDgcComponent} stacks..."
+                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} || true
                        sleep 5
 
                        # Pause if delete is slow
                        while [[ $(
                                    aws cloudformation describe-stacks \
-                                     --stack-name ${CfnStackRoot}-Ec2-${CollibraDgcComponent} \
+                                     --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} \
                                      --query 'Stacks[].{Status:StackStatus}' \
                                      --out text 2> /dev/null | \
                                    grep -q DELETE_IN_PROGRESS
                                   )$? -eq 0 ]]
                        do
-                          echo "Waiting for stack ${CfnStackRoot}-Ec2-${CollibraDgcComponent} to delete..."
+                          echo "Waiting for stack ${CfnStackRoot}-R53Res-${CollibraDgcComponent} to delete..."
+                          sleep 30
+                       done
+
+                       echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} stacks..."
+                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} || true
+                       sleep 5
+
+                       # Pause if delete is slow
+                       while [[ $(
+                                   aws cloudformation describe-stacks \
+                                     --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
+                                     --query 'Stacks[].{Status:StackStatus}' \
+                                     --out text 2> /dev/null | \
+                                   grep -q DELETE_IN_PROGRESS
+                                  )$? -eq 0 ]]
+                       do
+                          echo "Waiting for stack ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} to delete..."
                           sleep 30
                        done
                     '''
@@ -239,8 +257,8 @@ pipeline {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
-                       echo "Attempting to create stack ${CfnStackRoot}-Ec2-${CollibraDgcComponent}..."
-                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-Ec2-${CollibraDgcComponent} \
+                       echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent}..."
+                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
                            --disable-rollback --template-url "${TemplateUrl}" \
                            --parameters file://EC2.parms.json
                        sleep 5
@@ -248,19 +266,77 @@ pipeline {
                        # Pause if create is slow
                        while [[ $(
                                    aws cloudformation describe-stacks \
-                                     --stack-name ${CfnStackRoot}-Ec2-${CollibraDgcComponent} \
+                                     --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
                                      --query 'Stacks[].{Status:StackStatus}' \
                                      --out text 2> /dev/null | \
                                    grep -q CREATE_IN_PROGRESS
                                   )$? -eq 0 ]]
                        do
-                          echo "Waiting for stack ${CfnStackRoot}-Ec2-${CollibraDgcComponent} to finish create process..."
+                          echo "Waiting for stack ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} to finish create process..."
                           sleep 30
                        done
 
                        if [[ $(
                                aws cloudformation describe-stacks \
-                                 --stack-name ${CfnStackRoot}-Ec2-${CollibraDgcComponent} \
+                                 --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
+                                 --query 'Stacks[].{Status:StackStatus}' \
+                                 --out text 2> /dev/null | \
+                               grep -q CREATE_COMPLETE
+                              )$? -eq 0 ]]
+                       then
+                          echo "Stack-creation successful"
+                       else
+                          echo "Stack-creation ended with non-successful state"
+                          exit 1
+                       fi
+                    '''
+                }
+            }
+        }
+
+        stage ('Create R53 Alias') {
+            steps {
+                writeFile file: 'R53alias.parms.json',
+                   text: /
+                         [
+                             {
+                                 "ParameterKey": "AliasName",
+                                 "ParameterValue": "${env.WatchmakerComputerName}"
+                             },
+                             {
+                                 "ParameterKey": "AliasR53ZoneId",
+                                 "ParameterValue": "${env.R53ZoneId}"
+                             },
+                             {
+                                 "ParameterKey": "DependsOnStack",
+                                 "ParameterValue": "${CfnStackRoot}-Ec2Res-${CollibraDgcComponent}"
+                             }
+                         ]
+                   /
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                    sh '''#!/bin/bash
+                       echo "Bind a R53 Alias to the ELB"
+                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} \
+                           --template-body file://Templates/make_collibra_R53-record.tmplt.json \
+                           --parameters file://R53alias.parms.json
+                       sleep 5
+
+                       # Pause if create is slow
+                       while [[ $(
+                                   aws cloudformation describe-stacks \
+                                     --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} \
+                                     --query 'Stacks[].{Status:StackStatus}' \
+                                     --out text 2> /dev/null | \
+                                   grep -q CREATE_IN_PROGRESS
+                                  )$? -eq 0 ]]
+                       do
+                          echo "Waiting for stack ${CfnStackRoot}-R53Res-${CollibraDgcComponent} to finish create process..."
+                          sleep 30
+                       done
+
+                       if [[ $(
+                               aws cloudformation describe-stacks \
+                                 --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} \
                                  --query 'Stacks[].{Status:StackStatus}' \
                                  --out text 2> /dev/null | \
                                grep -q CREATE_COMPLETE
