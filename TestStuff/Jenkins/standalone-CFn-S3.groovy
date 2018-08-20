@@ -89,7 +89,7 @@ pipeline {
                 }
             }
         }
-        stage ('Launch SecGrp Template') {
+        stage ('Launch Bucket Template') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
