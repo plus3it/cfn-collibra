@@ -117,7 +117,7 @@
       "Type": "String"
     },
     "CollibraServicePort": {
-      "Default": "9000",
+      "Default": "4400",
       "Description": "TCP Port number that the Collibra host listens to.",
       "MaxValue": "65535",
       "Type": "Number"
@@ -216,7 +216,8 @@
                   }
                 ]
               },
-              "TargetGroup"
+              "TgtGrp",
+              { "Ref": "CollibraServicePort" }
             ]
           ]
         },
