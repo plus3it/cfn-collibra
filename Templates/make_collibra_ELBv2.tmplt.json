@@ -13,19 +13,32 @@
     }
   },
   "Description": "Template for creating a public ELB for users to connect through in order to connect to the Collibra service.",
+  "Mappings": {
+    "CollibraNodeType": {
+      "Console": {
+        "HealthchkUrlString": "/signin",
+        "CollibraServicePort": "4402"
+      },
+      "DGC": {
+        "HealthchkUrlString": "/signin",
+        "CollibraServicePort": "4400"
+      }
+    }
+  },
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
         {
           "Parameters": [
-            "CollibraInstanceId",
             "ProxyPrettyName",
+            "ProxyForService",
             "TargetVPC",
             "HaSubnets",
             "SecurityGroupIds",
+            "BackendTimeout",
+            "CollibraListenerCert",
             "CollibraListenPort",
-            "CollibraServicePort",
-            "CollibraListenerCert"
+            "CollibraInstanceId"
           ]
         }
       ]
@@ -116,15 +129,17 @@
       "Description": "Name/ID of the ACM-managed SSL Certificate to protect public listener.",
       "Type": "String"
     },
-    "CollibraServicePort": {
-      "Default": "4400",
-      "Description": "TCP Port number that the Collibra host listens to.",
-      "MaxValue": "65535",
-      "Type": "Number"
-    },
     "HaSubnets": {
       "Description": "Select three subnets - each from different Availability Zones.",
       "Type": "List<AWS::EC2::Subnet::Id>"
+    },
+    "ProxyForService": {
+      "AllowedValues": [
+        "Console",
+        "DGC"
+      ],
+      "Description": "Which Collibra service to proxy for",
+      "Type": "String"
     },
     "ProxyPrettyName": {
       "Description": "A short, human-friendly label to assign to the ELB (no capital letters).",
@@ -199,7 +214,13 @@
     },
     "CollibraPubAlbTgroup": {
       "Properties": {
-        "HealthCheckPath": "/index.html",
+        "HealthCheckPath": {
+          "Fn::FindInMap": [
+            "CollibraNodeType",
+            { "Ref": "ProxyForService" },
+            "HealthchkUrlString"
+          ]
+        },
         "HealthyThresholdCount": "5",
         "Name": {
           "Fn::Join": [
@@ -217,11 +238,17 @@
                 ]
               },
               "TgtGrp",
-              { "Ref": "CollibraServicePort" }
+              { "Ref": "ProxyForService" }
             ]
           ]
         },
-        "Port": { "Ref": "CollibraServicePort" },
+        "Port": {
+          "Fn::FindInMap": [
+            "CollibraNodeType",
+            { "Ref": "ProxyForService" },
+            "CollibraServicePort"
+          ]
+        },
         "Protocol": "HTTP",
         "Targets": {
           "Fn::If": [
@@ -229,7 +256,13 @@
             [
               {
                 "Id": { "Ref": "CollibraInstanceId" },
-                "Port": { "Ref": "CollibraServicePort" }
+                "Port": {
+                  "Fn::FindInMap": [
+                    "CollibraNodeType",
+                    { "Ref": "ProxyForService" },
+                    "CollibraServicePort"
+                  ]
+                }
               }
             ],
             { "Ref": "AWS::NoValue" }
