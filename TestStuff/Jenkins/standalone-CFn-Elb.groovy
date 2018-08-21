@@ -22,7 +22,7 @@ pipeline {
          string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
          string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
-         choice(name: 'FrontedService', choices:'Console\nDGC', description: 'Which DGC component this ELB proxies')
+         choice(name: 'ProxyForService', choices:'Console\nDGC', description: 'Which DGC component this ELB proxies')
          string(name: 'BackendTimeout', defaultValue: '600', description: 'How long - in seconds - back-end connection may be idle before attempting session-cleanup')
          string(name: 'UserProxyFqdn', description: 'FQDN of name to register within R53 for ELB')
          string(name: 'R53ZoneId', description: 'Route53 ZoneId to create proxy-alias DNS record')
@@ -31,7 +31,6 @@ pipeline {
          string(name: 'CollibraListenPort', defaultValue: '443', description: 'Public-facing TCP Port number on which the ELB listens for requests to proxy')
          string(name: 'HaSubnets', description: 'IDs of public-facing subnets in which to create service-listeners')
          string(name: 'CollibraListenerCert', description: 'AWS Certificate Manager Certificate ID to bind to SSL listener')
-         string(name: 'CollibraServicePort', description: 'TCP port the Collibra EC2 listens on')
          string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the ELB')
          string(name: 'TargetVPC', description: 'ID of the VPC to deploy cluster nodes into')
     }
@@ -47,6 +46,10 @@ pipeline {
                    text: /
                        [
                            {
+                               "ParameterKey": "ProxyForService",
+                               "ParameterValue": "${env.ProxyForService}"
+                           },
+                           {
                                "ParameterKey": "BackendTimeout",
                                "ParameterValue": "${env.BackendTimeout}"
                            },
@@ -61,10 +64,6 @@ pipeline {
                            {
                                "ParameterKey": "CollibraListenerCert",
                                "ParameterValue": "${env.CollibraListenerCert}"
-                           },
-                           {
-                               "ParameterKey": "CollibraServicePort",
-                               "ParameterValue": "${env.CollibraServicePort}"
                            },
                            {
                                "ParameterKey": "HaSubnets",
@@ -86,37 +85,37 @@ pipeline {
                    /
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
-                       echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${FrontedService} stacks..."
-                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${FrontedService} || true
+                       echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
+                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
                        sleep 5
 
                        # Pause if delete is slow
                        while [[ $(
                                    aws cloudformation describe-stacks \
-                                     --stack-name ${CfnStackRoot}-R53AliasRes-${FrontedService} \
+                                     --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
                                      --query 'Stacks[].{Status:StackStatus}' \
                                      --out text 2> /dev/null | \
                                    grep -q DELETE_IN_PROGRESS
                                   )$? -eq 0 ]]
                        do
-                          echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${FrontedService} to delete..."
+                          echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${ProxyForService} to delete..."
                           sleep 30
                        done
 
-                       echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${FrontedService} stacks..."
-                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-ElbRes-${FrontedService} || true
+                       echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${ProxyForService} stacks..."
+                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} || true
                        sleep 5
 
                        # Pause if delete is slow
                        while [[ $(
                                    aws cloudformation describe-stacks \
-                                     --stack-name ${CfnStackRoot}-ElbRes-${FrontedService} \
+                                     --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
                                      --query 'Stacks[].{Status:StackStatus}' \
                                      --out text 2> /dev/null | \
                                    grep -q DELETE_IN_PROGRESS
                                   )$? -eq 0 ]]
                        do
-                          echo "Waiting for stack ${CfnStackRoot}-ElbRes-${FrontedService} to delete..."
+                          echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to delete..."
                           sleep 30
                        done
                     '''
@@ -127,8 +126,8 @@ pipeline {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
-                       echo "Attempting to create stack ${CfnStackRoot}-ElbRes-${FrontedService}..."
-                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-ElbRes-${FrontedService} \
+                       echo "Attempting to create stack ${CfnStackRoot}-ElbRes-${ProxyForService}..."
+                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
                            --template-body file://Templates/make_collibra_ELBv2.tmplt.json \
                            --parameters file://ELB.parms.json
                        sleep 5
@@ -136,19 +135,19 @@ pipeline {
                        # Pause if create is slow
                        while [[ $(
                                    aws cloudformation describe-stacks \
-                                     --stack-name ${CfnStackRoot}-ElbRes-${FrontedService} \
+                                     --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
                                      --query 'Stacks[].{Status:StackStatus}' \
                                      --out text 2> /dev/null | \
                                    grep -q CREATE_IN_PROGRESS
                                   )$? -eq 0 ]]
                        do
-                          echo "Waiting for stack ${CfnStackRoot}-ElbRes-${FrontedService} to finish create process..."
+                          echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to finish create process..."
                           sleep 30
                        done
 
                        if [[ $(
                                aws cloudformation describe-stacks \
-                                 --stack-name ${CfnStackRoot}-ElbRes-${FrontedService} \
+                                 --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
                                  --query 'Stacks[].{Status:StackStatus}' \
                                  --out text 2> /dev/null | \
                                grep -q CREATE_COMPLETE
@@ -178,14 +177,14 @@ pipeline {
                            },
                            {
                                "ParameterKey": "DependsOnStack",
-                               "ParameterValue": "${CfnStackRoot}-ElbRes-${FrontedService}"
+                               "ParameterValue": "${CfnStackRoot}-ElbRes-${ProxyForService}"
                            }
                        ]
                    /
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        echo "Bind a R53 Alias to the ELB"
-                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-R53AliasRes-${FrontedService} \
+                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
                            --template-body file://Templates/make_collibra_R53-ElbAlias.tmplt.json \
                            --parameters file://R53alias.parms.json
                        sleep 5
