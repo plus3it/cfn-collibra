@@ -186,7 +186,8 @@
             "CollibraSoftwareDir",
             "CollibraDataDir",
             "CollibraConsolePassword",
-            "CollibraRepoPassword"
+            "CollibraRepoPassword",
+            "EpelRepoName"
           ]
         },
         {
@@ -405,6 +406,11 @@
       "Description": "Location where Collibra application-software should be rooted",
       "Type": "String"
     },
+    "EpelRepoName": {
+      "Default": "epel",
+      "Description": "Name of yum repository from which to pull extra RPMs.",
+      "Type": "String"
+    },
     "InstanceRoleName": {
       "Default": "",
       "Description": "(Optional) IAM instance role-name to use for signalling",
@@ -608,6 +614,19 @@
                       " curl -kL ",
                       { "Ref": "BackupScript" },
                       " -o /usr/local/sbin/collibra-bkup.sh\n"
+                    ]
+                  ]
+                }
+              },
+              "02-install-jq": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "yum --enablerepo=",
+                      { "Ref": "EpelRepoName" },
+                      " install -y jq\n",
+                      "\n"
                     ]
                   ]
                 }

@@ -65,6 +65,7 @@ pipeline {
          string(name: 'BackupScript', description: 'URL to the backup script invoked by cron')
          string(name: 'BackupUserName', defaultValue: 'Admin', description: 'Collibra-console user-name to run backups under')
          string(name: 'BackupUserPassword', description: 'Password of Collibra-console user-name to run backups under')
+         string(name: 'EpelRepoName', defaultValue: 'epel', description: 'Name of yum repository from which to pull extra RPMs')
     }
 
     stages {
@@ -156,6 +157,10 @@ pipeline {
                              {
                                  "ParameterKey": "CollibraSoftwareDir",
                                  "ParameterValue": "${env.CollibraSoftwareDir}"
+                             },
+                             {
+                                 "ParameterKey": "EpelRepoName",
+                                 "ParameterValue": "${env.EpelRepoName}"
                              },
                              {
                                  "ParameterKey": "InstanceRoleName",
