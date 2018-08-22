@@ -46,7 +46,7 @@ pipeline {
          string(name: 'NoUpdates', defaultValue: 'false', description: 'Whether to prevent updating all installed RPMs as part of build process')
          string(name: 'PrivateIp', description: 'If set to a dotted-quad, attempt to set the requested private IP address on instance')
          string(name: 'ProvisionUser', defaultValue: 'ec2-user', description: 'Default login-user to create upon instance-launch')
-         string(name: 'PypiIndexUrl', description: 'Source from which to pull Pypi packages')
+         string(name: 'PypiIndexUrl', defaultValue: 'https://pypi.org/simple', description: 'Source from which to pull Pypi packages')
          string(name: 'RootVolumeSize', defaultValue: '20', description: 'How big to make the root EBS volume (ensure value specified is at least as big as the AMI-default)')
          string(name: 'SecurityGroupIds', description: 'Comma-separated list of EC2 security-groups to apply to the instance')
          string(name: 'SubnetId', description: 'Subnet-ID to deploy EC2 instance into')
