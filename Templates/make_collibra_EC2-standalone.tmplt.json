@@ -80,6 +80,11 @@
         { "Fn::Equals": [ { "Ref": "WatchmakerEnvironment" }, "" ] }
       ]
     },
+    "UseGroupKeyfile": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "AdminPubkeyURL" }, "" ] }
+      ]
+    },
     "UseKeyPair": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "KeyPairName" }, "" ] }
@@ -147,7 +152,9 @@
             "AmiId",
             "InstanceType",
             "RootVolumeSize",
+            "ProvisionUser",
             "KeyPairName",
+            "AdminPubkeyURL",
             "InstanceRoleName",
             "InstanceRoleProfile",
             "SubnetId",
@@ -160,7 +167,7 @@
         },
         {
           "Label": {
-            "default": "Application Volume"
+            "default": "Application Storage"
           },
           "Parameters": [
             "AppVolumeDevice",
@@ -171,7 +178,32 @@
         },
         {
           "Label": {
-            "default": "EC2 Watchmaker Configuration"
+            "default": "Application Configuration"
+          },
+          "Parameters": [
+            "CollibraInstallerUrl",
+            "CollibraDgcComponent",
+            "CollibraSoftwareDir",
+            "CollibraDataDir",
+            "CollibraConsolePassword",
+            "CollibraRepoPassword"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Backup Configuration"
+          },
+          "Parameters": [
+            "BackupBucket",
+            "BackupSchedule",
+            "BackupScript",
+            "BackupUserName",
+            "BackupUserPassword"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Watchmaker Configuration"
           },
           "Parameters": [
             "PypiIndexUrl",
@@ -800,7 +832,13 @@
           "configSets": {
             "launch": [
               "setup",
-              "admkey-install",
+              {
+                "Fn::If": [
+                  "UseGroupKeyfile",
+                  "admkey-install",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
               {
                 "Fn::If": [
                   "InstallCloudWatchAgent",
@@ -829,7 +867,13 @@
             ],
             "update": [
               "setup",
-              "admkey-install",
+              {
+                "Fn::If": [
+                  "UseGroupKeyfile",
+                  "admkey-install",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
               {
                 "Fn::If": [
                   "InstallUpdates",
