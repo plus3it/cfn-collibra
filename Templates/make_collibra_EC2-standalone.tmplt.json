@@ -80,6 +80,11 @@
         { "Fn::Equals": [ { "Ref": "WatchmakerEnvironment" }, "" ] }
       ]
     },
+    "UseGroupKeyfile": {
+      "Fn::Not": [
+        { "Fn::Equals": [ { "Ref": "AdminPubkeyURL" }, "" ] }
+      ]
+    },
     "UseKeyPair": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "KeyPairName" }, "" ] }
@@ -147,7 +152,9 @@
             "AmiId",
             "InstanceType",
             "RootVolumeSize",
+            "ProvisionUser",
             "KeyPairName",
+            "AdminPubkeyURL",
             "InstanceRoleName",
             "InstanceRoleProfile",
             "SubnetId",
@@ -160,7 +167,7 @@
         },
         {
           "Label": {
-            "default": "Application Volume"
+            "default": "Application Storage"
           },
           "Parameters": [
             "AppVolumeDevice",
@@ -171,7 +178,33 @@
         },
         {
           "Label": {
-            "default": "EC2 Watchmaker Configuration"
+            "default": "Application Configuration"
+          },
+          "Parameters": [
+            "CollibraInstallerUrl",
+            "CollibraDgcComponent",
+            "CollibraSoftwareDir",
+            "CollibraDataDir",
+            "CollibraConsolePassword",
+            "CollibraRepoPassword",
+            "EpelRepoName"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Backup Configuration"
+          },
+          "Parameters": [
+            "BackupBucket",
+            "BackupSchedule",
+            "BackupScript",
+            "BackupUserName",
+            "BackupUserPassword"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Watchmaker Configuration"
           },
           "Parameters": [
             "PypiIndexUrl",
@@ -293,6 +326,27 @@
       "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is false",
       "Type": "String"
     },
+    "BackupBucket": {
+      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) Name of the S3 bucket in which to store Collibra backups",
+      "Type": "String"
+    },
+    "BackupSchedule": {
+      "Default": "45 0 * * *",
+      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) When to run backups via Linux cron system (use \"cronie\" cron-format)",
+      "Type": "String"
+    },
+    "BackupScript": {
+      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) S3-hosted location backup script",
+      "Type": "String"
+    },
+    "BackupUserName": {
+      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) User-name (inside the Collibra console) with permissions to run backup jobs",
+      "Type": "String"
+    },
+    "BackupUserPassword": {
+      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) Password of user (inside the Collibra console) with permissions to run backup jobs",
+      "Type": "String"
+    },
     "CfnBootstrapUtilsUrl": {
       "AllowedPattern": "^http[s]?://.*\\.tar\\.gz$",
       "Default": "https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz",
@@ -350,6 +404,11 @@
       "AllowedPattern": "/.*",
       "Default": "/opt/collibra/software",
       "Description": "Location where Collibra application-software should be rooted",
+      "Type": "String"
+    },
+    "EpelRepoName": {
+      "Default": "epel",
+      "Description": "Name of yum repository from which to pull extra RPMs.",
       "Type": "String"
     },
     "InstanceRoleName": {
@@ -519,7 +578,7 @@
                 "owner": "root"
               },
               "/etc/cfn/scripts/admkey.sh": {
-              "content": {
+                "content": {
                   "Fn::Join": [
                     "",
                     [
@@ -543,6 +602,66 @@
               }
             }
           },
+          "configureBackups": {
+            "commands": {
+              "01-download-bkup-cron": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "install -Dbm 000755 -o root -g root /dev/null",
+                      " /usr/local/sbin/collibra-bkup.sh &&",
+                      " curl -kL ",
+                      { "Ref": "BackupScript" },
+                      " -o /usr/local/sbin/collibra-bkup.sh\n"
+                    ]
+                  ]
+                }
+              },
+              "02-install-jq": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "yum --enablerepo=",
+                      { "Ref": "EpelRepoName" },
+                      " install -y jq\n",
+                      "\n"
+                    ]
+                  ]
+                }
+              }
+            },
+            "files": {
+              "/etc/cron.d/backup-collibra": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "# Backup Collibra directly to S3\n",
+                      "#\n",
+                      "################################\n",
+                      "ADMIN=",
+                       { "Ref": "BackupUserName" },
+                       "\n",
+                      "PASSWD=",
+                       { "Ref": "BackupUserPassword" },
+                       "\n",
+                      "S3BUCKET=",
+                       { "Ref": "BackupBucket" },
+                       "\n",
+                       "\n",
+                      { "Ref": "BackupSchedule" },
+                       " root /usr/local/sbin/collibra-bkup.sh > /dev/null 2>&1\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000700",
+                "owner": "root"
+              }
+            }
+          },
           "collibrainstall": {
             "commands": {
               "01-get-collibra-installer": {
@@ -554,7 +673,7 @@
                       " /etc/cfn/files/dgc-linux-installer.sh &&",
                       " aws s3 cp ",
                       { "Ref": "CollibraInstallerUrl" },
-                      " - > /etc/cfn/files/dgc-linux-installer.sh"
+                      " - > /etc/cfn/files/dgc-linux-installer.sh\n"
                     ]
                   ]
                 }
@@ -732,7 +851,13 @@
           "configSets": {
             "launch": [
               "setup",
-              "admkey-install",
+              {
+                "Fn::If": [
+                  "UseGroupKeyfile",
+                  "admkey-install",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
               {
                 "Fn::If": [
                   "InstallCloudWatchAgent",
@@ -743,6 +868,13 @@
               "watchmaker-install",
               "watchmaker-launch",
               "collibrainstall",
+              {
+                "Fn::If": [
+                  "IsConsoleServer",
+                  "configureBackups",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
               "finalize",
               {
                 "Fn::If": [
@@ -754,7 +886,13 @@
             ],
             "update": [
               "setup",
-              "admkey-install",
+              {
+                "Fn::If": [
+                  "UseGroupKeyfile",
+                  "admkey-install",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
               {
                 "Fn::If": [
                   "InstallUpdates",
@@ -765,6 +903,13 @@
               "watchmaker-install",
               "watchmaker-update",
               "collibrainstall",
+              {
+                "Fn::If": [
+                  "IsConsoleServer",
+                  "configureBackups",
+                  { "Ref": "AWS::NoValue" }
+                ]
+              },
               "finalize",
               {
                 "Fn::If": [
@@ -1085,6 +1230,15 @@
                        "\n",
                       "DGC_REPO_PASSWD=",
                        { "Ref": "CollibraRepoPassword" },
+                       "\n",
+                      "DGC_BACKUP_SCHEDULE=",
+                       { "Ref": "BackupSchedule" },
+                       "\n",
+                      "DGC_BACKUP_USER_NAME=",
+                       { "Ref": "BackupUserName" },
+                       "\n",
+                      "DGC_BACKUP_USER_PASSWORD=",
+                       { "Ref": "BackupUserPassword" },
                        "\n"
                     ]
                   ]

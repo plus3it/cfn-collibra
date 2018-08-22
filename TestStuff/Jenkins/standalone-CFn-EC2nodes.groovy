@@ -19,12 +19,11 @@ pipeline {
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
-         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Sonarqube git project')
-         string(name: 'GitProjBranch', description: 'Project-branch to use from the Sonarqube git project')
+         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
+         string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
          string(name: 'TemplateUrl', description: 'S3-hosted URL for the EC2 template file')
          string(name: 'AdminPubkeyURL', defaultValue: '', description: '(Optional) URL of file containing admin groups SSH public-keys')
-
          string(name: 'AmiId', description: 'ID of the AMI to launch')
          string(name: 'AppVolumeDevice', defaultValue: 'false', description: 'Whether to attach a secondary volume to host application contents')
          string(name: 'AppVolumeMountPath', defaultValue: '/opt/collibra', description: 'Filesystem path to mount the extra app volume. Ignored if "AppVolumeDevice" is false')
@@ -35,7 +34,6 @@ pipeline {
          string(name: 'CloudWatchAgentUrl', defaultValue: 's3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip', description: '(Optional) S3 URL to CloudWatch Agent installer')
          string(name: 'CollibraConsolePassword', description: 'Password to link the Collibra DGC and Console services')
          string(name: 'CollibraDataDir', defaultValue: '/opt/collibra/data', description: 'Location for storage of Collibra application-data')
-         string(name: 'CollibraDgcComponent', description: 'Which Collibra element to deploy (CONSOLE|DGC|REPOSITORY|AGENT|JOBSERVER)')
          string(name: 'CollibraInstallerUrl', description: 'URL from which to download the Collibra installer SHAR-file')
          string(name: 'CollibraRepoPassword', description: 'Password to use for accessing the Repository database')
          string(name: 'CollibraSoftwareDir', defaultValue: '/opt/collibra/software', description: 'Location for storage of Collibra application-software')
@@ -48,7 +46,7 @@ pipeline {
          string(name: 'NoUpdates', defaultValue: 'false', description: 'Whether to prevent updating all installed RPMs as part of build process')
          string(name: 'PrivateIp', description: 'If set to a dotted-quad, attempt to set the requested private IP address on instance')
          string(name: 'ProvisionUser', defaultValue: 'ec2-user', description: 'Default login-user to create upon instance-launch')
-         string(name: 'PypiIndexUrl', description: 'Source from which to pull Pypi packages')
+         string(name: 'PypiIndexUrl', defaultValue: 'https://pypi.org/simple', description: 'Source from which to pull Pypi packages')
          string(name: 'RootVolumeSize', defaultValue: '20', description: 'How big to make the root EBS volume (ensure value specified is at least as big as the AMI-default)')
          string(name: 'SecurityGroupIds', description: 'Comma-separated list of EC2 security-groups to apply to the instance')
          string(name: 'SubnetId', description: 'Subnet-ID to deploy EC2 instance into')
@@ -59,6 +57,12 @@ pipeline {
          string(name: 'WatchmakerConfig', description: '(Optional) Path to a Watchmaker config file.  The config file path can be a remote source (i.e. http[s]://, s3://) or local directory (i.e. file://)')
          string(name: 'WatchmakerEnvironment', defaultValue: 'dev', description: 'What build environment to deploy instance to')
          string(name: 'WatchmakerOuPath', description: 'OU-path in which to create Active Directory computer object')
+         string(name: 'BackupBucket', description: 'S3 Bucket-name in which to store DGC backups')
+         string(name: 'BackupSchedule', defaultValue: '45 0 * * *', description: 'When, in cronie-format, to run backups')
+         string(name: 'BackupScript', description: 'URL to the backup script invoked by cron')
+         string(name: 'BackupUserName', defaultValue: 'Admin', description: 'Collibra-console user-name to run backups under')
+         string(name: 'BackupUserPassword', description: 'Password of Collibra-console user-name to run backups under')
+         string(name: 'EpelRepoName', defaultValue: 'epel', description: 'Name of yum repository from which to pull extra RPMs')
     }
 
     stages {
@@ -71,6 +75,26 @@ pipeline {
                 writeFile file: 'EC2.parms.json',
                    text: /
                          [
+                             {
+                                 "ParameterKey": "BackupBucket",
+                                 "ParameterValue": "${env.BackupBucket}"
+                             },
+                             {
+                                 "ParameterKey": "BackupSchedule",
+                                 "ParameterValue": "${env.BackupSchedule}"
+                             },
+                             {
+                                 "ParameterKey": "BackupScript",
+                                 "ParameterValue": "${env.BackupScript}"
+                             },
+                             {
+                                 "ParameterKey": "BackupUserName",
+                                 "ParameterValue": "${env.BackupUserName}"
+                             },
+                             {
+                                 "ParameterKey": "BackupUserPassword",
+                                 "ParameterValue": "${env.BackupUserPassword}"
+                             },
                              {
                                  "ParameterKey": "AdminPubkeyURL",
                                  "ParameterValue": "${env.AdminPubkeyURL}"
@@ -130,6 +154,10 @@ pipeline {
                              {
                                  "ParameterKey": "CollibraSoftwareDir",
                                  "ParameterValue": "${env.CollibraSoftwareDir}"
+                             },
+                             {
+                                 "ParameterKey": "EpelRepoName",
+                                 "ParameterValue": "${env.EpelRepoName}"
                              },
                              {
                                  "ParameterKey": "InstanceRoleName",
