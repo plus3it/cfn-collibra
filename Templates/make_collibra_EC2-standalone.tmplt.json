@@ -657,7 +657,7 @@
                   ]
                 },
                 "group": "root",
-                "mode": "000700",
+                "mode": "000644",
                 "owner": "root"
               }
             }
@@ -1303,6 +1303,7 @@
                     [
                       "watchmaker --log-level debug",
                       " --log-dir /var/log/watchmaker",
+                      " --exclude-states scap*scan",
                       " --no-reboot",
                       {
                         "Fn::If": [
@@ -1403,6 +1404,9 @@
                     ]
                   ]
                 }
+              },
+              "15-salt-nofips": {
+                "command": "salt-call --local ash.fips_disable"
               }
             }
           },
