@@ -10,6 +10,7 @@ PASSWD=${PASSWD:-UNDEF}
 S3BUCKET=${S3BUCKET:-UNDEF}
 SVCURL="http://127.0.0.1:4402"
 DATE=$(date "+%Y%m%d%H%M")
+INSTANCEID=$(curl -skL http://169.254.169.254/latest/meta-data/instance-id/)
 
 function GetEnvId {
    ENVIRONMENTJSON="$(
@@ -67,7 +68,7 @@ function FetchBkup {
    curl -skL -u "${ADMIN}":"${PASSWD}" \
      -H "Content-Type:application/x-www-form-urlencoded" \
      -X POST "${SVCURL}/rest/backup/file/${BKUPJOBID}" | \
-   aws s3 cp - "s3://${S3BUCKET}/DGC-Backup-${DATE}.zip" && \
+   aws s3 cp - "s3://${S3BUCKET}/Backups/${INSTANCEID}/DGC-Backup-${DATE}.zip" && \
    echo "Success" || echo "Failed"
 
 }
