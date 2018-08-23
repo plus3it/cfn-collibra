@@ -183,11 +183,38 @@ pipeline {
                    /
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
-                       echo "Bind a R53 Alias to the ELB"
+                       echo "Bind a Route53 Alias to the ELB"
                        aws cloudformation create-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
                            --template-body file://Templates/make_collibra_R53-ElbAlias.tmplt.json \
                            --parameters file://R53alias.parms.json
                        sleep 5
+
+                       # Pause if create is slow
+                       while [[ $(
+                                   aws cloudformation describe-stacks \
+                                     --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
+                                     --query 'Stacks[].{Status:StackStatus}' \
+                                     --out text 2> /dev/null | \
+                                   grep -q CREATE_IN_PROGRESS
+                                  )$? -eq 0 ]]
+                       do
+                          echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to finish create process..."
+                          sleep 30
+                       done
+
+                       if [[ $(
+                               aws cloudformation describe-stacks \
+                                 --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
+                                 --query 'Stacks[].{Status:StackStatus}' \
+                                 --out text 2> /dev/null | \
+                               grep -q CREATE_COMPLETE
+                              )$? -eq 0 ]]
+                       then
+                          echo "Stack-creation successful"
+                       else
+                          echo "Stack-creation ended with non-successful state"
+                          exit 1
+                       fi
                     '''
                 }
             }
