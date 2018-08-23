@@ -29,9 +29,9 @@ After initial deployment of the Collibra Console, it will be necessary to create
 Note that, prior to creating the backup user, it will be necessary to have:
 
 * Enabled SMTP relaying:
-    * If using SES for SMTP relay-service, enable un-sandboxed relay capability within the appropriate region.
+    * If using SES for SMTP relay-service, enable un-sandboxed relay capability within the appropriate region. See [Enabling SES Outbound Relaying](SES_Outbound.md).
     * If using a third-party relay-service, obtain relay credentials and configuration information.
-* Set up destination email account for the backup-user's password-reset link emails to be sent to.
+* Set up destination email account for the backup-user's password-reset link emails to be sent to. If an SES-managed address is desired, see [Enabling SES Inbound Email](SES_Inbound.md).
 * Successfully completed the `1.1 Mail configuration` console configuration task.
 
 Until the backup user is fully-created, the automated backup jobs will remain non-functional.
