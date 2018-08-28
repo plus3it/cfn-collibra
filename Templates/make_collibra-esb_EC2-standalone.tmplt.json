@@ -797,6 +797,12 @@
                   ]
                 }
               },
+              "07-firewalld-cbt": {
+                "command": "firewall-cmd --add-port=7777/tcp --permanent"
+              },
+              "07-firewalld-mdns": {
+                "command": "firewall-cmd --add-service=mdns --permanent"
+              },
               "10-daemon-reload": {
                 "command": "systemctl daemon-reload"
               },
