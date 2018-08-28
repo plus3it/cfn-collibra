@@ -327,24 +327,24 @@
       "Type": "String"
     },
     "BackupBucket": {
-      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) Name of the S3 bucket in which to store Collibra backups",
+      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Name of the S3 bucket in which to store Collibra backups",
       "Type": "String"
     },
     "BackupSchedule": {
       "Default": "45 0 * * *",
-      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) When to run backups via Linux cron system (use \"cronie\" cron-format)",
+      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") When to run backups via Linux cron system (use \"cronie\" cron-format)",
       "Type": "String"
     },
     "BackupScript": {
-      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) S3-hosted location backup script",
+      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") S3-hosted location backup script",
       "Type": "String"
     },
     "BackupUserName": {
-      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) User-name (inside the Collibra console) with permissions to run backup jobs",
+      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") User-name (inside the Collibra console) with permissions to run backup jobs",
       "Type": "String"
     },
     "BackupUserPassword": {
-      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) Password of user (inside the Collibra console) with permissions to run backup jobs",
+      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Password of user (inside the Collibra console) with permissions to run backup jobs",
       "Type": "String"
     },
     "CfnBootstrapUtilsUrl": {
