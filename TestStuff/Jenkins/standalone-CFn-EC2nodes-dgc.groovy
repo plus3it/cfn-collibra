@@ -243,20 +243,20 @@ pipeline {
                    /
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
-                       echo "Attempting to delete any active ${CfnStackRoot}-Ec2-${CollibraDgcComponent} stacks..."
-                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-Ec2-${CollibraDgcComponent} || true
+                       echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} stacks..."
+                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} || true
                        sleep 5
 
                        # Pause if delete is slow
                        while [[ $(
                                    aws cloudformation describe-stacks \
-                                     --stack-name ${CfnStackRoot}-Ec2-${CollibraDgcComponent} \
+                                     --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
                                      --query 'Stacks[].{Status:StackStatus}' \
                                      --out text 2> /dev/null | \
                                    grep -q DELETE_IN_PROGRESS
                                   )$? -eq 0 ]]
                        do
-                          echo "Waiting for stack ${CfnStackRoot}-Ec2-${CollibraDgcComponent} to delete..."
+                          echo "Waiting for stack ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} to delete..."
                           sleep 30
                        done
                     '''
@@ -267,8 +267,8 @@ pipeline {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
-                       echo "Attempting to create stack ${CfnStackRoot}-Ec2-${CollibraDgcComponent}..."
-                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-Ec2-${CollibraDgcComponent} \
+                       echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent}..."
+                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
                            --disable-rollback --template-url "${TemplateUrl}" \
                            --parameters file://EC2.parms.json
                        sleep 5
@@ -276,19 +276,19 @@ pipeline {
                        # Pause if create is slow
                        while [[ $(
                                    aws cloudformation describe-stacks \
-                                     --stack-name ${CfnStackRoot}-Ec2-${CollibraDgcComponent} \
+                                     --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
                                      --query 'Stacks[].{Status:StackStatus}' \
                                      --out text 2> /dev/null | \
                                    grep -q CREATE_IN_PROGRESS
                                   )$? -eq 0 ]]
                        do
-                          echo "Waiting for stack ${CfnStackRoot}-Ec2-${CollibraDgcComponent} to finish create process..."
+                          echo "Waiting for stack ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} to finish create process..."
                           sleep 30
                        done
 
                        if [[ $(
                                aws cloudformation describe-stacks \
-                                 --stack-name ${CfnStackRoot}-Ec2-${CollibraDgcComponent} \
+                                 --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
                                  --query 'Stacks[].{Status:StackStatus}' \
                                  --out text 2> /dev/null | \
                                grep -q CREATE_COMPLETE

@@ -29,21 +29,6 @@
         { "Fn::Equals": [ { "Ref": "NoUpdates" }, "true" ] }
       ]
     },
-    "IsAgentServer": {
-      "Fn::Equals": [ { "Ref": "CollibraDgcComponent" }, "AGENT" ]
-    },
-    "IsConsoleServer": {
-      "Fn::Equals": [ { "Ref": "CollibraDgcComponent" }, "CONSOLE" ]
-    },
-    "IsDgcServer": {
-      "Fn::Equals": [ { "Ref": "CollibraDgcComponent" }, "DGC" ]
-    },
-    "IsJobServer": {
-      "Fn::Equals": [ { "Ref": "CollibraDgcComponent" }, "JOBSERVER" ]
-    },
-    "IsRepositoryServer": {
-      "Fn::Equals": [ { "Ref": "CollibraDgcComponent" }, "REPOSITORY" ]
-    },
     "Reboot": {
       "Fn::Not": [
         { "Fn::Equals": [ { "Ref": "NoReboot" }, "true" ] }
@@ -101,44 +86,27 @@
       ]
     }
   },
-  "Description": "This template deploys the Collibra web-application onto a STIG-hardened EL7-based Linux instance",
+  "Description": "This template deploys the Mule Enterprise Service Bus (esb) onto a STIG-hardened EL7-based Linux instance",
   "Mappings": {
-    "CollibraNodeType": {
-      "AGENT": {
-        "FwPort": "4401",
-        "SystemdSvc": "collibra-agent"
-      },
-      "CONSOLE": {
-        "FwPort": "4402",
-        "SystemdSvc": "collibra-console"
-      },
-      "DGC": {
-        "FwPort": "4400",
-        "SystemdSvc": "collibra-agent"
-      },
-      "JOBSERVER": {
-        "FwPort": "4404",
-        "SystemdSvc": "collibra-agent"
-      },
-      "REPOSITORY": {
-        "FwPort": "4403",
-        "SystemdSvc": "collibra-agent"
-      }
-    },
     "InstanceTypeMap": {
       "c4.large": { "SupportsNvme": "false" },
       "c4.xlarge": { "SupportsNvme": "false" },
+      "c4.2xlarge": { "SupportsNvme": "false" },
       "c5.large": { "SupportsNvme": "true" },
       "c5.xlarge": { "SupportsNvme": "true" },
+      "c5.2xlarge": { "SupportsNvme": "true" },
       "m4.large": { "SupportsNvme": "false" },
       "m4.xlarge": { "SupportsNvme": "false" },
       "m5.large": { "SupportsNvme": "true" },
       "m5.xlarge": { "SupportsNvme": "true" },
-      "t2.large": { "SupportsNvme": "false" },
+      "t3.medium": { "SupportsNvme": "true" },
+      "t3.large": { "SupportsNvme": "true" },
+      "t3.xlarge": { "SupportsNvme": "true" },
+      "t3.2xlarge": { "SupportsNvme": "true" },
       "t2.medium": { "SupportsNvme": "false" },
-      "t2.micro": { "SupportsNvme": "false" },
-      "t2.small": { "SupportsNvme": "false" },
-      "t2.xlarge": { "SupportsNvme": "false" }
+      "t2.large": { "SupportsNvme": "false" },
+      "t2.xlarge": { "SupportsNvme": "false" },
+      "t2.2xlarge": { "SupportsNvme": "false" }
     }
   },
   "Metadata": {
@@ -178,28 +146,11 @@
         },
         {
           "Label": {
-            "default": "Application Configuration"
-          },
-          "Parameters": [
-            "CollibraInstallerUrl",
-            "CollibraDgcComponent",
-            "CollibraSoftwareDir",
-            "CollibraDataDir",
-            "CollibraConsolePassword",
-            "CollibraRepoPassword",
-            "EpelRepoName"
-          ]
-        },
-        {
-          "Label": {
             "default": "Backup Configuration"
           },
           "Parameters": [
             "BackupBucket",
-            "BackupSchedule",
-            "BackupScript",
-            "BackupUserName",
-            "BackupUserPassword"
+            "BackupSchedule"
           ]
         },
         {
@@ -237,7 +188,7 @@
     "Version": "1.4.3"
   },
   "Outputs": {
-    "CollibraHostLogGroupName": {
+    "EsbHostLogGroupName": {
       "Condition": "InstallCloudWatchAgent",
       "Description": "Log Group Name",
       "Value": { "Ref": "CollibraLogGroup" }
@@ -251,7 +202,7 @@
       },
       "Value": {
         "Fn::GetAtt": [
-          "CollibraHost",
+          "EsbHost",
           "AvailabilityZone"
         ]
       }
@@ -263,7 +214,7 @@
           "Fn::Sub": "${AWS::StackName}-InstanceID"
         }
       },
-      "Value": { "Ref": "CollibraHost" }
+      "Value": { "Ref": "EsbHost" }
     },
     "InstancePrivateIPv4": {
       "Description": "Instance private IPv4 IP address",
@@ -274,7 +225,7 @@
       },
       "Value": {
         "Fn::GetAtt": [
-          "CollibraHost",
+          "EsbHost",
           "PrivateIp"
         ]
       }
@@ -327,24 +278,12 @@
       "Type": "String"
     },
     "BackupBucket": {
-      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) Name of the S3 bucket in which to store Collibra backups",
+      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Name of the S3 bucket in which to store Collibra backups",
       "Type": "String"
     },
     "BackupSchedule": {
       "Default": "45 0 * * *",
-      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) When to run backups via Linux cron system (use \"cronie\" cron-format)",
-      "Type": "String"
-    },
-    "BackupScript": {
-      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) S3-hosted location backup script",
-      "Type": "String"
-    },
-    "BackupUserName": {
-      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) User-name (inside the Collibra console) with permissions to run backup jobs",
-      "Type": "String"
-    },
-    "BackupUserPassword": {
-      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set) Password of user (inside the Collibra console) with permissions to run backup jobs",
+      "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") When to run backups via Linux cron system (use \"cronie\" cron-format)",
       "Type": "String"
     },
     "CfnBootstrapUtilsUrl": {
@@ -365,52 +304,6 @@
       "Description": "(Optional) S3 URL to CloudWatch Agent installer. Example: s3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip",
       "Type": "String"
     },
-    "CollibraConsolePassword": {
-      "AllowedPattern": "^[a-zA-Z0-9]{8,12}$",
-      "Description": "Password to link the Collibra DGC and Console services",
-      "NoEcho": "True",
-      "Type": "String"
-    },
-    "CollibraDataDir": {
-      "AllowedPattern": "/.*",
-      "Default": "/opt/collibra/data",
-      "Description": "Location where Collibra application-data should be rooted",
-      "Type": "String"
-    },
-    "CollibraDgcComponent": {
-      "AllowedValues": [
-        "CONSOLE",
-        "JOBSERVER",
-        "AGENT",
-        "REPOSITORY",
-        "DGC"
-      ],
-      "Description": "Which Collibra element to deploy",
-      "Type": "String"
-    },
-    "CollibraInstallerUrl": {
-      "AllowedPattern": "^$|^s3://.*$",
-      "Default": "",
-      "Description": "URL from which to download the Collibra installer SHAR-file",
-      "Type": "String"
-    },
-    "CollibraRepoPassword": {
-      "AllowedPattern": "^[a-zA-Z0-9]{8,12}$",
-      "Description": "Password to use for accessing the Repository database",
-      "NoEcho": "True",
-      "Type": "String"
-    },
-    "CollibraSoftwareDir": {
-      "AllowedPattern": "/.*",
-      "Default": "/opt/collibra/software",
-      "Description": "Location where Collibra application-software should be rooted",
-      "Type": "String"
-    },
-    "EpelRepoName": {
-      "Default": "epel",
-      "Description": "Name of yum repository from which to pull extra RPMs.",
-      "Type": "String"
-    },
     "InstanceRoleName": {
       "Default": "",
       "Description": "(Optional) IAM instance role-name to use for signalling",
@@ -423,26 +316,51 @@
     },
     "InstanceType": {
       "AllowedValues": [
-        "t2.micro",
-        "t2.small",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c5.large",
+        "c5.xlarge",
+        "c5.2xlarge",
+        "m4.large",
+        "m4.xlarge",
+        "m5.large",
+        "m5.xlarge",
+        "t3.medium",
+        "t3.large",
+        "t3.xlarge",
+        "t3.2xlarge",
         "t2.medium",
         "t2.large",
         "t2.xlarge",
-        "c4.large",
-        "c4.xlarge",
-        "m4.large",
-        "m4.xlarge",
-        "c5.large",
-        "c5.xlarge",
-        "m5.large",
-        "m5.xlarge"
+        "t2.2xlarge"
       ],
-      "Default": "t2.micro",
+      "Default": "t2.large",
       "Description": "Amazon EC2 instance type",
       "Type": "String"
     },
     "KeyPairName": {
       "Description": "(Optional) Public/private key pairs allow you to securely connect to your instance after it launches",
+      "Type": "String"
+    },
+    "MuleConnectorZipUri": {
+      "AllowedPattern": "^http[s]?://.*$",
+      "Description": "URL to the curl-fetchable Collibra DGC Connector software for Mule ESB",
+      "Type": "String"
+    },
+    "MuleDomainZipUri": {
+      "AllowedPattern": "^http[s]?://.*$",
+      "Description": "URL to the curl-fetchable Collibra Domain software for Mule ESB",
+      "Type": "String"
+    },
+    "MuleLicenseUri": {
+      "AllowedPattern": "^http[s]?://.*$",
+      "Description": "URL to the curl-fetchable Mule ESB software-license.",
+      "Type": "String"
+    },
+    "MuleUri": {
+      "AllowedPattern": "^http[s]?://.*$",
+      "Description": "URL to the curl-fetchable Mule ESB software",
       "Type": "String"
     },
     "NoPublicIp": {
@@ -555,7 +473,7 @@
     }
   },
   "Resources": {
-    "CollibraHost": {
+    "EsbHost": {
       "CreationPolicy": {
         "ResourceSignal": {
           "Count": "1",
@@ -602,252 +520,6 @@
               }
             }
           },
-          "configureBackups": {
-            "commands": {
-              "01-download-bkup-cron": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "install -Dbm 000755 -o root -g root /dev/null",
-                      " /usr/local/sbin/collibra-bkup.sh &&",
-                      " curl -kL ",
-                      { "Ref": "BackupScript" },
-                      " -o /usr/local/sbin/collibra-bkup.sh\n"
-                    ]
-                  ]
-                }
-              },
-              "02-install-jq": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "yum --enablerepo=",
-                      { "Ref": "EpelRepoName" },
-                      " install -y jq\n",
-                      "\n"
-                    ]
-                  ]
-                }
-              }
-            },
-            "files": {
-              "/etc/cron.d/backup-collibra": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "# Backup Collibra directly to S3\n",
-                      "#\n",
-                      "################################\n",
-                      "ADMIN=",
-                       { "Ref": "BackupUserName" },
-                       "\n",
-                      "PASSWD=",
-                       { "Ref": "BackupUserPassword" },
-                       "\n",
-                      "S3BUCKET=",
-                       { "Ref": "BackupBucket" },
-                       "\n",
-                       "\n",
-                      { "Ref": "BackupSchedule" },
-                       " root /usr/local/sbin/collibra-bkup.sh > /dev/null 2>&1\n"
-                    ]
-                  ]
-                },
-                "group": "root",
-                "mode": "000644",
-                "owner": "root"
-              }
-            }
-          },
-          "collibrainstall": {
-            "commands": {
-              "01-get-collibra-installer": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "install -Dbm 000755 -o root -g root /dev/null",
-                      " /etc/cfn/files/dgc-linux-installer.sh &&",
-                      " aws s3 cp ",
-                      { "Ref": "CollibraInstallerUrl" },
-                      " - > /etc/cfn/files/dgc-linux-installer.sh\n"
-                    ]
-                  ]
-                }
-              },
-              "02-relax-tmp": {
-                "command": "mount -o remount,exec /tmp"
-              },
-              "03-relax-selinux": {
-                "command": "setenforce 0"
-              },
-              "04-precreate-user": {
-                "command": "useradd -s /bin/true collibra"
-              },
-              "05-runinstaller": {
-                "command": "bash -xe /etc/cfn/files/collibra-wrapper.sh"
-              },
-              "06-enable-service": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "systemctl enable ",
-                      {
-                        "Fn::FindInMap": [
-                          "CollibraNodeType",
-                          { "Ref": "CollibraDgcComponent" },
-                          "SystemdSvc"
-                        ]
-                      },
-                      "\n"
-                    ]
-                  ]
-                }
-              },
-              "07-open-firewall-port": {
-                "command": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "firewall-cmd --add-port=",
-                      {
-                        "Fn::FindInMap": [
-                          "CollibraNodeType",
-                          { "Ref": "CollibraDgcComponent" },
-                          "FwPort"
-                        ]
-                      },
-                      "/tcp --permanent\n",
-                      "firewall-cmd --add-port=4401/tcp --permanent\n"
-                    ]
-                  ]
-                }
-              }
-            },
-            "files": {
-              "/etc/cfn/files/collibra.answer.json": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "{\n",
-                      "    \"installationDirectory\": \"",
-                           { "Ref": "CollibraSoftwareDir" },
-                           "\",\n",
-                      "    \"dataDirectory\": \"",
-                           { "Ref": "CollibraDataDir" },
-                           "\",\n",
-                      {
-                        "Fn::If": [
-                          "IsDgcServer",
-                          {
-                            "Fn::Join": [
-                              "",
-                              [
-                                "    \"repoDgcPassword\": \"",
-                                     { "Ref": "CollibraConsolePassword" },
-                                     "\",\n",
-                                "    \"dgcMinMemory\": 1024,\n",
-                                "    \"dgcMaxMemory\": 2048,\n",
-                                "    \"dgcPort\": 4400,\n",
-                                "    \"dgcShutdownPort\": 4430,\n",
-                                "    \"dgcContextPath\": \"\",\n"
-                              ]
-                            ]
-                          },
-                          { "Ref": "AWS::NoValue" }
-                        ]
-                      },
-                      {
-                        "Fn::If": [
-                          "IsConsoleServer",
-                          {
-                            "Fn::Join": [
-                              "",
-                              [
-                                "    \"consolePort\": 4402,\n",
-                                "    \"consoleContextPath\": \"\",\n"
-                              ]
-                            ]
-                          },
-                          { "Ref": "AWS::NoValue" }
-                        ]
-                      },
-                      {
-                        "Fn::If": [
-                          "IsJobServer",
-                          "    \"jobserverPort\": 4404,\n",
-                          { "Ref": "AWS::NoValue" }
-                        ]
-                      },
-                      {
-                        "Fn::If": [
-                          "IsRepositoryServer",
-                          {
-                            "Fn::Join": [
-                              "",
-                              [
-                                "    \"repositoryMemory\": 1024,\n",
-                                "    \"repositoryPort\": 4403,\n",
-                                "    \"repoAdminPassword\": \"",
-                                     { "Ref": "CollibraRepoPassword" },
-                                     "\",\n"
-                              ]
-                            ]
-                          },
-                          { "Ref": "AWS::NoValue" }
-                        ]
-                      },
-                      {
-                        "Fn::If": [
-                          "IsAgentServer",
-                          "    \"agentPort\": 4401,\n",
-                          { "Ref": "AWS::NoValue" }
-                        ]
-                      },
-                      "    \"upgradePath\": [ \"5.4\" ],\n",
-                      "    \"initDaemon\": \"SYSTEMD\",\n",
-                      "    \"componentSet\": [ \"",
-                           { "Ref": "CollibraDgcComponent" },
-                           "\" ]\n",
-                      "}\n"
-                    ]
-                  ]
-                },
-                "group": "root",
-                "mode": "000600",
-                "owner": "root"
-              },
-              "/etc/cfn/files/collibra-wrapper.sh": {
-                "content": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "#!/bin/bash\n",
-                      "export SHELL=/bin/bash\n",
-                      "export HOME=/root\n",
-                      "export USERNAME=root\n",
-                      "export TERM=vt100\n",
-                      "\n",
-                      "source /etc/profile\n",
-                      "source /root/.bash_profile\n",
-                      "\n",
-                      "umask 022\n",
-                      "\n",
-                      "/etc/cfn/files/dgc-linux-installer.sh -- -c /etc/cfn/files/collibra.answer.json\n"
-                    ]
-                  ]
-                },
-                "group": "root",
-                "mode": "000755",
-                "owner": "root"
-              }
-            }
-          },
           "configSets": {
             "launch": [
               "setup",
@@ -867,14 +539,7 @@
               },
               "watchmaker-install",
               "watchmaker-launch",
-              "collibrainstall",
-              {
-                "Fn::If": [
-                  "IsConsoleServer",
-                  "configureBackups",
-                  { "Ref": "AWS::NoValue" }
-                ]
-              },
+              "esbSetup",
               "finalize",
               {
                 "Fn::If": [
@@ -902,14 +567,7 @@
               },
               "watchmaker-install",
               "watchmaker-update",
-              "collibrainstall",
-              {
-                "Fn::If": [
-                  "IsConsoleServer",
-                  "configureBackups",
-                  { "Ref": "AWS::NoValue" }
-                ]
-              },
+              "esbSetup",
               "finalize",
               {
                 "Fn::If": [
@@ -1054,6 +712,136 @@
               }
             }
           },
+          "esbSetup": {
+            "commands": {
+              "01-add-mule-user": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "useradd -s /bin/true -d ",
+                      { "Ref": "AppVolumeMountPath" },
+                      "/mule-esb -m mule\n"
+                    ]
+                  ]
+                }
+              },
+              "02-get-muleEsb": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "su -s /bin/bash - mule -c \"curl -kL ",
+                        { "Ref": "MuleUri" },
+                        " | tar --strip-components 1 -zxvf -\"\n"
+                    ]
+                  ]
+                }
+              },
+              "03-get-muleDomain": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "su -s /bin/bash - mule -c \"cd domains && curl -OkL ",
+                        { "Ref": "MuleDomainZipUri" },
+                        "\"\n"
+                    ]
+                  ]
+                }
+              },
+              "04-get-muleConnector": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "su -s /bin/bash - mule -c \"cd apps && curl -OkL ",
+                        { "Ref": "MuleConnectorZipUri" },
+                        "\"\n"
+                    ]
+                  ]
+                }
+              },
+              "05-get-muleLicense": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "su -s /bin/bash - mule -c \"curl -kL ",
+                        { "Ref": "MuleLicenseUri" },
+                        " -o mule-ee-license.lic\"\n"
+                    ]
+                  ]
+                }
+              },
+              "06-install-muleLicense": {
+                "command": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "su -s /bin/bash - mule -c \"bin/mule -installLicense ",
+                        " mule-ee-license.lic\"\n"
+                    ]
+                  ]
+                }
+              },
+              "07-firewalld-cbt": {
+                "command": "firewall-offline-cmd --add-port=7777/tcp"
+              },
+              "07-firewalld-mdns": {
+                "command": "firewall-offline-cmd --add-service=mdns"
+              },
+              "10-daemon-reload": {
+                "command": "systemctl daemon-reload"
+              },
+              "11-enable-esb": {
+                "command": "systemctl enable mule-esb.service"
+              },
+              "12-enable-esb": {
+                "command": "systemctl start mule-esb.service"
+              }
+            },
+            "files": {
+              "/usr/lib/systemd/system/mule-esb.service": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[Unit]\n",
+                      "Description=Mule ESB\n",
+                      "After=network.target network-online.target\n",
+                      "Wants=network-online.target\n",
+                      "\n",
+                      "[Service]\n",
+                      "ExecStart=",
+                        { "Ref": "AppVolumeMountPath" },
+                        "/mule-esb/bin/mule start\n",
+                      "ExecStop=",
+                        { "Ref": "AppVolumeMountPath" },
+                        "/mule-esb/bin/mule stop\n",
+                      "ExecReload=",
+                        { "Ref": "AppVolumeMountPath" },
+                        "/mule-esb/bin/mule restart\n",
+                      "Group=mule\n",
+                      "PIDFile=",
+                        { "Ref": "AppVolumeMountPath" },
+                        "/mule-esb/bin/.mule_ee.pid\n",
+                      "Restart=always\n",
+                      "RestartSec=30\n",
+                      "User=mule\n",
+                      "Type=forking\n",
+                      "\n",
+                      "[Install]\n",
+                      "WantedBy=multi-user.target\n"
+                    ]
+                  ]
+                },
+                "group": "root",
+                "mode": "000644",
+                "owner": "root"
+              }
+            }
+          },
           "finalize": {
             "commands": {
               "10-signal-success": {
@@ -1064,7 +852,7 @@
                       "cfn-signal -e 0",
                       " --stack ",
                       { "Ref": "AWS::StackName" },
-                      " --resource CollibraHost",
+                      " --resource EsbHost",
                       {
                         "Fn::If": [
                           "AssignInstanceRole",
@@ -1177,11 +965,11 @@
                     [
                       "[cfn-auto-reloader-hook]\n",
                       "triggers=post.update\n",
-                      "path=Resources.CollibraHost.Metadata\n",
+                      "path=Resources.EsbHost.Metadata\n",
                       "action=cfn-init -v -c update",
                       " --stack ",
                       { "Ref": "AWS::StackName" },
-                      " --resource CollibraHost",
+                      " --resource EsbHost",
                       {
                         "Fn::If": [
                           "AssignInstanceRole",
@@ -1225,20 +1013,20 @@
                   "Fn::Join": [
                     "",
                     [
-                      "DGC_CONSOLE_PASSWD=",
-                       { "Ref": "CollibraConsolePassword" },
+                      "MULE_MAIN_SOFTWARE=",
+                       { "Ref": "MuleUri" },
                        "\n",
-                      "DGC_REPO_PASSWD=",
-                       { "Ref": "CollibraRepoPassword" },
+                      "MULE_LICENSE=",
+                       { "Ref": "MuleLicenseUri" },
                        "\n",
-                      "DGC_BACKUP_SCHEDULE=",
+                      "MULE_DOMAIN_SOFTWARE=",
+                       { "Ref": "MuleDomainZipUri" },
+                       "\n",
+                      "MULE_CONNECTOR_SOFTWARE=",
+                       { "Ref": "MuleConnectorZipUri" },
+                       "\n",
+                      "MULE_BACKUP_SCHEDULE=",
                        { "Ref": "BackupSchedule" },
-                       "\n",
-                      "DGC_BACKUP_USER_NAME=",
-                       { "Ref": "BackupUserName" },
-                       "\n",
-                      "DGC_BACKUP_USER_PASSWORD=",
-                       { "Ref": "BackupUserPassword" },
                        "\n"
                     ]
                   ]
@@ -1404,9 +1192,6 @@
                     ]
                   ]
                 }
-              },
-              "15-salt-nofips": {
-                "command": "salt-call --local ash.fips_disable"
               }
             }
           },
@@ -1748,7 +1533,7 @@
                 "cfn-init -v -c launch",
                 " --stack ",
                 { "Ref": "AWS::StackName" },
-                " --resource CollibraHost",
+                " --resource EsbHost",
                 {
                   "Fn::If": [
                     "AssignInstanceRole",
@@ -1783,7 +1568,7 @@
                 " cfn-signal -e 1",
                 "  --stack ",
                 { "Ref": "AWS::StackName" },
-                "  --resource CollibraHost",
+                "  --resource EsbHost",
                 {
                   "Fn::If": [
                     "AssignInstanceRole",
