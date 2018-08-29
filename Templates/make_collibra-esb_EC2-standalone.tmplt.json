@@ -86,44 +86,27 @@
       ]
     }
   },
-  "Description": "This template deploys the Collibra web-application onto a STIG-hardened EL7-based Linux instance",
+  "Description": "This template deploys the Mule Enterprise Service Bus (esb) onto a STIG-hardened EL7-based Linux instance",
   "Mappings": {
-    "CollibraNodeType": {
-      "AGENT": {
-        "FwPort": "4401",
-        "SystemdSvc": "collibra-agent"
-      },
-      "CONSOLE": {
-        "FwPort": "4402",
-        "SystemdSvc": "collibra-console"
-      },
-      "DGC": {
-        "FwPort": "4400",
-        "SystemdSvc": "collibra-agent"
-      },
-      "JOBSERVER": {
-        "FwPort": "4404",
-        "SystemdSvc": "collibra-agent"
-      },
-      "REPOSITORY": {
-        "FwPort": "4403",
-        "SystemdSvc": "collibra-agent"
-      }
-    },
     "InstanceTypeMap": {
       "c4.large": { "SupportsNvme": "false" },
       "c4.xlarge": { "SupportsNvme": "false" },
+      "c4.2xlarge": { "SupportsNvme": "false" },
       "c5.large": { "SupportsNvme": "true" },
       "c5.xlarge": { "SupportsNvme": "true" },
+      "c5.2xlarge": { "SupportsNvme": "true" },
       "m4.large": { "SupportsNvme": "false" },
       "m4.xlarge": { "SupportsNvme": "false" },
       "m5.large": { "SupportsNvme": "true" },
       "m5.xlarge": { "SupportsNvme": "true" },
-      "t2.large": { "SupportsNvme": "false" },
+      "t3.medium": { "SupportsNvme": "true" },
+      "t3.large": { "SupportsNvme": "true" },
+      "t3.xlarge": { "SupportsNvme": "true" },
+      "t3.2xlarge": { "SupportsNvme": "true" },
       "t2.medium": { "SupportsNvme": "false" },
-      "t2.micro": { "SupportsNvme": "false" },
-      "t2.small": { "SupportsNvme": "false" },
-      "t2.xlarge": { "SupportsNvme": "false" }
+      "t2.large": { "SupportsNvme": "false" },
+      "t2.xlarge": { "SupportsNvme": "false" },
+      "t2.2xlarge": { "SupportsNvme": "false" }
     }
   },
   "Metadata": {
@@ -333,21 +316,26 @@
     },
     "InstanceType": {
       "AllowedValues": [
-        "t2.micro",
-        "t2.small",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c5.large",
+        "c5.xlarge",
+        "c5.2xlarge",
+        "m4.large",
+        "m4.xlarge",
+        "m5.large",
+        "m5.xlarge",
+        "t3.medium",
+        "t3.large",
+        "t3.xlarge",
+        "t3.2xlarge",
         "t2.medium",
         "t2.large",
         "t2.xlarge",
-        "c4.large",
-        "c4.xlarge",
-        "m4.large",
-        "m4.xlarge",
-        "c5.large",
-        "c5.xlarge",
-        "m5.large",
-        "m5.xlarge"
+        "t2.2xlarge"
       ],
-      "Default": "t2.micro",
+      "Default": "t2.large",
       "Description": "Amazon EC2 instance type",
       "Type": "String"
     },
@@ -801,7 +789,7 @@
                 "command": "firewall-offline-cmd --add-port=7777/tcp"
               },
               "07-firewalld-mdns": {
-                "command": firewall-offline-cmd --add-service=mdns"
+                "command": "firewall-offline-cmd --add-service=mdns"
               },
               "10-daemon-reload": {
                 "command": "systemctl daemon-reload"
