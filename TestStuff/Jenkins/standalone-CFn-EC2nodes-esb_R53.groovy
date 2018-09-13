@@ -40,8 +40,6 @@ pipeline {
          string(name: 'KeyPairName', description: 'Registered SSH key used to provision the node')
          string(name: 'MuleUri', description: 'A curl-fetchable URL for the Mule ESB software' )
          string(name: 'MuleLicenseUri', description: 'A curl-fetchable URL for the Mule ESB license file')
-         string(name: 'MuleDomainZipUri', description: 'A curl-fetchable URL for the Mule ESB domain ZIP-file')
-         string(name: 'MuleConnectorZipUri', description: 'A curl-fetchable URL for the Collibra Connector ZIP-file')
          string(name: 'NoPublicIp', defaultValue: 'true', description: 'Whether to set a public IP ("true" means "dont")')
          string(name: 'NoReboot', defaultValue: 'false', description: 'Whether to prevent the instance from rebooting at completion of build')
          string(name: 'NoUpdates', defaultValue: 'false', description: 'Whether to prevent updating all installed RPMs as part of build process')
@@ -131,14 +129,6 @@ pipeline {
                              {
                                  "ParameterKey": "KeyPairName",
                                  "ParameterValue": "${env.KeyPairName}"
-                             },
-                             {
-                                 "ParameterKey": "MuleConnectorZipUri",
-                                 "ParameterValue": "${env.MuleConnectorZipUri}"
-                             },
-                             {
-                                 "ParameterKey": "MuleDomainZipUri",
-                                 "ParameterValue": "${env.MuleDomainZipUri}"
                              },
                              {
                                  "ParameterKey": "MuleLicenseUri",
