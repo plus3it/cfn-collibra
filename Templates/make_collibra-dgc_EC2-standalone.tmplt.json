@@ -13,30 +13,6 @@
                 }
             ]
         },
-        "AssignPublicIp": {
-            "Fn::Not": [
-                {
-                    "Fn::Equals": [
-                        {
-                            "Ref": "NoPublicIp"
-                        },
-                        "true"
-                    ]
-                }
-            ]
-        },
-        "AssignStaticPrivateIp": {
-            "Fn::Not": [
-                {
-                    "Fn::Equals": [
-                        {
-                            "Ref": "PrivateIp"
-                        },
-                        ""
-                    ]
-                }
-            ]
-        },
         "CreateAppVolume": {
             "Fn::Equals": [
                 {
