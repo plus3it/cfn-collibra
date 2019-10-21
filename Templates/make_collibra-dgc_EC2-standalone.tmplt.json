@@ -109,6 +109,14 @@
                 "REPOSITORY"
             ]
         },
+        "IsSearchServer": {
+            "Fn::Equal": [
+                {
+                    "Ref": "CollibraDgcComponent"
+                },
+                "SEARCH"
+            ]
+        },
         "Reboot": {
             "Fn::Not": [
                 {
@@ -236,23 +244,33 @@
     "Mappings": {
         "CollibraNodeType": {
             "AGENT": {
+                "AddlFwPort": "",
                 "FwPort": "4401",
                 "SystemdSvc": "collibra-agent"
             },
             "CONSOLE": {
+                "AddlFwPort": "",
                 "FwPort": "4402",
                 "SystemdSvc": "collibra-console"
             },
             "DGC": {
+                "AddlFwPort": "",
                 "FwPort": "4400",
                 "SystemdSvc": "collibra-agent"
             },
             "JOBSERVER": {
+                "AddlFwPort": "",
                 "FwPort": "4404",
                 "SystemdSvc": "collibra-agent"
             },
             "REPOSITORY": {
+                "AddlFwPort": "",
                 "FwPort": "4403",
+                "SystemdSvc": "collibra-agent"
+            },
+            "SEARCH": {
+                "AddlFwPort": "4422",
+                "FwPort": "4421",
                 "SystemdSvc": "collibra-agent"
             }
         },
@@ -316,8 +334,6 @@
                         "InstanceRoleProfile",
                         "SubnetId",
                         "SecurityGroupIds",
-                        "PrivateIp",
-                        "NoPublicIp",
                         "NoReboot",
                         "NoUpdates"
                     ]
@@ -378,8 +394,6 @@
                         "default": "CloudFormation Configuration"
                     },
                     "Parameters": [
-                        "CfnGetPipUrl",
-                        "CfnBootstrapUtilsUrl",
                         "CloudWatchAgentUrl",
                         "ToggleCfnInitUpdate"
                     ]
@@ -508,18 +522,6 @@
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Password of user (inside the Collibra console) with permissions to run backup jobs",
             "Type": "String"
         },
-        "CfnBootstrapUtilsUrl": {
-            "AllowedPattern": "^http[s]?://.*\\.tar\\.gz$",
-            "Default": "https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz",
-            "Description": "URL to aws-cfn-bootstrap-latest.tar.gz",
-            "Type": "String"
-        },
-        "CfnGetPipUrl": {
-            "AllowedPattern": "^http[s]?://.*\\.py$",
-            "Default": "https://bootstrap.pypa.io/2.6/get-pip.py",
-            "Description": "URL to get-pip.py",
-            "Type": "String"
-        },
         "CloudWatchAgentUrl": {
             "AllowedPattern": "^$|^s3://.*$",
             "Default": "",
@@ -544,7 +546,8 @@
                 "JOBSERVER",
                 "AGENT",
                 "REPOSITORY",
-                "DGC"
+                "DGC",
+                "SEARCH"
             ],
             "Description": "Which Collibra element to deploy",
             "Type": "String"
@@ -606,15 +609,6 @@
             "Description": "(Optional) Public/private key pairs allow you to securely connect to your instance after it launches",
             "Type": "String"
         },
-        "NoPublicIp": {
-            "AllowedValues": [
-                "false",
-                "true"
-            ],
-            "Default": "true",
-            "Description": "Controls whether to assign the instance a public IP. Recommended to leave at \"true\" _unless_ launching in a public subnet",
-            "Type": "String"
-        },
         "NoReboot": {
             "AllowedValues": [
                 "false",
@@ -631,11 +625,6 @@
             ],
             "Default": "false",
             "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, Watchmaker _always_ installs updates)",
-            "Type": "String"
-        },
-        "PrivateIp": {
-            "Default": "",
-            "Description": "(Optional) Set a static, primary private IP. Leave blank to auto-select a free IP",
             "Type": "String"
         },
         "ProvisionUser": {
@@ -798,7 +787,22 @@
                             "04-precreate-user": {
                                 "command": "useradd -s /bin/true collibra"
                             },
-                            "05-runinstaller": {
+                            "05A-set-file-descriptor-max": {
+                                "command": "ulimit -n 65536 && echo '*     soft   nofile  1024\n*     hard   nofile  65536' >> /etc/security/limits.conf"
+                            },
+                            "05B-set-nproc-max": {
+                                "command": "ulimit -u 4096 && echo '*     soft   nproc  4096\n*     hard   nproc  4096' >> /etc/security/limits.conf"
+                            },
+                            "05C-set-fsize-limit": {
+                                "command": "ulimit -f unlimited && echo '*     soft   fsize  unlimited\n*     hard   fsize  unlimited' >> /etc/security/limits.conf"
+                            },
+                            "05D-set-as-limit": {
+                                "command": "ulimit -v unlimited && echo '*     soft   as  unlimited\n*     hard   as  unlimited' >> /etc/security/limits.conf"
+                            },
+                            "05E-set-mmap-limit": {
+                                "command": "sysctl -w vm.max_map_count=262144 && echo '# set mmap value for Collibra/ElasticSearch\nvm.max_map_count=262144' >> /etc/sysctl.conf"
+                            },
+                            "05F-runinstaller": {
                                 "command": "bash -xe /etc/cfn/files/collibra-wrapper.sh"
                             },
                             "06-enable-service": {
@@ -838,6 +842,39 @@
                                             },
                                             "/tcp --permanent\n",
                                             "firewall-cmd --add-port=4401/tcp --permanent\n"
+                                        ]
+                                    ]
+                                }
+                            },
+                            "07A-open-addl-firewall-port": {
+                                "command": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            {
+                                                "Fn::If": [
+                                                    "IsSearchServer",
+                                                    {
+                                                        "Fn::Join": [
+                                                            "",
+                                                            [
+                                                                "firewall-cmd --add-port=",
+                                                                {
+                                                                    "Fn::FindInMap": [
+                                                                        "CollibraNodeType",
+                                                                        {
+                                                                            "Ref": "CollibraDgcComponent"
+                                                                        },
+                                                                        "AddlFwPort"
+                                                                    ]
+                                                                },
+                                                                "/tcp --permanent\n"
+                                                            ]
+                                                        ]
+                                                    },
+                                                    "echo 'Not a search server, no additional FW port\n'"
+                                                ]
+                                            }
                                         ]
                                     ]
                                 }
@@ -928,6 +965,24 @@
                                             },
                                             {
                                                 "Fn::If": [
+                                                    "IsSearchServer",
+                                                    {
+                                                        "Fn::Join": [
+                                                            "",
+                                                            [
+                                                                "    \"searchHttpPort\": 4421,\n",
+                                                                "    \"searchTransportPort\": 4422,\n",
+                                                                "    \"searchmemory\": 2048,\n"
+                                                            ]
+                                                        ]
+                                                    },
+                                                    {
+                                                        "Ref": "AWS::NoValue"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "Fn::If": [
                                                     "IsJobServer",
                                                     "    \"jobserverPort\": 4404,\n",
                                                     {
@@ -966,7 +1021,6 @@
                                                     }
                                                 ]
                                             },
-                                            "    \"upgradePath\": [ \"5.4\" ],\n",
                                             "    \"initDaemon\": \"SYSTEMD\",\n",
                                             "    \"componentSet\": [ \"",
                                             {
@@ -1543,18 +1597,14 @@
                                                 "Ref": "PypiIndexUrl"
                                             },
                                             "\n",
-                                            "curl --silent --show-error --retry 5 -L ",
-                                            {
-                                                "Ref": "CfnGetPipUrl"
-                                            },
-                                            " | python - --index-url=\"$PYPI_URL\" 'wheel<0.30.0;python_version<\"2.7\"' 'wheel;python_version>=\"2.7\"'",
+                                            "# Install pip\n",
+                                            "python3 -m ensurepip\n",
                                             "\n",
-                                            "pip install",
-                                            " --index-url=\"$PYPI_URL\"",
-                                            " --upgrade 'pip<10' 'setuptools<37;python_version<\"2.7\"' 'setuptools;python_version>=\"2.7\"' boto3\n",
-                                            "pip install",
-                                            " --index-url=\"$PYPI_URL\"",
-                                            " --upgrade watchmaker\n\n"
+                                            "# Upgrade pip and setuptools\n",
+                                            "python3 -m pip install --index-url=\"$PYPI_URL\" --upgrade pip setuptools\n",
+                                            "\n",
+                                            "# Install watchmaker\n",
+                                            "python3 -m pip install --index-url=\"$PYPI_URL\" --upgrade watchmaker\n"
                                         ]
                                     ]
                                 },
@@ -1590,6 +1640,7 @@
                                     "Fn::Join": [
                                         "",
                                         [
+                                            "export LC_ALL=en_US.utf-8 && export LANG=en_US.utf-8 && ",
                                             "watchmaker --log-level debug",
                                             " --log-dir /var/log/watchmaker",
                                             " --exclude-states scap*scan",
@@ -1904,27 +1955,9 @@
                 },
                 "NetworkInterfaces": [
                     {
-                        "AssociatePublicIpAddress": {
-                            "Fn::If": [
-                                "AssignPublicIp",
-                                "true",
-                                "false"
-                            ]
-                        },
                         "DeviceIndex": "0",
                         "GroupSet": {
                             "Ref": "SecurityGroupIds"
-                        },
-                        "PrivateIpAddress": {
-                            "Fn::If": [
-                                "AssignStaticPrivateIp",
-                                {
-                                    "Ref": "PrivateIp"
-                                },
-                                {
-                                    "Ref": "AWS::NoValue"
-                                }
-                            ]
                         },
                         "SubnetId": {
                             "Ref": "SubnetId"
@@ -2042,57 +2075,60 @@
                                 "printf \"%s\\t%s %s\\n\" ",
                                 "\"$( ip addr show eth0 | sed -n '/eth0$/p' | sed -e 's/^ *inet *//' -e 's#/.*$##' )\" ",
                                 "\"$( hostname -f)\" \"$( hostname -s )\" >> /etc/hosts\n",
-                                "# Get pip\n",
+                                "# Expand root and audit volume (40/60), based on any additional capacity available\n",
+                                "# If no addtional space allocated (> 20), command run w/o expanding\n",
+                                "# lvextedn command return code is ignored/masked below -- basically brute force\n",
+                                "if [[ -x $( which pvs ) ]]\n",
+                                "then\n",
+                                "   LVMPVS=( $( pvs --noheadings -o pv_name ) )\n",
+                                "   for PV in \"${LVMPVS[@]}\"\n",
+                                "   do\n",
+                                "      pvresize \"${PV}\"\n",
+                                "   done\n",
+                                "fi\n",
+                                "# Brute force expansion of audit/root\n",
+                                "lvextend -r -l +40%FREE /dev/VolGroup00/rootVol || true\n",
+                                "lvextend -r -l +60%FREE /dev/VolGroup00/auditVol || true\n",
+                                "\n",
+                                "# Get/Install pip\n",
                                 "PYPI_URL=",
                                 {
                                     "Ref": "PypiIndexUrl"
                                 },
+                                "python3 -m ensurepip\n",
                                 "\n",
-                                "curl --silent --show-error --retry 5 -L ",
-                                {
-                                    "Ref": "CfnGetPipUrl"
-                                },
-                                " | python - --index-url=\"$PYPI_URL\" 'wheel<0.30.0;python_version<\"2.7\"' 'wheel;python_version>=\"2.7\"'",
-                                "\n\n",
                                 "# Add pip to path\n",
                                 "hash pip 2> /dev/null || ",
                                 "PATH=\"${PATH}:/usr/local/bin\"",
                                 "\n\n",
                                 "# Upgrade pip and setuptools\n",
-                                "pip install",
-                                " --index-url=\"$PYPI_URL\"",
-                                " --upgrade 'pip<10' 'setuptools<37;python_version<\"2.7\"' 'setuptools;python_version>=\"2.7\"'",
-                                "\n\n",
+                                "python3 -m pip install --index-url=\"${PYPI_URL}\" --upgrade pip setuptools\n",
+                                "\n",
                                 "# Fix python urllib3 warnings\n",
-                                "yum -y install gcc python-devel libffi-devel openssl-devel\n",
+                                "yum install gcc python-devel libffi-devel openssl-devel\n",
                                 "pip install",
-                                " --index-url=\"$PYPI_URL\"",
+                                " --index-url=\"${PYPI_URL}\"",
                                 " --upgrade cffi\n",
                                 "pip install",
-                                " --index-url=\"$PYPI_URL\"",
+                                " --index-url=\"${PYPI_URL}\"",
                                 " --upgrade pyopenssl ndg-httpsclient pyasn1 'cryptography<2.2;python_version<\"2.7\"' 'cryptography;python_version>=\"2.7\"'",
                                 "\n\n",
-                                "if [[ $(rpm --quiet -q aws-cfn-bootstrap || pip show --quiet aws-cfn-bootstrap)$? -ne 0 ]]\n",
+                                "if [[ $( rpm --quiet -q aws-cfn-bootstrap )$? -ne 0 ]]\n",
                                 "then\n",
-                                "  # Get cfn utils\n",
-                                "  pip install",
-                                " --index-url=\"$PYPI_URL\"",
-                                " --upgrade --upgrade-strategy only-if-needed ",
-                                {
-                                    "Ref": "CfnBootstrapUtilsUrl"
-                                },
+                                "   # Get cfn utils\n",
+                                "   yum install -y aws-cfn-bootstrap\n",
                                 "\n\n",
-                                "  # Fixup cfn utils\n",
-                                "  INITDIR=$(find -L /opt/aws/apitools/cfn-init/init -name redhat",
-                                " 2> /dev/null || echo /usr/init/redhat)\n",
-                                "  chmod 775 ${INITDIR}/cfn-hup\n",
-                                "  ln -f -s ${INITDIR}/cfn-hup /etc/rc.d/init.d/cfn-hup\n",
-                                "  chkconfig --add cfn-hup\n",
-                                "  chkconfig cfn-hup on\n",
-                                "  mkdir -p /opt/aws/bin\n",
-                                "  BINDIR=$(find -L /opt/aws/apitools/cfn-init -name bin",
-                                " 2> /dev/null || echo /usr/bin)\n",
-                                "  for SCRIPT in cfn-elect-cmd-leader cfn-get-metadata cfn-hup",
+                                "   # Fixup cfn utils\n",
+                                "   INITDIR=$( find -L /opt/aws/apitools/cfn-init/init -name redhat",
+                                " 2> /dev/null || echo /usr/init/redhat )\n",
+                                "   chmod 775 ${INITDIR}/cfn-hup /etc/rc.d/init.d/cfn-hup\n",
+                                "   ln -f -s ${INITDIR}/cfn-hup\n",
+                                "   chkconfig --add cfn-hup\n",
+                                "   chkconfig cfn-hup on\n",
+                                "   mkdir -p /opt/aws/bin\n",
+                                "   BINDIR=$( find -L /opt/aws/apitools/cfn-init -name bin",
+                                " 2> /dev/null || echo /usr/bin )\n",
+                                "   for SCRIPT in cfn-elect-cmd-leader cfn-get-metadata cfn-hup",
                                 " cfn-init cfn-send-cmd-event cfn-send-cmd-result cfn-signal\n",
                                 "  do\n",
                                 "  ln -s ${BINDIR}/${SCRIPT} /opt/aws/bin/${SCRIPT} 2> /dev/null || ",
