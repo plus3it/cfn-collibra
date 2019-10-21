@@ -13,30 +13,6 @@
                 }
             ]
         },
-        "AssignPublicIp": {
-            "Fn::Not": [
-                {
-                    "Fn::Equals": [
-                        {
-                            "Ref": "NoPublicIp"
-                        },
-                        "true"
-                    ]
-                }
-            ]
-        },
-        "AssignStaticPrivateIp": {
-            "Fn::Not": [
-                {
-                    "Fn::Equals": [
-                        {
-                            "Ref": "PrivateIp"
-                        },
-                        ""
-                    ]
-                }
-            ]
-        },
         "CreateAppVolume": {
             "Fn::Equals": [
                 {
@@ -269,8 +245,6 @@
                         "InstanceRoleProfile",
                         "SubnetId",
                         "SecurityGroupIds",
-                        "PrivateIp",
-                        "NoPublicIp",
                         "NoReboot",
                         "NoUpdates"
                     ]
@@ -494,15 +468,6 @@
             "Description": "URL to the curl-fetchable Collibra DGC Connector software for Mule ESB",
             "Type": "String"
         },
-        "NoPublicIp": {
-            "AllowedValues": [
-                "false",
-                "true"
-            ],
-            "Default": "true",
-            "Description": "Controls whether to assign the instance a public IP. Recommended to leave at \"true\" _unless_ launching in a public subnet",
-            "Type": "String"
-        },
         "NoReboot": {
             "AllowedValues": [
                 "false",
@@ -519,11 +484,6 @@
             ],
             "Default": "false",
             "Description": "Controls whether to run yum update during a stack update (on the initial instance launch, Watchmaker _always_ installs updates)",
-            "Type": "String"
-        },
-        "PrivateIp": {
-            "Default": "",
-            "Description": "(Optional) Set a static, primary private IP. Leave blank to auto-select a free IP",
             "Type": "String"
         },
         "ProvisionUser": {
@@ -1539,27 +1499,9 @@
                 },
                 "NetworkInterfaces": [
                     {
-                        "AssociatePublicIpAddress": {
-                            "Fn::If": [
-                                "AssignPublicIp",
-                                "true",
-                                "false"
-                            ]
-                        },
                         "DeviceIndex": "0",
                         "GroupSet": {
                             "Ref": "SecurityGroupIds"
-                        },
-                        "PrivateIpAddress": {
-                            "Fn::If": [
-                                "AssignStaticPrivateIp",
-                                {
-                                    "Ref": "PrivateIp"
-                                },
-                                {
-                                    "Ref": "AWS::NoValue"
-                                }
-                            ]
                         },
                         "SubnetId": {
                             "Ref": "SubnetId"
