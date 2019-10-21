@@ -1774,7 +1774,7 @@
                                 {
                                     "Ref": "AWS::StackName"
                                 },
-                                " --resource CollibraHost",
+                                " --resource EsbHost",
                                 {
                                     "Fn::If": [
                                         "AssignInstanceRole",
@@ -1819,7 +1819,7 @@
                                 {
                                     "Ref": "AWS::StackName"
                                 },
-                                "  --resource CollibraHost",
+                                "  --resource EsbHost",
                                 {
                                     "Fn::If": [
                                         "AssignInstanceRole",
