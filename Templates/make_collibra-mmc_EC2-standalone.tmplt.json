@@ -288,8 +288,6 @@
                         "default": "CloudFormation Configuration"
                     },
                     "Parameters": [
-                        "CfnGetPipUrl",
-                        "CfnBootstrapUtilsUrl",
                         "CloudWatchAgentUrl",
                         "ToggleCfnInitUpdate"
                     ]
@@ -404,18 +402,6 @@
         "BackupSchedule": {
             "Default": "45 0 * * *",
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") When to run backups via Linux cron system (use \"cronie\" cron-format)",
-            "Type": "String"
-        },
-        "CfnBootstrapUtilsUrl": {
-            "AllowedPattern": "^http[s]?://.*\\.tar\\.gz$",
-            "Default": "https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz",
-            "Description": "URL to aws-cfn-bootstrap-latest.tar.gz",
-            "Type": "String"
-        },
-        "CfnGetPipUrl": {
-            "AllowedPattern": "^http[s]?://.*\\.py$",
-            "Default": "https://bootstrap.pypa.io/2.6/get-pip.py",
-            "Description": "URL to get-pip.py",
             "Type": "String"
         },
         "CloudWatchAgentUrl": {
@@ -1100,18 +1086,14 @@
                                                 "Ref": "PypiIndexUrl"
                                             },
                                             "\n",
-                                            "curl --silent --show-error --retry 5 -L ",
-                                            {
-                                                "Ref": "CfnGetPipUrl"
-                                            },
-                                            " | python - --index-url=\"$PYPI_URL\" 'wheel<0.30.0;python_version<\"2.7\"' 'wheel;python_version>=\"2.7\"'",
+                                            "# Install pip\n",
+                                            "python3 -m ensurepip\n",
                                             "\n",
-                                            "pip install",
-                                            " --index-url=\"$PYPI_URL\"",
-                                            " --upgrade 'pip<10' 'setuptools<37;python_version<\"2.7\"' 'setuptools;python_version>=\"2.7\"' boto3\n",
-                                            "pip install",
-                                            " --index-url=\"$PYPI_URL\"",
-                                            " --upgrade watchmaker\n\n"
+                                            "# Upgrade pip and setuptools\n",
+                                            "python3 -m pip install --index-url=\"$PYPI_URL\" --upgrade pip setuptools\n",
+                                            "\n",
+                                            "# Install watchmaker\n",
+                                            "python3 -m pip install --index-url=\"$PYPI_URL\" --upgrade watchmaker\n"
                                         ]
                                     ]
                                 },
@@ -1188,6 +1170,7 @@
                                     "Fn::Join": [
                                         "",
                                         [
+                                            "export LC_ALL=en_US.utf-8 && export LANG=en_US.utf-8 && ",
                                             "watchmaker --log-level debug",
                                             " --log-dir /var/log/watchmaker",
                                             " --exclude-states scap*scan",
@@ -1619,57 +1602,60 @@
                                 "printf \"%s\\t%s %s\\n\" ",
                                 "\"$( ip addr show eth0 | sed -n '/eth0$/p' | sed -e 's/^ *inet *//' -e 's#/.*$##' )\" ",
                                 "\"$( hostname -f)\" \"$( hostname -s )\" >> /etc/hosts\n",
-                                "# Get pip\n",
+                                "# Expand root and audit volume (40/60), based on any additional capacity available\n",
+                                "# If no addtional space allocated (> 20), command run w/o expanding\n",
+                                "# lvextedn command return code is ignored/masked below -- basically brute force\n",
+                                "if [[ -x $( which pvs ) ]]\n",
+                                "then\n",
+                                "   LVMPVS=( $( pvs --noheadings -o pv_name ) )\n",
+                                "   for PV in \"${LVMPVS[@]}\"\n",
+                                "   do\n",
+                                "      pvresize \"${PV}\"\n",
+                                "   done\n",
+                                "fi\n",
+                                "# Brute force expansion of audit/root\n",
+                                "lvextend -r -l +40%FREE /dev/VolGroup00/rootVol || true\n",
+                                "lvextend -r -l +60%FREE /dev/VolGroup00/auditVol || true\n",
+                                "\n",
+                                "# Get/Install pip\n",
                                 "PYPI_URL=",
                                 {
                                     "Ref": "PypiIndexUrl"
                                 },
+                                "python3 -m ensurepip\n",
                                 "\n",
-                                "curl --silent --show-error --retry 5 -L ",
-                                {
-                                    "Ref": "CfnGetPipUrl"
-                                },
-                                " | python - --index-url=\"$PYPI_URL\" 'wheel<0.30.0;python_version<\"2.7\"' 'wheel;python_version>=\"2.7\"'",
-                                "\n\n",
                                 "# Add pip to path\n",
                                 "hash pip 2> /dev/null || ",
                                 "PATH=\"${PATH}:/usr/local/bin\"",
                                 "\n\n",
                                 "# Upgrade pip and setuptools\n",
-                                "pip install",
-                                " --index-url=\"$PYPI_URL\"",
-                                " --upgrade 'pip<10' 'setuptools<37;python_version<\"2.7\"' 'setuptools;python_version>=\"2.7\"'",
-                                "\n\n",
+                                "python3 -m pip install --index-url=\"${PYPI_URL}\" --upgrade pip setuptools\n",
+                                "\n",
                                 "# Fix python urllib3 warnings\n",
-                                "yum -y install gcc python-devel libffi-devel openssl-devel\n",
+                                "yum install gcc python-devel libffi-devel openssl-devel\n",
                                 "pip install",
-                                " --index-url=\"$PYPI_URL\"",
+                                " --index-url=\"${PYPI_URL}\"",
                                 " --upgrade cffi\n",
                                 "pip install",
-                                " --index-url=\"$PYPI_URL\"",
+                                " --index-url=\"${PYPI_URL}\"",
                                 " --upgrade pyopenssl ndg-httpsclient pyasn1 'cryptography<2.2;python_version<\"2.7\"' 'cryptography;python_version>=\"2.7\"'",
                                 "\n\n",
-                                "if [[ $(rpm --quiet -q aws-cfn-bootstrap || pip show --quiet aws-cfn-bootstrap)$? -ne 0 ]]\n",
+                                "if [[ $( rpm --quiet -q aws-cfn-bootstrap )$? -ne 0 ]]\n",
                                 "then\n",
-                                "  # Get cfn utils\n",
-                                "  pip install",
-                                " --index-url=\"$PYPI_URL\"",
-                                " --upgrade --upgrade-strategy only-if-needed ",
-                                {
-                                    "Ref": "CfnBootstrapUtilsUrl"
-                                },
+                                "   # Get cfn utils\n",
+                                "   yum install -y aws-cfn-bootstrap\n",
                                 "\n\n",
-                                "  # Fixup cfn utils\n",
-                                "  INITDIR=$(find -L /opt/aws/apitools/cfn-init/init -name redhat",
-                                " 2> /dev/null || echo /usr/init/redhat)\n",
-                                "  chmod 775 ${INITDIR}/cfn-hup\n",
-                                "  ln -f -s ${INITDIR}/cfn-hup /etc/rc.d/init.d/cfn-hup\n",
-                                "  chkconfig --add cfn-hup\n",
-                                "  chkconfig cfn-hup on\n",
-                                "  mkdir -p /opt/aws/bin\n",
-                                "  BINDIR=$(find -L /opt/aws/apitools/cfn-init -name bin",
-                                " 2> /dev/null || echo /usr/bin)\n",
-                                "  for SCRIPT in cfn-elect-cmd-leader cfn-get-metadata cfn-hup",
+                                "   # Fixup cfn utils\n",
+                                "   INITDIR=$( find -L /opt/aws/apitools/cfn-init/init -name redhat",
+                                " 2> /dev/null || echo /usr/init/redhat )\n",
+                                "   chmod 775 ${INITDIR}/cfn-hup /etc/rc.d/init.d/cfn-hup\n",
+                                "   ln -f -s ${INITDIR}/cfn-hup\n",
+                                "   chkconfig --add cfn-hup\n",
+                                "   chkconfig cfn-hup on\n",
+                                "   mkdir -p /opt/aws/bin\n",
+                                "   BINDIR=$( find -L /opt/aws/apitools/cfn-init -name bin",
+                                " 2> /dev/null || echo /usr/bin )\n",
+                                "   for SCRIPT in cfn-elect-cmd-leader cfn-get-metadata cfn-hup",
                                 " cfn-init cfn-send-cmd-event cfn-send-cmd-result cfn-signal\n",
                                 "  do\n",
                                 "  ln -s ${BINDIR}/${SCRIPT} /opt/aws/bin/${SCRIPT} 2> /dev/null || ",
