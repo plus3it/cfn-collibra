@@ -948,7 +948,7 @@
                                                             [
                                                                 "    \"searchHttpPort\": 4421,\n",
                                                                 "    \"searchTransportPort\": 4422,\n",
-                                                                "    \"searchmemory\": 2048,\n"
+                                                                "    \"searchMemory\": 2048,\n"
                                                             ]
                                                         ]
                                                     },
