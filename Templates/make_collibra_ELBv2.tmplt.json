@@ -1,6 +1,14 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Conditions": {
+        "HasIgw": {
+            "Fn::Equals": [
+                {
+                    "Ref": "PublicFacing"
+                },
+                "true"
+            ]
+        },
         "SetInstanceId": {
             "Fn::Not": [
                 {
@@ -54,6 +62,7 @@
                     "Parameters": [
                         "ProxyPrettyName",
                         "CollibraListenPort",
+                        "PublicFacing",
                         "TargetVPC",
                         "SecurityGroupIds",
                         "CertHostingService",
@@ -191,6 +200,15 @@
             "Description": "A short, human-friendly label to assign to the ELB (no capital letters).",
             "Type": "String"
         },
+        "PublicFacing": {
+            "AllowedValues": [
+                "false",
+                "true"
+            ],
+            "Default": "false",
+            "Description": "(Boolean) Whether target subnets have an IGW",
+            "Type": "String"
+        },
         "SecurityGroupIds": {
             "Description": "List of security groups to apply to the ELB.",
             "Type": "List<AWS::EC2::SecurityGroup::Id>"
@@ -288,7 +306,13 @@
                         }
                     ]
                 },
-                "Scheme": "internet-facing",
+                "Scheme": {
+                    "Fn::If": [
+                        "HasIgw",
+                        "internet-facing",
+                        "internal"
+                    ]
+                },
                 "SecurityGroups": {
                     "Ref": "SecurityGroupIds"
                 },
