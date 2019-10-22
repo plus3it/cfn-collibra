@@ -11,12 +11,14 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = "${AwsRegion}"
+        AWS_CFN_ENDPOINT = "${AwsCfnEndpoint}"
         AWS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
         REQUESTS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
     }
 
     parameters {
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
+         string(name: 'AwsCfnEndpoint',  description: 'Override the CFN-endpoint as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
          string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
@@ -95,15 +97,22 @@ pipeline {
                    /
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
+                       if [[ -z ${AWS_CFN_ENDPOINT} ]]
+                       then
+                          CFNCMD="aws cloudformation --endpoint-url ${AWS_CFN_ENDPOINT}"
+                       else
+                          CFNCMD="aws cloudformation"
+                       fi
+
                        if [[ ! -z ${R53ZoneId} ]]
                        then
                           echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
-                          aws cloudformation delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
+                          ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
                           sleep 5
 
                           # Pause if delete is slow
                           while [[ $(
-                                      aws cloudformation describe-stacks \
+                                      ${CFNCMD} describe-stacks \
                                         --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
                                         --query 'Stacks[].{Status:StackStatus}' \
                                         --out text 2> /dev/null | \
@@ -116,12 +125,12 @@ pipeline {
                        fi
 
                        echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${ProxyForService} stacks..."
-                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} || true
+                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} || true
                        sleep 5
 
                        # Pause if delete is slow
                        while [[ $(
-                                   aws cloudformation describe-stacks \
+                                   ${CFNCMD} describe-stacks \
                                      --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
                                      --query 'Stacks[].{Status:StackStatus}' \
                                      --out text 2> /dev/null | \
@@ -139,15 +148,22 @@ pipeline {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
+                       if [[ -z ${AWS_CFN_ENDPOINT} ]]
+                       then
+                          CFNCMD="aws cloudformation --endpoint-url ${AWS_CFN_ENDPOINT}"
+                       else
+                          CFNCMD="aws cloudformation"
+                       fi
+
                        echo "Attempting to create stack ${CfnStackRoot}-ElbRes-${ProxyForService}..."
-                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
+                       ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
                            --template-body file://Templates/make_collibra_ELBv2.tmplt.json \
                            --parameters file://ELB.parms.json
                        sleep 5
 
                        # Pause if create is slow
                        while [[ $(
-                                   aws cloudformation describe-stacks \
+                                   ${CFNCMD} describe-stacks \
                                      --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
                                      --query 'Stacks[].{Status:StackStatus}' \
                                      --out text 2> /dev/null | \
@@ -159,7 +175,7 @@ pipeline {
                        done
 
                        if [[ $(
-                               aws cloudformation describe-stacks \
+                               ${CFNCMD} describe-stacks \
                                  --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
                                  --query 'Stacks[].{Status:StackStatus}' \
                                  --out text 2> /dev/null | \
