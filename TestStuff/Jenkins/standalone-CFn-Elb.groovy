@@ -34,6 +34,7 @@ pipeline {
          string(name: 'CollibraListenerCert', description: 'AWS Certificate Manager Certificate ID to bind to SSL listener')
          string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the ELB')
          string(name: 'TargetVPC', description: 'ID of the VPC to deploy cluster nodes into')
+         string(name: 'PublicFacing', defaultValue: 'false', description: 'Whether or not proxy is "internet-facing"')
     }
 
     stages {
@@ -77,6 +78,10 @@ pipeline {
                            {
                                "ParameterKey": "ProxyPrettyName",
                                "ParameterValue": "${env.ElbShortName}"
+                           },
+                           {
+                               "ParameterKey": "PublicFacing",
+                               "ParameterValue": "${env.PublicFacing}"
                            },
                            {
                                "ParameterKey": "SecurityGroupIds",
