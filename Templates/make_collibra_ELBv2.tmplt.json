@@ -1,277 +1,386 @@
 {
-  "AWSTemplateFormatVersion": "2010-09-09",
-  "Conditions": {
-    "SetInstanceId": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "CollibraInstanceId" }, "" ] }
-      ]
-    },
-    "SetPrettyName": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "ProxyPrettyName" }, "" ] }
-      ]
-    }
-  },
-  "Description": "Template for creating a public ELB for users to connect through in order to connect to the Collibra service.",
-  "Mappings": {
-    "CollibraNodeType": {
-      "Console": {
-        "HealthchkUrlString": "/signin",
-        "CollibraServicePort": "4402"
-      },
-      "DGC": {
-        "HealthchkUrlString": "/signin",
-        "CollibraServicePort": "4400"
-      }
-    }
-  },
-  "Metadata": {
-    "AWS::CloudFormation::Interface": {
-      "ParameterGroups": [
-        {
-          "Parameters": [
-            "ProxyPrettyName",
-            "ProxyForService",
-            "TargetVPC",
-            "HaSubnets",
-            "SecurityGroupIds",
-            "BackendTimeout",
-            "CollibraListenerCert",
-            "CollibraListenPort",
-            "CollibraInstanceId"
-          ]
-        }
-      ]
-    }
-  },
-  "Outputs": {
-    "CollibraAlbFqdn": {
-      "Description": "Collibra front-end's IP address",
-      "Export": {
-        "Name": {
-          "Fn::Sub": "${AWS::StackName}-AlbDnsName"
-        }
-      },
-      "Value": {
-        "Fn::GetAtt": [
-          "CollibraPubAlbLoadBalancer",
-          "DNSName"
-        ]
-      }
-    },
-    "CollibraAlbTgroupArn": {
-      "Description": "ARN of the Collibra ALB's TargetGroup",
-      "Export": {
-        "Name": {
-          "Fn::Sub": "${AWS::StackName}-AlbTargArn"
-        }
-      },
-      "Value": { "Ref": "CollibraPubAlbTgroup" }
-    },
-    "CollibraAlbZoneId": {
-      "Description": "R53 Hosted Zone-ID of the Collibra ALB",
-      "Export": {
-        "Name": {
-          "Fn::Sub": "${AWS::StackName}-AlbZoneId"
-        }
-      },
-      "Value": {
-        "Fn::GetAtt": [
-          "CollibraPubAlbLoadBalancer",
-          "CanonicalHostedZoneID"
-        ]
-      }
-    },
-    "CollibraRawAlbUrl": {
-      "Description": "Collibra front-end's IP address",
-      "Export": {
-        "Name": {
-          "Fn::Sub": "${AWS::StackName}-AlbRawUrl"
-        }
-      },
-      "Value": {
-        "Fn::Join": [
-          "",
-          [
-            "https://",
-            {
-              "Fn::GetAtt": [
-                "CollibraPubAlbLoadBalancer",
-                "DNSName"
-              ]
-            }
-          ]
-        ]
-      }
-    }
-  },
-  "Parameters": {
-    "BackendTimeout": {
-      "Default": "600",
-      "Description": "How long - in seconds - back-end connection may be idle before attempting session-cleanup",
-      "MaxValue": "3600",
-      "MinValue": "60",
-      "Type": "Number"
-    },
-    "CollibraInstanceId": {
-      "Description": "ID of the EC2-instance this template should create a proxy for.",
-      "Type": "String"
-    },
-    "CollibraListenPort": {
-      "Default": "443",
-      "Description": "TCP Port number on which the Collibra ELB listens for requests.",
-      "MaxValue": "65535",
-      "MinValue": "1",
-      "Type": "Number"
-    },
-    "CollibraListenerCert": {
-      "Default": "",
-      "Description": "Name/ID of the ACM-managed SSL Certificate to protect public listener.",
-      "Type": "String"
-    },
-    "HaSubnets": {
-      "Description": "Select three subnets - each from different Availability Zones.",
-      "Type": "List<AWS::EC2::Subnet::Id>"
-    },
-    "ProxyForService": {
-      "AllowedValues": [
-        "Console",
-        "DGC"
-      ],
-      "Description": "Which Collibra service to proxy for",
-      "Type": "String"
-    },
-    "ProxyPrettyName": {
-      "Description": "A short, human-friendly label to assign to the ELB (no capital letters).",
-      "Type": "String"
-    },
-    "SecurityGroupIds": {
-      "Description": "List of security groups to apply to the ELB.",
-      "Type": "List<AWS::EC2::SecurityGroup::Id>"
-    },
-    "TargetVPC": {
-      "AllowedPattern": "^vpc-[0-9a-f]*$",
-      "Description": "ID of the VPC to deploy cluster nodes into.",
-      "Type": "AWS::EC2::VPC::Id"
-    }
-  },
-  "Resources": {
-    "CollibraPubAlbListener": {
-      "Properties": {
-        "Certificates": [
-          {
-            "CertificateArn": {
-              "Fn::Join": [
-                "",
-                [
-                  "arn:",
-                  { "Ref": "AWS::Partition" },
-                  ":acm:",
-                  { "Ref": "AWS::Region" },
-                  ":",
-                  { "Ref": "AWS::AccountId" },
-                  ":",
-                  "certificate/",
-                  { "Ref": "CollibraListenerCert" }
-                ]
-              ]
-            }
-          }
-        ],
-        "DefaultActions": [
-          {
-            "TargetGroupArn": { "Ref": "CollibraPubAlbTgroup" },
-            "Type": "forward"
-          }
-        ],
-        "LoadBalancerArn": { "Ref": "CollibraPubAlbLoadBalancer" },
-        "Port": { "Ref": "CollibraListenPort" },
-        "Protocol": "HTTPS"
-      },
-      "Type": "AWS::ElasticLoadBalancingV2::Listener"
-    },
-    "CollibraPubAlbLoadBalancer": {
-      "Properties": {
-        "Name": {
-          "Fn::If": [
-            "SetPrettyName",
-            { "Ref": "ProxyPrettyName" },
-            { "Ref": "AWS::NoValue" }
-          ]
-        },
-        "Scheme": "internet-facing",
-        "SecurityGroups": { "Ref": "SecurityGroupIds" },
-        "Subnets": { "Ref": "HaSubnets" },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "Collibra front-end ELB"
-          }
-        ],
-        "Type": "application"
-      },
-      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer"
-    },
-    "CollibraPubAlbTgroup": {
-      "Properties": {
-        "HealthCheckPath": {
-          "Fn::FindInMap": [
-            "CollibraNodeType",
-            { "Ref": "ProxyForService" },
-            "HealthchkUrlString"
-          ]
-        },
-        "HealthyThresholdCount": "5",
-        "Name": {
-          "Fn::Join": [
-            "-",
-            [
-              {
-                "Fn::Select": [
-                  "0",
-                  {
-                    "Fn::Split": [
-                      "-",
-                      { "Ref": "AWS::StackName" }
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Conditions": {
+        "SetInstanceId": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "CollibraInstanceId"
+                        },
+                        ""
                     ]
-                  }
-                ]
-              },
-              "TgtGrp",
-              { "Ref": "ProxyForService" }
-            ]
-          ]
-        },
-        "Port": {
-          "Fn::FindInMap": [
-            "CollibraNodeType",
-            { "Ref": "ProxyForService" },
-            "CollibraServicePort"
-          ]
-        },
-        "Protocol": "HTTP",
-        "Targets": {
-          "Fn::If": [
-            "SetInstanceId",
-            [
-              {
-                "Id": { "Ref": "CollibraInstanceId" },
-                "Port": {
-                  "Fn::FindInMap": [
-                    "CollibraNodeType",
-                    { "Ref": "ProxyForService" },
-                    "CollibraServicePort"
-                  ]
                 }
-              }
-            ],
-            { "Ref": "AWS::NoValue" }
-          ]
+            ]
         },
-        "UnhealthyThresholdCount": "2",
-        "VpcId": { "Ref": "TargetVPC" }
-      },
-      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup"
+        "SetPrettyName": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "ProxyPrettyName"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "UseAcmHostedCert": {
+            "Fn::Equals": [
+                {
+                    "Ref": "CertHostingService"
+                },
+                "ACM"
+            ]
+        }
+    },
+    "Description": "Template for creating a public ELB for users to connect through in order to connect to the Collibra service.",
+    "Mappings": {
+        "CollibraNodeType": {
+            "Console": {
+                "CollibraServicePort": "4402",
+                "HealthchkUrlString": "/signin"
+            },
+            "DGC": {
+                "CollibraServicePort": "4400",
+                "HealthchkUrlString": "/signin"
+            }
+        }
+    },
+    "Metadata": {
+        "AWS::CloudFormation::Interface": {
+            "ParameterGroups": [
+                {
+                    "Parameters": [
+                        "ProxyPrettyName",
+                        "CollibraListenPort",
+                        "TargetVPC",
+                        "SecurityGroupIds",
+                        "CertHostingService",
+                        "CollibraListenerCert"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Back-end info"
+                    },
+                    "Parameters": [
+                        "ProxyForService",
+                        "HaSubnets",
+                        "CollibraInstanceId",
+                        "BackendTimeout"
+                    ]
+                }
+            ],
+            "ParameterLabels": {
+                "CollibraListenPort": {
+                    "default": "ProxyPort"
+                }
+            }
+        }
+    },
+    "Outputs": {
+        "CollibraAlbFqdn": {
+            "Description": "Collibra front-end's IP address",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-AlbDnsName"
+                }
+            },
+            "Value": {
+                "Fn::GetAtt": [
+                    "CollibraPubAlbLoadBalancer",
+                    "DNSName"
+                ]
+            }
+        },
+        "CollibraAlbTgroupArn": {
+            "Description": "ARN of the Collibra ALB's TargetGroup",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-AlbTargArn"
+                }
+            },
+            "Value": {
+                "Ref": "CollibraPubAlbTgroup"
+            }
+        },
+        "CollibraAlbZoneId": {
+            "Description": "R53 Hosted Zone-ID of the Collibra ALB",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-AlbZoneId"
+                }
+            },
+            "Value": {
+                "Fn::GetAtt": [
+                    "CollibraPubAlbLoadBalancer",
+                    "CanonicalHostedZoneID"
+                ]
+            }
+        },
+        "CollibraRawAlbUrl": {
+            "Description": "Collibra front-end's IP address",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-AlbRawUrl"
+                }
+            },
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "https://",
+                        {
+                            "Fn::GetAtt": [
+                                "CollibraPubAlbLoadBalancer",
+                                "DNSName"
+                            ]
+                        }
+                    ]
+                ]
+            }
+        }
+    },
+    "Parameters": {
+        "BackendTimeout": {
+            "Default": "600",
+            "Description": "How long - in seconds - back-end connection may be idle before attempting session-cleanup",
+            "MaxValue": "3600",
+            "MinValue": "60",
+            "Type": "Number"
+        },
+        "CertHostingService": {
+            "AllowedValues": [
+                "ACM",
+                "IAM"
+            ],
+            "Default": "ACM",
+            "Description": "Select AWS service that is hosting the SSL certificate.",
+            "Type": "String"
+        },
+        "CollibraInstanceId": {
+            "Description": "ID of the EC2-instance this template should create a proxy for.",
+            "Type": "String"
+        },
+        "CollibraListenPort": {
+            "Default": "443",
+            "Description": "TCP Port number on which the Collibra ELB listens for requests.",
+            "MaxValue": "65535",
+            "MinValue": "1",
+            "Type": "Number"
+        },
+        "CollibraListenerCert": {
+            "Default": "",
+            "Description": "Name/ID of the ACM- or IAM-managed SSL Certificate to protect public listener.",
+            "Type": "String"
+        },
+        "HaSubnets": {
+            "Description": "Select three subnets - each from different Availability Zones.",
+            "Type": "List<AWS::EC2::Subnet::Id>"
+        },
+        "ProxyForService": {
+            "AllowedValues": [
+                "Console",
+                "DGC"
+            ],
+            "Description": "Which Collibra service to proxy for",
+            "Type": "String"
+        },
+        "ProxyPrettyName": {
+            "Description": "A short, human-friendly label to assign to the ELB (no capital letters).",
+            "Type": "String"
+        },
+        "SecurityGroupIds": {
+            "Description": "List of security groups to apply to the ELB.",
+            "Type": "List<AWS::EC2::SecurityGroup::Id>"
+        },
+        "TargetVPC": {
+            "AllowedPattern": "^vpc-[0-9a-f]*$",
+            "Description": "ID of the VPC to deploy cluster nodes into.",
+            "Type": "AWS::EC2::VPC::Id"
+        }
+    },
+    "Resources": {
+        "CollibraPubAlbListener": {
+            "Properties": {
+                "Certificates": [
+                    {
+                        "CertificateArn": {
+                            "Fn::If": [
+                                "UseAcmHostedCert",
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:",
+                                            {
+                                                "Ref": "AWS::Partition"
+                                            },
+                                            ":acm:",
+                                            {
+                                                "Ref": "AWS::Region"
+                                            },
+                                            ":",
+                                            {
+                                                "Ref": "AWS::AccountId"
+                                            },
+                                            ":",
+                                            "certificate/",
+                                            {
+                                                "Ref": "CollibraListenerCert"
+                                            }
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:",
+                                            {
+                                                "Ref": "AWS::Partition"
+                                            },
+                                            ":iam::",
+                                            {
+                                                "Ref": "AWS::AccountId"
+                                            },
+                                            ":",
+                                            "server-certificate/",
+                                            {
+                                                "Ref": "CollibraListenerCert"
+                                            }
+                                        ]
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "DefaultActions": [
+                    {
+                        "TargetGroupArn": {
+                            "Ref": "CollibraPubAlbTgroup"
+                        },
+                        "Type": "forward"
+                    }
+                ],
+                "LoadBalancerArn": {
+                    "Ref": "CollibraPubAlbLoadBalancer"
+                },
+                "Port": {
+                    "Ref": "CollibraListenPort"
+                },
+                "Protocol": "HTTPS"
+            },
+            "Type": "AWS::ElasticLoadBalancingV2::Listener"
+        },
+        "CollibraPubAlbLoadBalancer": {
+            "Properties": {
+                "Name": {
+                    "Fn::If": [
+                        "SetPrettyName",
+                        {
+                            "Ref": "ProxyPrettyName"
+                        },
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "Scheme": "internet-facing",
+                "SecurityGroups": {
+                    "Ref": "SecurityGroupIds"
+                },
+                "Subnets": {
+                    "Ref": "HaSubnets"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Collibra front-end ELB"
+                    }
+                ],
+                "Type": "application"
+            },
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer"
+        },
+        "CollibraPubAlbTgroup": {
+            "Properties": {
+                "HealthCheckPath": {
+                    "Fn::FindInMap": [
+                        "CollibraNodeType",
+                        {
+                            "Ref": "ProxyForService"
+                        },
+                        "HealthchkUrlString"
+                    ]
+                },
+                "HealthyThresholdCount": "5",
+                "Name": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Fn::Select": [
+                                    "0",
+                                    {
+                                        "Fn::Split": [
+                                            "-",
+                                            {
+                                                "Ref": "AWS::StackName"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            "TgtGrp",
+                            {
+                                "Ref": "ProxyForService"
+                            }
+                        ]
+                    ]
+                },
+                "Port": {
+                    "Fn::FindInMap": [
+                        "CollibraNodeType",
+                        {
+                            "Ref": "ProxyForService"
+                        },
+                        "CollibraServicePort"
+                    ]
+                },
+                "Protocol": "HTTP",
+                "Targets": {
+                    "Fn::If": [
+                        "SetInstanceId",
+                        [
+                            {
+                                "Id": {
+                                    "Ref": "CollibraInstanceId"
+                                },
+                                "Port": {
+                                    "Fn::FindInMap": [
+                                        "CollibraNodeType",
+                                        {
+                                            "Ref": "ProxyForService"
+                                        },
+                                        "CollibraServicePort"
+                                    ]
+                                }
+                            }
+                        ],
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "UnhealthyThresholdCount": "2",
+                "VpcId": {
+                    "Ref": "TargetVPC"
+                }
+            },
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup"
+        }
     }
-  }
 }
