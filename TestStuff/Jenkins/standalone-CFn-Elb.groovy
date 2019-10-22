@@ -95,22 +95,25 @@ pipeline {
                    /
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
-                       echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
-                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
-                       sleep 5
+                       if [[ ! -z ${R53ZoneId} ]]
+                       then
+                          echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
+                          aws cloudformation delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
+                          sleep 5
 
-                       # Pause if delete is slow
-                       while [[ $(
-                                   aws cloudformation describe-stacks \
-                                     --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q DELETE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${ProxyForService} to delete..."
-                          sleep 30
-                       done
+                          # Pause if delete is slow
+                          while [[ $(
+                                      aws cloudformation describe-stacks \
+                                        --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
+                                        --query 'Stacks[].{Status:StackStatus}' \
+                                        --out text 2> /dev/null | \
+                                      grep -q DELETE_IN_PROGRESS
+                                     )$? -eq 0 ]]
+                          do
+                             echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${ProxyForService} to delete..."
+                             sleep 30
+                          done
+                       fi
 
                        echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${ProxyForService} stacks..."
                        aws cloudformation delete-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} || true
@@ -173,6 +176,11 @@ pipeline {
             }
         }
         stage ('Create R53 Alias') {
+            when {
+                expression {
+                    return env.R53ZoneId != '';
+                }
+            }
             steps {
                 writeFile file: 'R53alias.parms.json',
                    text: /
