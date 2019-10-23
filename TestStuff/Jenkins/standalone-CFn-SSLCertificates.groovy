@@ -31,7 +31,7 @@ pipeline {
     stages {
         stage ('Delete Old Certificates') {
             parallel {
-                stage ('Console Certificates') {
+                stage ('Console') {
                     steps {
                         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                             sh '''#!/bin/bash
@@ -62,7 +62,7 @@ pipeline {
                         }
                     }
                 }
-                stage ('DGC Certificates') {
+                stage ('DGC') {
                     steps {
                         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                             sh '''#!/bin/bash
@@ -97,7 +97,7 @@ pipeline {
         }
         stage ('Upload New Certificates') {
             parallel {
-                stage ('Upload Console Certificates') {
+                stage ('Console') {
                     steps {
                         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                             sh '''#!/bin/bash
@@ -111,14 +111,15 @@ pipeline {
                                CERTNAME="${JobRoot}-Console-Cert"
                                printf "Uploading certificate [%s]... " "${CERTNAME}"
                                ${AWSCMD} upload-server-certificate --server-certificate-name "${CERTNAME}" \
-                                 --certificate-body ${ConsoleCert} \
+                                 --certificate-chain "${ConsoleTrustChain}" \
+                                 --certificate-body "${ConsoleCert}" \
                                  --private-key "${ConsolePrivateKey}" > /dev/null 2>&1 \
                                    && echo "Success" || ( echo "FAILED" ; exit 1 )
                             '''
                         }
                     }
                 }
-                stage ('Upload DGC Certificates') {
+                stage ('DGC') {
                     steps {
                         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                             sh '''#!/bin/bash
@@ -132,9 +133,72 @@ pipeline {
                                CERTNAME="${JobRoot}-DGC-Cert"
                                printf "Uploading certificate [%s]... " "${CERTNAME}"
                                ${AWSCMD} upload-server-certificate --server-certificate-name "${CERTNAME}" \
-                                 --certificate-body ${ConsoleCert} \
+                                 --certificate-chain "${DgcTrustChain}" \
+                                 --certificate-body "${ConsoleCert}" \
                                  --private-key "${ConsolePrivateKey}" > /dev/null 2>&1 \
                                    && echo "Success" || ( echo "FAILED" ; exit 1 )
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+        stage ('Verify Certificates') {
+            parallel {
+                stage ('Console') {
+                    steps {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                            sh '''#!/bin/bash
+                               if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                               then
+                                  export AWSCMD="aws iam"
+                               else
+                                  export AWSCMD="aws iam --endpoint-url ${AWS_SVC_ENDPOINT}"
+                               fi
+        
+                               CERTNAME="${JobRoot}-Console-Cert"
+                               echo "Verifying [${CERTNAME}] upload..."
+                               CERTRET=$( ${AWSCMD} get-server-certificate \
+                                            --server-certificate-name "${CERTNAME}" \
+                                            --query 'ServerCertificate.ServerCertificateMetadata' \
+                                            2> /dev/null )
+
+                               if [[ -z ${CERTRET} ]]
+                               then
+                                  echo "Failed to upload certificate [${CERTNAME}]"
+                                  exit 1
+                               else
+                                  echo "${CERTRET}"
+                               fi
+                            '''
+                        }
+                    }
+                }
+                stage ('DGC') {
+                    steps {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                            sh '''#!/bin/bash
+                               if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                               then
+                                  export AWSCMD="aws iam"
+                               else
+                                  export AWSCMD="aws iam --endpoint-url ${AWS_SVC_ENDPOINT}"
+                               fi
+        
+                               CERTNAME="${JobRoot}-DGC-Cert"
+                               echo "Verifying [${CERTNAME}] upload..."
+                               CERTRET=$( ${AWSCMD} get-server-certificate \
+                                            --server-certificate-name "${CERTNAME}" \
+                                            --query 'ServerCertificate.ServerCertificateMetadata' \
+                                            2> /dev/null )
+
+                               if [[ -z ${CERTRET} ]]
+                               then
+                                  echo "Failed to upload certificate [${CERTNAME}]"
+                                  exit 1
+                               else
+                                  echo "${CERTRET}"
+                               fi
                             '''
                         }
                     }
