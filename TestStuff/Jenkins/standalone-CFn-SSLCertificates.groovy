@@ -29,107 +29,115 @@ pipeline {
     }
 
     stages {
-        stage ('Delete Old Console Certificates') {
-            steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
-                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
-                       then
-                          export AWSCMD="aws iam"
-                       else
-                          export AWSCMD="aws iam --endpoint-url ${AWS_SVC_ENDPOINT}"
-                       fi
-        
-                       CERTNAME="${JobRoot}-Console-Cert"
-                       printf "Looking for existing certificate [%s]... " "${CERTNAME}"
-                       CERTEXISTS=$( ${AWSCMD} get-server-certificate \
-                                       --server-certificate-name "${CERTNAME}" \
-                                       > /dev/null 2>&1 )$?
-        
-                       if [[ ${CERTEXISTS} -eq 0 ]]
-                       then
-                          echo "Found"
-                          printf "Nuking certificate [%s]... " "${CERTNAME}"
-                          ${AWSCMD} delete-server-certificate --server-certificate-name \
-                            "${CERTNAME}" > /dev/null 2>&1 && echo Success || \
-                            ( echo "FAILED" ; exit 1 )
-                       else
-                          echo "No such certificate exists"
-                       fi
-                    '''
-                }
-            }
-        }
-        stage ('Upload Console Certificates') {
-            steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
-                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
-                       then
-                          export AWSCMD="aws iam"
-                       else
-                          export AWSCMD="aws iam --endpoint-url ${AWS_SVC_ENDPOINT}"
-                       fi
-
-                       CERTNAME="${JobRoot}-Console-Cert"
-                       printf "Uploading certificate [%s]... " "${CERTNAME}"
-                       ${AWSCMD} upload-server-certificate --server-certificate-name "${CERTNAME}" \
-                         --certificate-body ${ConsoleCert} \
-                         --private-key "${ConsolePrivateKey}" > /dev/null 2>&1 \
-                           && echo "Success" || ( echo "FAILED" ; exit 1 )
-                    '''
-                }
-            }
-        }
-        stage ('Delete Old DGC Certificates') {
-            steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
-                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
-                       then
-                          export AWSCMD="aws iam"
-                       else
+        stage ('Delete Old Certificates') {
+            parallel {
+                stage ('Console Certificates') {
+                    steps {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                            sh '''#!/bin/bash
+                               if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                               then
+                                  export AWSCMD="aws iam"
+                               else
                                   export AWSCMD="aws iam --endpoint-url ${AWS_SVC_ENDPOINT}"
-                       fi
+                               fi
+                
+                               CERTNAME="${JobRoot}-Console-Cert"
+                               printf "Looking for existing certificate [%s]... " "${CERTNAME}"
+                               CERTEXISTS=$( ${AWSCMD} get-server-certificate \
+                                               --server-certificate-name "${CERTNAME}" \
+                                               > /dev/null 2>&1 )$?
+                
+                               if [[ ${CERTEXISTS} -eq 0 ]]
+                               then
+                                  echo "Found"
+                                  printf "Nuking certificate [%s]... " "${CERTNAME}"
+                                  ${AWSCMD} delete-server-certificate --server-certificate-name \
+                                    "${CERTNAME}" > /dev/null 2>&1 && echo Success || \
+                                    ( echo "FAILED" ; exit 1 )
+                               else
+                                  echo "No such certificate exists"
+                               fi
+                            '''
+                        }
+                    }
+                }
+                stage ('DGC Certificates') {
+                    steps {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                            sh '''#!/bin/bash
+                               if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                               then
+                                  export AWSCMD="aws iam"
+                               else
+                                          export AWSCMD="aws iam --endpoint-url ${AWS_SVC_ENDPOINT}"
+                               fi
+                
+                               CERTNAME="${JobRoot}-DGC-Cert"
+                               printf "Looking for existing certificate [%s]... " "${CERTNAME}"
+                               CERTEXISTS=$( ${AWSCMD} get-server-certificate \
+                                               --server-certificate-name "${CERTNAME}" \
+                                               > /dev/null 2>&1 )$?
         
-                       CERTNAME="${JobRoot}-DGC-Cert"
-                       printf "Looking for existing certificate [%s]... " "${CERTNAME}"
-                       CERTEXISTS=$( ${AWSCMD} get-server-certificate \
-                                       --server-certificate-name "${CERTNAME}" \
-                                       > /dev/null 2>&1 )$?
-
-                       if [[ ${CERTEXISTS} -eq 0 ]]
-                       then
-                          echo "Found"
-                          printf "Nuking certificate [%s]... " "${CERTNAME}"
-                          ${AWSCMD} delete-server-certificate --server-certificate-name \
-                            "${CERTNAME}" > /dev/null 2>&1 && echo Success || \
-                            ( echo "FAILED" ; exit 1 )
-                       else
-                          echo "No such certificate exists"
-                       fi
-                    '''
+                               if [[ ${CERTEXISTS} -eq 0 ]]
+                               then
+                                  echo "Found"
+                                  printf "Nuking certificate [%s]... " "${CERTNAME}"
+                                  ${AWSCMD} delete-server-certificate --server-certificate-name \
+                                    "${CERTNAME}" > /dev/null 2>&1 && echo Success || \
+                                    ( echo "FAILED" ; exit 1 )
+                               else
+                                  echo "No such certificate exists"
+                               fi
+                            '''
+                        }
+                    }
                 }
             }
         }
-        stage ('Upload DGC Certificates') {
-            steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
-                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
-                       then
-                          export AWSCMD="aws iam"
-                       else
-                          export AWSCMD="aws iam --endpoint-url ${AWS_SVC_ENDPOINT}"
-                       fi
-
-                       CERTNAME="${JobRoot}-DGC-Cert"
-                       printf "Uploading certificate [%s]... " "${CERTNAME}"
-                       ${AWSCMD} upload-server-certificate --server-certificate-name "${CERTNAME}" \
-                         --certificate-body ${ConsoleCert} \
-                         --private-key "${ConsolePrivateKey}" > /dev/null 2>&1 \
-                           && echo "Success" || ( echo "FAILED" ; exit 1 )
-                    '''
+        stage ('Upload New Certificates') {
+            parallel {
+                stage ('Upload Console Certificates') {
+                    steps {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                            sh '''#!/bin/bash
+                               if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                               then
+                                  export AWSCMD="aws iam"
+                               else
+                                  export AWSCMD="aws iam --endpoint-url ${AWS_SVC_ENDPOINT}"
+                               fi
+        
+                               CERTNAME="${JobRoot}-Console-Cert"
+                               printf "Uploading certificate [%s]... " "${CERTNAME}"
+                               ${AWSCMD} upload-server-certificate --server-certificate-name "${CERTNAME}" \
+                                 --certificate-body ${ConsoleCert} \
+                                 --private-key "${ConsolePrivateKey}" > /dev/null 2>&1 \
+                                   && echo "Success" || ( echo "FAILED" ; exit 1 )
+                            '''
+                        }
+                    }
+                }
+                stage ('Upload DGC Certificates') {
+                    steps {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                            sh '''#!/bin/bash
+                               if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                               then
+                                  export AWSCMD="aws iam"
+                               else
+                                  export AWSCMD="aws iam --endpoint-url ${AWS_SVC_ENDPOINT}"
+                               fi
+        
+                               CERTNAME="${JobRoot}-DGC-Cert"
+                               printf "Uploading certificate [%s]... " "${CERTNAME}"
+                               ${AWSCMD} upload-server-certificate --server-certificate-name "${CERTNAME}" \
+                                 --certificate-body ${ConsoleCert} \
+                                 --private-key "${ConsolePrivateKey}" > /dev/null 2>&1 \
+                                   && echo "Success" || ( echo "FAILED" ; exit 1 )
+                            '''
+                        }
+                    }
                 }
             }
         }
