@@ -11,16 +11,15 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = "${AwsRegion}"
+        AWS_SVC_ENDPOINT = "${AwsSvcEndpoint}"
         AWS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
         REQUESTS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
     }
 
     parameters {
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
+         string(name: 'AwsSvcEndpoint',  description: 'Override the CFN service-endpoint as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
-         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
-         string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
          string(name: 'TemplateUrl', description: 'S3-hosted URL for the EC2 template file')
          string(name: 'AdminPubkeyURL', defaultValue: '', description: '(Optional) URL of file containing admin groups SSH public-keys')
@@ -62,9 +61,6 @@ pipeline {
         stage ('Cleanup Work Environment') {
             steps {
                 deleteDir()
-                git branch: "${GitProjBranch}",
-                    credentialsId: "${GitCred}",
-                    url: "${GitProjUrl}"
                 writeFile file: 'EC2.parms.json',
                    text: /
                          [
@@ -204,13 +200,21 @@ pipeline {
                    /
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
+                       # For compatibility with ancient AWS CLI utilities
+                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                       then
+                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                       else
+                          CFNCMD="aws cloudformation"
+                       fi
+
                        echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-ESB stacks..."
-                       aws cloudformation delete-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB || true
+                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB || true
                        sleep 5
 
                        # Pause if delete is slow
                        while [[ $(
-                                   aws cloudformation describe-stacks \
+                                   ${CFNCMD} describe-stacks \
                                      --stack-name ${CfnStackRoot}-Ec2Res-ESB \
                                      --query 'Stacks[].{Status:StackStatus}' \
                                      --out text 2> /dev/null | \
@@ -228,15 +232,23 @@ pipeline {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
+                       # For compatibility with ancient AWS CLI utilities
+                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                       then
+                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                       else
+                          CFNCMD="aws cloudformation"
+                       fi
+
                        echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-ESB..."
-                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB \
+                       ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB \
                            --disable-rollback --template-url "${TemplateUrl}" \
                            --parameters file://EC2.parms.json
                        sleep 5
 
                        # Pause if create is slow
                        while [[ $(
-                                   aws cloudformation describe-stacks \
+                                   ${CFNCMD} describe-stacks \
                                      --stack-name ${CfnStackRoot}-Ec2Res-ESB \
                                      --query 'Stacks[].{Status:StackStatus}' \
                                      --out text 2> /dev/null | \
@@ -248,7 +260,7 @@ pipeline {
                        done
 
                        if [[ $(
-                               aws cloudformation describe-stacks \
+                               ${CFNCMD} describe-stacks \
                                  --stack-name ${CfnStackRoot}-Ec2Res-ESB \
                                  --query 'Stacks[].{Status:StackStatus}' \
                                  --out text 2> /dev/null | \
