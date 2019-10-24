@@ -210,22 +210,25 @@ pipeline {
                           CFNCMD="aws cloudformation"
                        fi
 
-                       echo "Attempting to delete any active ${CfnStackRoot}-R53Res-MMC stacks..."
-                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-MMC || true
-                       sleep 5
-
-                       # Pause if delete is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-R53Res-MMC \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q DELETE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-R53Res-MMC to delete..."
-                          sleep 30
-                       done
+                       if [[ ! -z ${R53ZoneId} ]]
+                       then
+                          echo "Attempting to delete any active ${CfnStackRoot}-R53Res-MMC stacks..."
+                          ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-MMC || true
+                          sleep 5
+   
+                          # Pause if delete is slow
+                          while [[ $(
+                                      ${CFNCMD} describe-stacks \
+                                        --stack-name ${CfnStackRoot}-R53Res-MMC \
+                                        --query 'Stacks[].{Status:StackStatus}' \
+                                        --out text 2> /dev/null | \
+                                      grep -q DELETE_IN_PROGRESS
+                                     )$? -eq 0 ]]
+                          do
+                             echo "Waiting for stack ${CfnStackRoot}-R53Res-MMC to delete..."
+                             sleep 30
+                          done
+                       fi
 
                        echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-MMC stacks..."
                        ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-MMC || true
@@ -296,6 +299,11 @@ pipeline {
             }
         }
         stage ('Create R53 Alias') {
+            when {
+                expression {
+                    return env.R53ZoneId != '';
+                }
+            }
             steps {
                 writeFile file: 'R53alias.parms.json',
                    text: /
