@@ -20,9 +20,6 @@ pipeline {
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
          string(name: 'AwsSvcEndpoint',  description: 'Override the CFN service-endpoint as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
-         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
-         string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
          string(name: 'TemplateUrl', description: 'S3-hosted URL for the EC2 template file')
          string(name: 'AdminPubkeyURL', defaultValue: '', description: '(Optional) URL of file containing admin groups SSH public-keys')
@@ -64,9 +61,6 @@ pipeline {
         stage ('Cleanup Work Environment') {
             steps {
                 deleteDir()
-                git branch: "${GitProjBranch}",
-                    credentialsId: "${GitCred}",
-                    url: "${GitProjUrl}"
                 writeFile file: 'EC2.parms.json',
                    text: /
                          [
