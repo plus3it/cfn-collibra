@@ -86,7 +86,7 @@
             ]
         },
         "IsSearchServer": {
-            "Fn::Equal": [
+            "Fn::Equals": [
                 {
                     "Ref": "CollibraDgcComponent"
                 },
