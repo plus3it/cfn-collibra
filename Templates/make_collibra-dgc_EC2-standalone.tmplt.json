@@ -2082,7 +2082,7 @@
                                 "python3 -m pip install --index-url=\"${PYPI_URL}\" --upgrade pip setuptools\n",
                                 "\n",
                                 "# Fix python urllib3 warnings\n",
-                                "yum install gcc python-devel libffi-devel openssl-devel\n",
+                                "yum install -y gcc python-devel libffi-devel openssl-devel\n",
                                 "pip install",
                                 " --index-url=\"${PYPI_URL}\"",
                                 " --upgrade cffi\n",
