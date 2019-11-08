@@ -28,7 +28,7 @@ pipeline {
          string(name: 'AppVolumeSize', description: 'Size in GiB of the secondary EBS to create')
          string(name: 'AppVolumeType', defaultValue: 'gp2', description: 'Type of EBS volume to create')
          string(name: 'CloudWatchAgentUrl', defaultValue: 's3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip', description: '(Optional) S3 URL to CloudWatch Agent installer')
-         choice(name: 'CollibraDgcComponent', choices: 'CONSOLE\nDGC\nREPOSITORY\nAGENT\nJOBSERVER', description: 'Which Collibra element to deploy')
+         choice(name: 'CollibraDgcComponent', choices: 'AGENT\nCONSOLE\nDGC\nJOBSERVER\nREPOSITORY\nSEARCH', description: 'Which Collibra element to deploy')
          string(name: 'CollibraConsolePassword', description: 'Password to link the Collibra DGC and Console services')
          string(name: 'CollibraDataDir', defaultValue: '/opt/collibra/data', description: 'Location for storage of Collibra application-data')
          string(name: 'CollibraInstallerUrl', description: 'URL from which to download the Collibra installer SHAR-file')
