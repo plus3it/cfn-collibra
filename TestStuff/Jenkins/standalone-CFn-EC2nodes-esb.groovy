@@ -1,4 +1,3 @@
-
 pipeline {
 
     agent any
@@ -30,8 +29,6 @@ pipeline {
          string(name: 'AppVolumeType', defaultValue: 'gp2', description: 'Type of EBS volume to create')
          string(name: 'BackupBucket', description: 'S3 Bucket-name in which to store DGC backups')
          string(name: 'BackupSchedule', defaultValue: '45 0 * * *', description: 'When, in cronie-format, to run backups')
-         string(name: 'CfnBootstrapUtilsUrl', defaultValue: 'https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz', description: 'URL to aws-cfn-bootstrap-latest.tar.gz')
-         string(name: 'CfnGetPipUrl', defaultValue: 'https://bootstrap.pypa.io/2.6/get-pip.py', description: 'URL to get-pip.py')
          string(name: 'CloudWatchAgentUrl', defaultValue: 's3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip', description: '(Optional) S3 URL to CloudWatch Agent installer')
          string(name: 'InstanceRoleName', description: 'IAM instance role-name to use for signalling')
          string(name: 'InstanceRoleProfile', description: 'IAM instance profile-name to apply to the instance')
@@ -39,10 +36,8 @@ pipeline {
          string(name: 'KeyPairName', description: 'Registered SSH key used to provision the node')
          string(name: 'MuleUri', description: 'A curl-fetchable URL for the Mule ESB software' )
          string(name: 'MuleLicenseUri', description: 'A curl-fetchable URL for the Mule ESB license file')
-         choice(name: 'NoPublicIp', choices: 'false\ntrue\n', description: 'Whether to set a public IP ("true" means "dont")')
          choice(name: 'NoReboot', choices: 'false\ntrue\n', description: 'Whether to prevent the instance from rebooting at completion of build')
          choice(name: 'NoUpdates', choices: 'false\ntrue\n', description: 'Whether to prevent updating all installed RPMs as part of build process')
-         string(name: 'PrivateIp', description: 'If set to a dotted-quad, attempt to set the requested private IP address on instance')
          string(name: 'ProvisionUser', defaultValue: 'ec2-user', description: 'Default login-user to create upon instance-launch')
          string(name: 'PypiIndexUrl', defaultValue: 'https://pypi.org/simple', description: 'Source from which to pull Pypi packages')
          string(name: 'RootVolumeSize', defaultValue: '20', description: 'How big to make the root EBS volume (ensure value specified is at least as big as the AMI-default)')
@@ -97,14 +92,6 @@ pipeline {
                                  "ParameterValue": "${env.BackupSchedule}"
                              },
                              {
-                                 "ParameterKey": "CfnBootstrapUtilsUrl",
-                                 "ParameterValue": "${env.CfnBootstrapUtilsUrl}"
-                             },
-                             {
-                                 "ParameterKey": "CfnGetPipUrl",
-                                 "ParameterValue": "${env.CfnGetPipUrl}"
-                             },
-                             {
                                  "ParameterKey": "CloudWatchAgentUrl",
                                  "ParameterValue": "${env.CloudWatchAgentUrl}"
                              },
@@ -133,20 +120,12 @@ pipeline {
                                  "ParameterValue": "${env.MuleUri}"
                              },
                              {
-                                 "ParameterKey": "NoPublicIp",
-                                 "ParameterValue": "${env.NoPublicIp}"
-                             },
-                             {
                                  "ParameterKey": "NoReboot",
                                  "ParameterValue": "${env.NoReboot}"
                              },
                              {
                                  "ParameterKey": "NoUpdates",
                                  "ParameterValue": "${env.NoUpdates}"
-                             },
-                             {
-                                 "ParameterKey": "PrivateIp",
-                                 "ParameterValue": "${env.PrivateIp}"
                              },
                              {
                                  "ParameterKey": "ProvisionUser",
