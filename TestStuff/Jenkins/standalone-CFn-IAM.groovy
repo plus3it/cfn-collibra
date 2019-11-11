@@ -24,6 +24,7 @@ pipeline {
          string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
          string(name: 'BackupBucketArn', description: 'ARN of S3 Bucket to host Collibra backups')
+         string(name: 'IamBoundaryName', description: 'Name of the permissions-boundary to apply to the to-be-created IAM role')
          string(name: 'RolePrefix', description: 'Prefix to apply to IAM role to make things a bit prettier (optional)')
          string(name: 'CloudwatchBucketName', description: 'Name of the S3 Bucket hosting the CloudWatch agent archive files')
     }
@@ -45,6 +46,10 @@ pipeline {
                              {
                                  "ParameterKey": "RolePrefix",
                                  "ParameterValue": "${env.RolePrefix}"
+                             },
+                             {
+                                 "ParameterKey": "IamBoundaryName",
+                                 "ParameterValue": "${env.IamBoundaryName}"
                              },
                              {
                                  "ParameterKey": "CloudwatchBucketName",
