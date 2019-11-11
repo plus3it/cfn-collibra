@@ -265,8 +265,7 @@
                         "default": "Backup Configuration"
                     },
                     "Parameters": [
-                        "BackupBucket",
-                        "BackupSchedule"
+                        "BackupBucket"
                     ]
                 },
                 {
@@ -391,11 +390,6 @@
         },
         "BackupBucket": {
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Name of the S3 bucket in which to store Collibra backups",
-            "Type": "String"
-        },
-        "BackupSchedule": {
-            "Default": "45 0 * * *",
-            "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") When to run backups via Linux cron system (use \"cronie\" cron-format)",
             "Type": "String"
         },
         "CloudWatchAgentUrl": {

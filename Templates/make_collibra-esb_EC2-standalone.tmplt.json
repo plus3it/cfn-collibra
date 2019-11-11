@@ -265,7 +265,6 @@
                         "default": "Backup Configuration"
                     },
                     "Parameters": [
-                        "BackupBucket",
                         "BackupSchedule"
                     ]
                 },
@@ -387,10 +386,6 @@
             ],
             "Default": "gp2",
             "Description": "Type of EBS volume to create. Ignored if \"AppVolumeDevice\" is false",
-            "Type": "String"
-        },
-        "BackupBucket": {
-            "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Name of the S3 bucket in which to store Collibra backups",
             "Type": "String"
         },
         "BackupSchedule": {
