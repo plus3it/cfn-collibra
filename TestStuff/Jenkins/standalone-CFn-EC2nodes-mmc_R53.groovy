@@ -26,7 +26,7 @@ pipeline {
          string(name: 'TemplateUrl', description: 'S3-hosted URL for the EC2 template file')
          string(name: 'AdminPubkeyURL', defaultValue: '', description: '(Optional) URL of file containing admin groups SSH public-keys')
          string(name: 'AmiId', description: 'ID of the AMI to launch')
-         choice(name: 'AppVolumeDevice', choices: 'false\ntrue\n', description: 'Whether to attach a secondary volume to host application contents')
+         choice(name: 'AppVolumeDevice', choices:[ 'false', 'true' ], description: 'Whether to attach a secondary volume to host application contents')
          string(name: 'AppVolumeMountPath', description: 'Filesystem path to mount the extra app volume. Ignored if "AppVolumeDevice" is false')
          string(name: 'AppVolumeSize', description: 'Size in GiB of the secondary EBS to create')
          string(name: 'AppVolumeType', defaultValue: 'gp2', description: 'Type of EBS volume to create')
@@ -40,9 +40,8 @@ pipeline {
          string(name: 'InstanceType', description: 'AWS EC2 instance type to select for launch')
          string(name: 'KeyPairName', description: 'Registered SSH key used to provision the node')
          string(name: 'MuleMmcWarUri', description: 'A curl-fetchable URL for the mmc WAR-file')
-         choice(name: 'NoPublicIp', choices: 'false\ntrue\n', description: 'Whether to set a public IP ("true" means "dont")')
-         choice(name: 'NoReboot', choices: 'false\ntrue\n', description: 'Whether to prevent the instance from rebooting at completion of build')
-         choice(name: 'NoUpdates', choices: 'false\ntrue\n', description: 'Whether to prevent updating all installed RPMs as part of build process')
+         choice(name: 'NoReboot', choices:[ 'false', 'true' ], description: 'Whether to prevent the instance from rebooting at completion of build')
+         choice(name: 'NoUpdates', choices:[ 'false', 'true' ], description: 'Whether to prevent updating all installed RPMs as part of build process')
          string(name: 'PrivateIp', description: 'If set to a dotted-quad, attempt to set the requested private IP address on instance')
          string(name: 'ProvisionUser', defaultValue: 'ec2-user', description: 'Default login-user to create upon instance-launch')
          string(name: 'PypiIndexUrl', defaultValue: 'https://pypi.org/simple', description: 'Source from which to pull Pypi packages')
@@ -131,10 +130,6 @@ pipeline {
                              {
                                  "ParameterKey": "MuleMmcWarUri",
                                  "ParameterValue": "${env.MuleMmcWarUri}"
-                             },
-                             {
-                                 "ParameterKey": "NoPublicIp",
-                                 "ParameterValue": "${env.NoPublicIp}"
                              },
                              {
                                  "ParameterKey": "NoReboot",

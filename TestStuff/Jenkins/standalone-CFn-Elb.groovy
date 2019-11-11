@@ -23,7 +23,7 @@ pipeline {
          string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
          string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
-         choice(name: 'ProxyForService', choices:'Console\nDGC', description: 'Which DGC component this ELB proxies')
+         choice(name: 'ProxyForService', choices:[ 'Console', 'DGC' ], description: 'Which DGC component this ELB proxies')
          string(name: 'UserProxyFqdn', description: 'FQDN of name to register within R53 for ELB')
          string(name: 'R53ZoneId', description: 'Route53 ZoneId to create proxy-alias DNS record')
          string(name: 'ElbShortName', description: 'A short, human-friendly label to assign to the ELB (no capital letters)')
