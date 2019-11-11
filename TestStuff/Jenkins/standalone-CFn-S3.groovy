@@ -147,4 +147,10 @@ pipeline {
             }
         }
     }
+
+    post {
+        always {
+            deleteDir() /* lets be a good citizen */
+        }
+    }
 }
