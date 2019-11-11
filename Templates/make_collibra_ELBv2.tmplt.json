@@ -340,7 +340,7 @@
                         "HealthchkUrlString"
                     ]
                 },
-                "HealthyThresholdCount": "5",
+                "HealthyThresholdCount": 5,
                 "Name": {
                     "Fn::Join": [
                         "-",
@@ -399,7 +399,7 @@
                         }
                     ]
                 },
-                "UnhealthyThresholdCount": "2",
+                "UnhealthyThresholdCount": 2,
                 "VpcId": {
                     "Ref": "TargetVPC"
                 }
