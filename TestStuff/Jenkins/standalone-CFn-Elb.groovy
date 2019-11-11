@@ -34,7 +34,7 @@ pipeline {
          string(name: 'CollibraListenerCert', description: 'AWS Certificate Manager Certificate ID to bind to SSL listener')
          string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the ELB')
          string(name: 'TargetVPC', description: 'ID of the VPC to deploy cluster nodes into')
-         choice(name: 'PublicFacing', choices:[ 'Console', 'DGC' ], description: 'Whether or not proxy is "internet-facing"')
+         choice(name: 'PublicFacing', choices:[ 'false', 'true' ], description: 'Whether or not proxy is "internet-facing"')
     }
 
     stages {
