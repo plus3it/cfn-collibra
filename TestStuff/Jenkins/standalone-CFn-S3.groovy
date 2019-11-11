@@ -137,7 +137,10 @@ pipeline {
                                grep -q CREATE_COMPLETE
                               )$? -eq 0 ]]
                        then
-                          echo "Stack-creation successful"
+                          echo "Success. Created:"
+                          aws cloudformation describe-stacks --stack-name ${CfnStackRoot}-S3Res \
+                            --query 'Stacks[].Outputs[].{Description:Description,Value:OutputValue}' \
+                            --output table | sed 's/^/    /'
                        else
                           echo "Stack-creation ended with non-successful state"
                           exit 1
