@@ -25,7 +25,6 @@ pipeline {
          string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
          choice(name: 'ProxyForService', choices:'Console\nDGC', description: 'Which DGC component this ELB proxies')
-         string(name: 'BackendTimeout', defaultValue: '600', description: 'How long - in seconds - back-end connection may be idle before attempting session-cleanup')
          string(name: 'UserProxyFqdn', description: 'FQDN of name to register within R53 for ELB')
          string(name: 'R53ZoneId', description: 'Route53 ZoneId to create proxy-alias DNS record')
          string(name: 'ElbShortName', description: 'A short, human-friendly label to assign to the ELB (no capital letters)')
@@ -52,10 +51,6 @@ pipeline {
                            {
                                "ParameterKey": "ProxyForService",
                                "ParameterValue": "${env.ProxyForService}"
-                           },
-                           {
-                               "ParameterKey": "BackendTimeout",
-                               "ParameterValue": "${env.BackendTimeout}"
                            },
                            {
                                "ParameterKey": "CollibraInstanceId",

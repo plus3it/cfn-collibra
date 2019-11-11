@@ -76,8 +76,7 @@
                     "Parameters": [
                         "ProxyForService",
                         "HaSubnets",
-                        "CollibraInstanceId",
-                        "BackendTimeout"
+                        "CollibraInstanceId"
                     ]
                 }
             ],
@@ -152,13 +151,6 @@
         }
     },
     "Parameters": {
-        "BackendTimeout": {
-            "Default": "600",
-            "Description": "How long - in seconds - back-end connection may be idle before attempting session-cleanup",
-            "MaxValue": "3600",
-            "MinValue": "60",
-            "Type": "Number"
-        },
         "CertHostingService": {
             "AllowedValues": [
                 "ACM",
