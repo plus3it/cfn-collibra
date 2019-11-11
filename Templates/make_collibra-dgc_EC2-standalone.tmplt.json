@@ -370,16 +370,10 @@
                         "default": "CloudFormation Configuration"
                     },
                     "Parameters": [
-                        "CloudWatchAgentUrl",
-                        "ToggleCfnInitUpdate"
+                        "CloudWatchAgentUrl"
                     ]
                 }
-            ],
-            "ParameterLabels": {
-                "ToggleCfnInitUpdate": {
-                    "default": "Force Cfn Init Update"
-                }
-            }
+            ]
         },
         "Version": "1.4.3"
     },
@@ -631,15 +625,6 @@
         "SubnetId": {
             "Description": "ID of the subnet to assign to the instance",
             "Type": "AWS::EC2::Subnet::Id"
-        },
-        "ToggleCfnInitUpdate": {
-            "AllowedValues": [
-                "A",
-                "B"
-            ],
-            "Default": "A",
-            "Description": "A/B toggle that forces a change to instance metadata, triggering the cfn-init update sequence",
-            "Type": "String"
         },
         "WatchmakerAdminGroups": {
             "Default": "",
@@ -1863,9 +1848,6 @@
                             }
                         }
                     }
-                },
-                "ToggleCfnInitUpdate": {
-                    "Ref": "ToggleCfnInitUpdate"
                 }
             },
             "Properties": {

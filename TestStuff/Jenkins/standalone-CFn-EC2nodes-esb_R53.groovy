@@ -47,7 +47,6 @@ pipeline {
          string(name: 'RootVolumeSize', defaultValue: '20', description: 'How big to make the root EBS volume (ensure value specified is at least as big as the AMI-default)')
          string(name: 'SecurityGroupIds', description: 'Comma-separated list of EC2 security-groups to apply to the instance')
          string(name: 'SubnetId', description: 'Subnet-ID to deploy EC2 instance into')
-         string(name: 'ToggleCfnInitUpdate', defaultValue: 'A', description: 'Simple toggle to force an instance to update')
          string(name: 'WatchmakerAdminGroups', description: 'What ActiveDirectory groups to give admin access to (if bound to an AD domain)')
          string(name: 'WatchmakerAdminUsers', description: 'What ActiveDirectory users to give admin access to (if bound to an AD domain)')
          string(name: 'WatchmakerComputerName', description: 'Hostname to apply to the deployed instance')
@@ -155,10 +154,6 @@ pipeline {
                              {
                                  "ParameterKey": "SubnetId",
                                  "ParameterValue": "${env.SubnetId}"
-                             },
-                             {
-                                 "ParameterKey": "ToggleCfnInitUpdate",
-                                 "ParameterValue": "${env.ToggleCfnInitUpdate}"
                              },
                              {
                                  "ParameterKey": "WatchmakerAdminGroups",
