@@ -98,7 +98,7 @@ pipeline {
                           CFNCMD="aws cloudformation"
                        fi
 
-                       if [[ ! -v ${R53ZoneId+x} ]]
+                       if [[ -v ${R53ZoneId+x} ]]
                        then
                           echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
                           ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
