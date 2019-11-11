@@ -30,7 +30,7 @@ pipeline {
          string(name: 'CollibraInstanceId', defaultValue: '', description: 'ID of the EC2-instance this template should create a proxy for (typically left blank)')
          string(name: 'CollibraListenPort', defaultValue: '443', description: 'Public-facing TCP Port number on which the ELB listens for requests to proxy')
          string(name: 'HaSubnets', description: 'Provide a comma-separated list of user-facing subnet IDs in which to create service-listeners')
-         string(name: 'CertHostingService', defaultValue: 'IAM', description: 'AWS service containing the certificate to SSL-enable the ELB')
+         choice(name: 'CertHostingService', choices:[ 'IAM', 'ACM' ], description: 'AWS service containing the certificate to SSL-enable the ELB')
          string(name: 'CollibraListenerCert', description: 'AWS Certificate Manager Certificate ID to bind to SSL listener')
          string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the ELB')
          string(name: 'TargetVPC', description: 'ID of the VPC to deploy cluster nodes into')
