@@ -76,7 +76,6 @@
       "Type": "AWS::EC2::SecurityGroup"
     },
     "UpdateAppSgPrimaryCmd": {
-      "DependsOn": "AppSg",
       "Properties": {
         "FromPort": 4400,
         "GroupId": { "Ref": "AppSg" },
@@ -87,7 +86,6 @@
       "Type": "AWS::EC2::SecurityGroupIngress"
     },
     "UpdateAppSgShutdownCmd": {
-      "DependsOn": "AppSg",
       "Properties": {
         "FromPort": 4430,
         "GroupId": { "Ref": "AppSg" },
@@ -98,7 +96,6 @@
       "Type": "AWS::EC2::SecurityGroupIngress"
     },
     "UpdateNasSg": {
-      "DependsOn": "NasSg",
       "Properties": {
         "FromPort": 0,
         "GroupId": { "Ref": "NasSg" },
@@ -109,7 +106,6 @@
       "Type": "AWS::EC2::SecurityGroupIngress"
     },
     "UpdateRdsSg": {
-      "DependsOn": "RdsSg",
       "Properties": {
         "FromPort": 5432,
         "GroupId": { "Ref": "RdsSg" },
