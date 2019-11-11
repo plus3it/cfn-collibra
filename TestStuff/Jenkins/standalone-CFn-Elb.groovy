@@ -34,7 +34,7 @@ pipeline {
          string(name: 'CollibraListenerCert', description: 'AWS Certificate Manager Certificate ID to bind to SSL listener')
          string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the ELB')
          string(name: 'TargetVPC', description: 'ID of the VPC to deploy cluster nodes into')
-         string(name: 'PublicFacing', defaultValue: 'false', description: 'Whether or not proxy is "internet-facing"')
+         choice(name: 'PublicFacing', choices:[ 'Console', 'DGC' ], description: 'Whether or not proxy is "internet-facing"')
     }
 
     stages {
@@ -91,14 +91,14 @@ pipeline {
                    /
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
-                       if [[ -z ${AWS_CFN_ENDPOINT} ]]
+                       if [[ -v ${AWS_CFN_ENDPOINT+x} ]]
                        then
                           CFNCMD="aws cloudformation --endpoint-url ${AWS_CFN_ENDPOINT}"
                        else
                           CFNCMD="aws cloudformation"
                        fi
 
-                       if [[ ! -z ${R53ZoneId} ]]
+                       if [[ ! -v ${R53ZoneId+x} ]]
                        then
                           echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
                           ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
@@ -142,7 +142,7 @@ pipeline {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
-                       if [[ -z ${AWS_CFN_ENDPOINT} ]]
+                       if [[ -v ${AWS_CFN_ENDPOINT+x} ]]
                        then
                           CFNCMD="aws cloudformation --endpoint-url ${AWS_CFN_ENDPOINT}"
                        else
