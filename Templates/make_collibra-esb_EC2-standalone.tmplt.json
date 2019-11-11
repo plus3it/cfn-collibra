@@ -1486,7 +1486,7 @@
                     {
                         "DeviceName": "/dev/sda1",
                         "Ebs": {
-                            "DeleteOnTermination": "true",
+                            "DeleteOnTermination": true,
                             "VolumeSize": {
                                 "Ref": "RootVolumeSize"
                             },
@@ -1499,7 +1499,7 @@
                             {
                                 "DeviceName": "/dev/xvdf",
                                 "Ebs": {
-                                    "DeleteOnTermination": "true",
+                                    "DeleteOnTermination": true,
                                     "VolumeSize": {
                                         "Ref": "AppVolumeSize"
                                     },
