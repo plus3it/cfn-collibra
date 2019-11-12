@@ -36,7 +36,7 @@ pipeline {
          string(name: 'CloudWatchAgentUrl', defaultValue: 's3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip', description: '(Optional) S3 URL to CloudWatch Agent installer')
          string(name: 'CollibraConsolePassword', description: 'Password to link the Collibra DGC and Console services')
          string(name: 'CollibraDataDir', defaultValue: '/opt/collibra/data', description: 'Location for storage of Collibra application-data')
-         choice(name: 'CollibraDgcComponent', choices:choices:[ 'AGENT', 'CONSOLE', 'DGC', 'JOBSERVER', 'REPOSITORY', 'SEARCH' ], description: 'Which Collibra element to deploy')
+         choice(name: 'CollibraDgcComponent', choices:[ 'AGENT', 'CONSOLE', 'DGC', 'JOBSERVER', 'REPOSITORY', 'SEARCH' ], description: 'Which Collibra element to deploy')
          string(name: 'CollibraInstallerUrl', description: 'URL from which to download the Collibra installer SHAR-file')
          string(name: 'CollibraRepoPassword', description: 'Password to use for accessing the Repository database')
          string(name: 'CollibraSoftwareDir', defaultValue: '/opt/collibra/software', description: 'Location for storage of Collibra application-software')
