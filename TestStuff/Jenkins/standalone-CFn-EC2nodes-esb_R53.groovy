@@ -30,7 +30,6 @@ pipeline {
          string(name: 'AppVolumeMountPath', defaultValue: '/opt/collibra', description: 'Filesystem path to mount the extra app volume. Ignored if "AppVolumeDevice" is false')
          string(name: 'AppVolumeSize', description: 'Size in GiB of the secondary EBS to create')
          string(name: 'AppVolumeType', defaultValue: 'gp2', description: 'Type of EBS volume to create')
-         string(name: 'BackupBucket', description: 'S3 Bucket-name in which to store DGC backups')
          string(name: 'BackupSchedule', defaultValue: '45 0 * * *', description: 'When, in cronie-format, to run backups')
          string(name: 'CloudWatchAgentUrl', defaultValue: 's3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip', description: '(Optional) S3 URL to CloudWatch Agent installer')
          string(name: 'InstanceRoleName', description: 'IAM instance role-name to use for signalling')
@@ -89,10 +88,6 @@ pipeline {
                              {
                                  "ParameterKey": "AppVolumeType",
                                  "ParameterValue": "${env.AppVolumeType}"
-                             },
-                             {
-                                 "ParameterKey": "BackupBucket",
-                                 "ParameterValue": "${env.BackupBucket}"
                              },
                              {
                                  "ParameterKey": "BackupSchedule",

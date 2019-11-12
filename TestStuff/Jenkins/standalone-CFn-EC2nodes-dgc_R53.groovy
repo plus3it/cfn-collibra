@@ -31,8 +31,6 @@ pipeline {
          string(name: 'AppVolumeMountPath', defaultValue: '/opt/collibra', description: 'Filesystem path to mount the extra app volume. Ignored if "AppVolumeDevice" is false')
          string(name: 'AppVolumeSize', description: 'Size in GiB of the secondary EBS to create')
          string(name: 'AppVolumeType', defaultValue: 'gp2', description: 'Type of EBS volume to create')
-         string(name: 'CfnBootstrapUtilsUrl', defaultValue: 'https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz', description: 'URL to aws-cfn-bootstrap-latest.tar.gz')
-         string(name: 'CfnGetPipUrl', defaultValue: 'https://bootstrap.pypa.io/2.6/get-pip.py', description: 'URL to get-pip.py')
          string(name: 'CloudWatchAgentUrl', defaultValue: 's3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip', description: '(Optional) S3 URL to CloudWatch Agent installer')
          string(name: 'CollibraConsolePassword', description: 'Password to link the Collibra DGC and Console services')
          string(name: 'CollibraDataDir', defaultValue: '/opt/collibra/data', description: 'Location for storage of Collibra application-data')
@@ -46,7 +44,6 @@ pipeline {
          string(name: 'KeyPairName', description: 'Registered SSH key used to provision the node')
          choice(name: 'NoReboot', choices:[ 'false', 'true' ], description: 'Whether to prevent the instance from rebooting at completion of build')
          choice(name: 'NoUpdates', choices:[ 'false', 'true' ], description: 'Whether to prevent updating all installed RPMs as part of build process')
-         string(name: 'PrivateIp', description: 'If set to a dotted-quad, attempt to set the requested private IP address on instance')
          string(name: 'ProvisionUser', defaultValue: 'ec2-user', description: 'Default login-user to create upon instance-launch')
          string(name: 'PypiIndexUrl', defaultValue: 'https://pypi.org/simple', description: 'Source from which to pull Pypi packages')
          string(name: 'R53ZoneId', description: 'Route53 ZoneId to create proxy-alias DNS record')
@@ -122,14 +119,6 @@ pipeline {
                                  "ParameterValue": "${env.AppVolumeType}"
                              },
                              {
-                                 "ParameterKey": "CfnBootstrapUtilsUrl",
-                                 "ParameterValue": "${env.CfnBootstrapUtilsUrl}"
-                             },
-                             {
-                                 "ParameterKey": "CfnGetPipUrl",
-                                 "ParameterValue": "${env.CfnGetPipUrl}"
-                             },
-                             {
                                  "ParameterKey": "CloudWatchAgentUrl",
                                  "ParameterValue": "${env.CloudWatchAgentUrl}"
                              },
@@ -184,10 +173,6 @@ pipeline {
                              {
                                  "ParameterKey": "NoUpdates",
                                  "ParameterValue": "${env.NoUpdates}"
-                             },
-                             {
-                                 "ParameterKey": "PrivateIp",
-                                 "ParameterValue": "${env.PrivateIp}"
                              },
                              {
                                  "ParameterKey": "ProvisionUser",
