@@ -1,4 +1,3 @@
-
 pipeline {
 
     agent any
@@ -27,11 +26,10 @@ pipeline {
          string(name: 'TemplateUrl', description: 'S3-hosted URL for the EC2 template file')
          string(name: 'AdminPubkeyURL', defaultValue: '', description: '(Optional) URL of file containing admin groups SSH public-keys')
          string(name: 'AmiId', description: 'ID of the AMI to launch')
-         choice(name: 'AppVolumeDevice', choices: 'false\ntrue\n', description: 'Whether to attach a secondary volume to host application contents')
+         choice(name: 'AppVolumeDevice', choices:[ 'false', 'true' ], description: 'Whether to attach a secondary volume to host application contents')
          string(name: 'AppVolumeMountPath', defaultValue: '/opt/collibra', description: 'Filesystem path to mount the extra app volume. Ignored if "AppVolumeDevice" is false')
          string(name: 'AppVolumeSize', description: 'Size in GiB of the secondary EBS to create')
          string(name: 'AppVolumeType', defaultValue: 'gp2', description: 'Type of EBS volume to create')
-         string(name: 'BackupBucket', description: 'S3 Bucket-name in which to store DGC backups')
          string(name: 'BackupSchedule', defaultValue: '45 0 * * *', description: 'When, in cronie-format, to run backups')
          string(name: 'CloudWatchAgentUrl', defaultValue: 's3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip', description: '(Optional) S3 URL to CloudWatch Agent installer')
          string(name: 'InstanceRoleName', description: 'IAM instance role-name to use for signalling')
@@ -40,14 +38,13 @@ pipeline {
          string(name: 'KeyPairName', description: 'Registered SSH key used to provision the node')
          string(name: 'MuleUri', description: 'A curl-fetchable URL for the Mule ESB software' )
          string(name: 'MuleLicenseUri', description: 'A curl-fetchable URL for the Mule ESB license file')
-         choice(name: 'NoReboot', choices: 'false\ntrue\n', description: 'Whether to prevent the instance from rebooting at completion of build')
-         choice(name: 'NoUpdates', choices: 'false\ntrue\n', description: 'Whether to prevent updating all installed RPMs as part of build process')
+         choice(name: 'NoReboot', choices:[ 'false', 'true' ], description: 'Whether to prevent the instance from rebooting at completion of build')
+         choice(name: 'NoUpdates', choices:[ 'false', 'true' ], description: 'Whether to prevent updating all installed RPMs as part of build process')
          string(name: 'ProvisionUser', defaultValue: 'ec2-user', description: 'Default login-user to create upon instance-launch')
          string(name: 'PypiIndexUrl', defaultValue: 'https://pypi.org/simple', description: 'Source from which to pull Pypi packages')
          string(name: 'RootVolumeSize', defaultValue: '20', description: 'How big to make the root EBS volume (ensure value specified is at least as big as the AMI-default)')
          string(name: 'SecurityGroupIds', description: 'Comma-separated list of EC2 security-groups to apply to the instance')
          string(name: 'SubnetId', description: 'Subnet-ID to deploy EC2 instance into')
-         string(name: 'ToggleCfnInitUpdate', defaultValue: 'A', description: 'Simple toggle to force an instance to update')
          string(name: 'WatchmakerAdminGroups', description: 'What ActiveDirectory groups to give admin access to (if bound to an AD domain)')
          string(name: 'WatchmakerAdminUsers', description: 'What ActiveDirectory users to give admin access to (if bound to an AD domain)')
          string(name: 'WatchmakerComputerName', description: 'Hostname to apply to the deployed instance')
@@ -91,10 +88,6 @@ pipeline {
                              {
                                  "ParameterKey": "AppVolumeType",
                                  "ParameterValue": "${env.AppVolumeType}"
-                             },
-                             {
-                                 "ParameterKey": "BackupBucket",
-                                 "ParameterValue": "${env.BackupBucket}"
                              },
                              {
                                  "ParameterKey": "BackupSchedule",
@@ -157,10 +150,6 @@ pipeline {
                                  "ParameterValue": "${env.SubnetId}"
                              },
                              {
-                                 "ParameterKey": "ToggleCfnInitUpdate",
-                                 "ParameterValue": "${env.ToggleCfnInitUpdate}"
-                             },
-                             {
                                  "ParameterKey": "WatchmakerAdminGroups",
                                  "ParameterValue": "${env.WatchmakerAdminGroups}"
                              },
@@ -189,7 +178,7 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
                        then
                           CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
                        else
@@ -241,7 +230,7 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
                        then
                           CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
                        else
@@ -315,7 +304,7 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
                        then
                           CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
                        else
@@ -357,6 +346,12 @@ pipeline {
                     '''
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            deleteDir() /* lets be a good citizen */
         }
     }
 }

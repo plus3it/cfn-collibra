@@ -34,9 +34,9 @@
         "SecurityGroupIngress": [
           {
             "CidrIp": "0.0.0.0/0",
-            "FromPort": "443",
+            "FromPort": 443,
             "IpProtocol": "tcp",
-            "ToPort": "443"
+            "ToPort": 443
           }
         ],
         "Tags": [
@@ -76,46 +76,42 @@
       "Type": "AWS::EC2::SecurityGroup"
     },
     "UpdateAppSgPrimaryCmd": {
-      "DependsOn": "AppSg",
       "Properties": {
-        "FromPort": "4400",
+        "FromPort": 4400,
         "GroupId": { "Ref": "AppSg" },
         "IpProtocol": "tcp",
         "SourceSecurityGroupId": { "Ref": "AppSg" },
-        "ToPort": "4404"
+        "ToPort": 4404
       },
       "Type": "AWS::EC2::SecurityGroupIngress"
     },
     "UpdateAppSgShutdownCmd": {
-      "DependsOn": "AppSg",
       "Properties": {
-        "FromPort": "4430",
+        "FromPort": 4430,
         "GroupId": { "Ref": "AppSg" },
         "IpProtocol": "tcp",
         "SourceSecurityGroupId": { "Ref": "AppSg" },
-        "ToPort": "4430"
+        "ToPort": 4430
       },
       "Type": "AWS::EC2::SecurityGroupIngress"
     },
     "UpdateNasSg": {
-      "DependsOn": "NasSg",
       "Properties": {
-        "FromPort": "0",
+        "FromPort": 0,
         "GroupId": { "Ref": "NasSg" },
         "IpProtocol": "tcp",
         "SourceSecurityGroupId": { "Ref": "NasSg" },
-        "ToPort": "65535"
+        "ToPort": 65535
       },
       "Type": "AWS::EC2::SecurityGroupIngress"
     },
     "UpdateRdsSg": {
-      "DependsOn": "RdsSg",
       "Properties": {
-        "FromPort": "5432",
+        "FromPort": 5432,
         "GroupId": { "Ref": "RdsSg" },
         "IpProtocol": "tcp",
         "SourceSecurityGroupId": { "Ref": "RdsSg" },
-        "ToPort": "5432"
+        "ToPort": 5432
       },
       "Type": "AWS::EC2::SecurityGroupIngress"
     }

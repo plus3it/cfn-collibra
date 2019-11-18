@@ -370,16 +370,10 @@
                         "default": "CloudFormation Configuration"
                     },
                     "Parameters": [
-                        "CloudWatchAgentUrl",
-                        "ToggleCfnInitUpdate"
+                        "CloudWatchAgentUrl"
                     ]
                 }
-            ],
-            "ParameterLabels": {
-                "ToggleCfnInitUpdate": {
-                    "default": "Force Cfn Init Update"
-                }
-            }
+            ]
         },
         "Version": "1.4.3"
     },
@@ -440,7 +434,7 @@
         "AmiId": {
             "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
             "Description": "ID of the AMI to launch",
-            "Type": "String"
+            "Type": "AWS::EC2::Image::Id"
         },
         "AppVolumeDevice": {
             "AllowedValues": [
@@ -631,15 +625,6 @@
         "SubnetId": {
             "Description": "ID of the subnet to assign to the instance",
             "Type": "AWS::EC2::Subnet::Id"
-        },
-        "ToggleCfnInitUpdate": {
-            "AllowedValues": [
-                "A",
-                "B"
-            ],
-            "Default": "A",
-            "Description": "A/B toggle that forces a change to instance metadata, triggering the cfn-init update sequence",
-            "Type": "String"
         },
         "WatchmakerAdminGroups": {
             "Default": "",
@@ -1863,9 +1848,6 @@
                             }
                         }
                     }
-                },
-                "ToggleCfnInitUpdate": {
-                    "Ref": "ToggleCfnInitUpdate"
                 }
             },
             "Properties": {
@@ -1873,7 +1855,7 @@
                     {
                         "DeviceName": "/dev/sda1",
                         "Ebs": {
-                            "DeleteOnTermination": "true",
+                            "DeleteOnTermination": true,
                             "VolumeSize": {
                                 "Ref": "RootVolumeSize"
                             },
@@ -1886,7 +1868,7 @@
                             {
                                 "DeviceName": "/dev/xvdf",
                                 "Ebs": {
-                                    "DeleteOnTermination": "true",
+                                    "DeleteOnTermination": true,
                                     "VolumeSize": {
                                         "Ref": "AppVolumeSize"
                                     },
@@ -2083,10 +2065,10 @@
                                 "\n",
                                 "# Fix python urllib3 warnings\n",
                                 "yum install -y gcc python-devel libffi-devel openssl-devel\n",
-                                "pip install",
+                                "python3 -m pip install",
                                 " --index-url=\"${PYPI_URL}\"",
                                 " --upgrade cffi\n",
-                                "pip install",
+                                "python3 -m pip install",
                                 " --index-url=\"${PYPI_URL}\"",
                                 " --upgrade pyopenssl ndg-httpsclient pyasn1 'cryptography<2.2;python_version<\"2.7\"' 'cryptography;python_version>=\"2.7\"'",
                                 "\n\n",

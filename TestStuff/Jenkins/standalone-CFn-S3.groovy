@@ -1,4 +1,3 @@
-
 pipeline {
 
     agent any
@@ -72,7 +71,7 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
                        then
                           CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
                        else
@@ -104,7 +103,7 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
                        then
                           CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
                        else
@@ -138,7 +137,10 @@ pipeline {
                                grep -q CREATE_COMPLETE
                               )$? -eq 0 ]]
                        then
-                          echo "Stack-creation successful"
+                          echo "Success. Created:"
+                          aws cloudformation describe-stacks --stack-name ${CfnStackRoot}-S3Res \
+                            --query 'Stacks[].Outputs[].{Description:Description,Value:OutputValue}' \
+                            --output table | sed 's/^/    /'
                        else
                           echo "Stack-creation ended with non-successful state"
                           exit 1
@@ -146,6 +148,12 @@ pipeline {
                     '''
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            deleteDir() /* lets be a good citizen */
         }
     }
 }

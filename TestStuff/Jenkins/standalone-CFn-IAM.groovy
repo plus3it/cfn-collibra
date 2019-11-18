@@ -1,4 +1,3 @@
-
 pipeline {
 
     agent any
@@ -25,6 +24,7 @@ pipeline {
          string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
          string(name: 'BackupBucketArn', description: 'ARN of S3 Bucket to host Collibra backups')
+         string(name: 'IamBoundaryName', description: 'Name of the permissions-boundary to apply to the to-be-created IAM role')
          string(name: 'RolePrefix', description: 'Prefix to apply to IAM role to make things a bit prettier (optional)')
          string(name: 'CloudwatchBucketName', description: 'Name of the S3 Bucket hosting the CloudWatch agent archive files')
     }
@@ -48,6 +48,10 @@ pipeline {
                                  "ParameterValue": "${env.RolePrefix}"
                              },
                              {
+                                 "ParameterKey": "IamBoundaryName",
+                                 "ParameterValue": "${env.IamBoundaryName}"
+                             },
+                             {
                                  "ParameterKey": "CloudwatchBucketName",
                                  "ParameterValue": "${env.CloudwatchBucketName}"
                              }
@@ -56,7 +60,7 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
                        then
                           CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
                        else
@@ -88,7 +92,7 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -z ${AWS_SVC_ENDPOINT} ]]
+                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
                        then
                           CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
                        else
@@ -131,6 +135,12 @@ pipeline {
                     '''
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            deleteDir() /* lets be a good citizen */
         }
     }
 }
