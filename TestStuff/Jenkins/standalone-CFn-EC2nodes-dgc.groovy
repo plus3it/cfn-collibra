@@ -60,9 +60,12 @@ pipeline {
     }
 
     stages {
-        stage ('Cleanup Work Environment') {
+        stage ('Prep Work Environment') {
             steps {
+                // Make sure work-directory is clean //
                 deleteDir()
+
+                // Create parameter file to be used with stack-create //
                 writeFile file: 'EC2.parms.json',
                    text: /
                          [
@@ -212,6 +215,8 @@ pipeline {
                              }
                          ]
                    /
+
+                // Clean up stale AWS resources //
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities

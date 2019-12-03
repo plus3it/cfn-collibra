@@ -54,12 +54,29 @@ pipeline {
     }
 
     stages {
-        stage ('Cleanup Work Environment') {
+        stage ('Prep Work Environment') {
             steps {
+                // Make sure work-directory is clean //
                 deleteDir()
-                git branch: "${GitProjBranch}",
-                    credentialsId: "${GitCred}",
-                    url: "${GitProjUrl}"
+
+                // More-pedantic SCM declaration to allow use with tags //
+                checkout scm: [
+                        $class: 'GitSCM',
+                        userRemoteConfigs: [
+                            [
+                                url: "${GitProjUrl}",
+                                credentialsId: "${GitCred}"
+                            ]
+                        ],
+                        branches: [
+                            [
+                                name: "${GitProjBranch}"
+                            ]
+                        ]
+                    ],
+                    poll: false
+
+                // Create parameter file to be used with stack-create //
                 writeFile file: 'EC2.parms.json',
                    text: /
                          [
@@ -169,6 +186,8 @@ pipeline {
                              }
                          ]
                    /
+
+                // Clean up stale AWS resources //
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
@@ -184,7 +203,7 @@ pipeline {
                           echo "Attempting to delete any active ${CfnStackRoot}-R53Res-MMC stacks..."
                           ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-MMC || true
                           sleep 5
-   
+
                           # Pause if delete is slow
                           while [[ $(
                                       ${CFNCMD} describe-stacks \
