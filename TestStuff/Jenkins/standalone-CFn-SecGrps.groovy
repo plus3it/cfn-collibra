@@ -27,7 +27,7 @@ pipeline {
     }
 
     stages {
-        stage ('Cleanup Work Environment') {
+        stage ('Prep Work Environment') {
             steps {
                 // Make sure work-directory is clean //
                 deleteDir()
