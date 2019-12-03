@@ -40,10 +40,27 @@ pipeline {
     stages {
         stage ('Cleanup Work Environment') {
             steps {
+                // Make sure work-directory is clean //
                 deleteDir()
-                git branch: "${GitProjBranch}",
-                    credentialsId: "${GitCred}",
-                    url: "${GitProjUrl}"
+
+                // More-pedantic SCM declaration to allow use with tags //
+                checkout scm: [
+                        $class: 'GitSCM',
+                        userRemoteConfigs: [
+                            [
+                                url: "${GitProjUrl}",
+                                credentialsId: "${GitCred}"
+                            ]
+                        ],
+                        branches: [
+                            [
+                                name: "${GitProjBranch}"
+                            ]
+                        ]
+                    ],
+                    poll: false
+
+                // Create parameter file to be used with stack-create //
                 writeFile file: 'ELB.parms.json',
                    text: /
                        [
@@ -89,6 +106,8 @@ pipeline {
                            }
                        ]
                    /
+
+                // Clean up stale AWS resources //
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        if [[ -v ${AWS_CFN_ENDPOINT+x} ]]
