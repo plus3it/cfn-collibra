@@ -3,9 +3,17 @@ pipeline {
     agent any
 
     options {
-        buildDiscarder(logRotator(numToKeepStr: '5'))
+        buildDiscarder(
+            logRotator(
+                numToKeepStr: '5'
+                daysToKeepStr: '90'
+            )
+        )
         disableConcurrentBuilds()
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(
+            time: 30,
+            unit: 'MINUTES'
+        )
     }
 
     environment {
