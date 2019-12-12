@@ -182,9 +182,27 @@ pipeline {
                            }
                        ]
                    /
+            }
+        }
 
+        stage ('Nuke Stale R53') {
+            when {
+                expression {
+                    return env.R53ZoneId != '';
+                }
+            }
+            steps {
                 // Clean up stale AWS resources //
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
                     sh '''#!/bin/bash
                        # Bail on failures
                        set -euo pipefail
@@ -196,25 +214,43 @@ pipeline {
                           CFNCMD="aws cloudformation"
                        fi
 
-                       if [[ -v ${R53ZoneId+x} ]]
-                       then
-                          echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
-                          ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
-                          sleep 5
+                       echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
+                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
+                       sleep 5
 
-                          # Pause if delete is slow
-                          while [[ $(
-                                      ${CFNCMD} describe-stacks \
-                                        --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
-                                        --query 'Stacks[].{Status:StackStatus}' \
-                                        --out text 2> /dev/null | \
-                                      grep -q DELETE_IN_PROGRESS
-                                     )$? -eq 0 ]]
-                          do
-                             echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${ProxyForService} to delete..."
-                             sleep 30
-                          done
-                       fi
+                       # Pause if delete is slow
+                       while [[ $(
+                                   ${CFNCMD} describe-stacks \
+                                     --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
+                                     --query 'Stacks[].{Status:StackStatus}' \
+                                     --out text 2> /dev/null | \
+                                   grep -q DELETE_IN_PROGRESS
+                                  )$? -eq 0 ]]
+                       do
+                          echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${ProxyForService} to delete..."
+                          sleep 30
+                       done
+                    '''
+                }
+            }
+        }
+
+        stage ('Nuke Stale ELB') {
+            steps {
+                // Clean up stale AWS resources //
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
+                    sh '''#!/bin/bash
+                       # Bail on failures
+                       set -euo pipefail
 
                        echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${ProxyForService} stacks..."
                        ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} || true
@@ -236,6 +272,8 @@ pipeline {
                 }
             }
         }
+
+        /* Disable while working on timing
         stage ('Launch ELB Template') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
@@ -351,6 +389,7 @@ pipeline {
                 }
             }
         }
+        Disable while working on timing */
     }
 
     post {
