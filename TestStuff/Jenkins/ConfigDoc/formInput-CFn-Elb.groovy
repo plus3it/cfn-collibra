@@ -18,14 +18,14 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = "${AwsRegion}"
-        AWS_CFN_ENDPOINT = "${AwsCfnEndpoint}"
+        AWS_SVC_DOMAIN = "${AwsSvcDomain}"
         AWS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
         REQUESTS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
     }
 
     parameters {
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsCfnEndpoint',  description: 'Override the CFN-endpoint as necessary')
+         string(name: 'AwsSvcDomain',  description: 'Override the CFN-endpoint DNS domain as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
@@ -207,9 +207,9 @@ pipeline {
                        # Bail on failures
                        set -euo pipefail
 
-                       if [[ -v ${AWS_CFN_ENDPOINT+x} ]]
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                        then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_CFN_ENDPOINT}"
+                          CFNCMD="aws cloudformation --endpoint-url clouformation.${AWS_SVC_DOMAIN}"
                        else
                           CFNCMD="aws cloudformation"
                        fi
@@ -252,6 +252,13 @@ pipeline {
                        # Bail on failures
                        set -euo pipefail
 
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
+                       then
+                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
+                       else
+                          CFNCMD="aws cloudformation"
+                       fi
+
                        echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${ProxyForService} stacks..."
                        ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} || true
                        sleep 5
@@ -281,9 +288,9 @@ pipeline {
                        # Bail on failures
                        set -euo pipefail
 
-                       if [[ -v ${AWS_CFN_ENDPOINT+x} ]]
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                        then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_CFN_ENDPOINT}"
+                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_DOMAIN}"
                        else
                           CFNCMD="aws cloudformation"
                        fi
