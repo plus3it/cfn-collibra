@@ -28,7 +28,6 @@ pipeline {
          string(name: 'AwsSvcEndpoint',  description: 'Override the CFN service-endpoint as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
-         string(name: 'TemplateS3location', description: 'S3 URL in which to stage CFn Templates (e.g., "s3://<bucket>/<object_key>/")')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
     }
 
