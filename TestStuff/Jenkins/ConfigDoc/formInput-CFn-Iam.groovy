@@ -85,7 +85,6 @@ pipeline {
             }
         }
 
-        /* Comment out while setting up the param-file extraction
         stage ('Prep Work Environment') {
             steps {
                 // Make sure work-directory is clean //
@@ -211,7 +210,6 @@ pipeline {
                 }
             }
         }
-        Comment out while setting up the param-file extraction */
     }
 
     post {
