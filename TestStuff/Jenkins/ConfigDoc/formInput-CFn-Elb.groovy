@@ -110,6 +110,8 @@ pipeline {
                         returnStdout: true
                     env.PublicFacing = PublicFacing.trim()
                 }
+            }
+        }
 
         /* Disable while sorting out form-parameter logic
         stage ('Prep Work Environment') {
