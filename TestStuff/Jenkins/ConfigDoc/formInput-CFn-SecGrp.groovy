@@ -108,7 +108,7 @@ pipeline {
                    /
                 // Create parameter file to be used with stack-create //
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bashh
+                    sh '''#!/bin/bash
                        # Bail on failures
                        set -euo pipefail
 
