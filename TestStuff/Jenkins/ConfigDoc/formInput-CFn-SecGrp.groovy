@@ -66,7 +66,7 @@ pipeline {
                         returnStdout: true
                     env.GitProjBranch = GitProjBranch.trim()
 
-                    def TargetVPC = sh script:'awk -F "=" \'/GitProjBranch/{ print $2 }\' Pipeline.envs',
+                    def TargetVPC = sh script:'awk -F "=" \'/TargetVPC/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
                     env.TargetVPC = TargetVPC.trim()
                 }
