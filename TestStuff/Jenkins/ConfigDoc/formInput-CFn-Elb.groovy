@@ -27,6 +27,7 @@ pipeline {
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
          string(name: 'AwsCfnEndpoint',  description: 'Override the CFN-endpoint as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
+         string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
          string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the ELB')
     }
