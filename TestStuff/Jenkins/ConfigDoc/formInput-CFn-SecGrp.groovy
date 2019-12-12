@@ -18,14 +18,14 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = "${AwsRegion}"
-        AWS_SVC_ENDPOINT = "${AwsSvcEndpoint}"
+        AWS_SVC_DOMAIN = "${AwsSvcDomain}"
         AWS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
         REQUESTS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
     }
 
     parameters {
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcEndpoint',  description: 'Override the CFN service-endpoint as necessary')
+         string(name: 'AwsSvcDomain',  description: 'Override the CFN service-endpoint DNS domain as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
@@ -72,7 +72,7 @@ pipeline {
                 }
             }
         }
-        /* Comment out while working on converting to parameter-form use-case
+
         stage ('Prep Work Environment') {
             steps {
                 // Make sure work-directory is clean //
@@ -108,11 +108,14 @@ pipeline {
                    /
                 // Create parameter file to be used with stack-create //
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
+                    sh '''#!/bin/bashh
+                       # Bail on failures
+                       set -euo pipefail
+
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                        then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
                        else
                           CFNCMD="aws cloudformation"
                        fi
@@ -137,14 +140,15 @@ pipeline {
                 }
             }
         }
+
         stage ('Launch SecGrp Template') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                        then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
                        else
                           CFNCMD="aws cloudformation"
                        fi
@@ -188,7 +192,6 @@ pipeline {
                 }
             }
         }
-        Comment out while working on converting to parameter-form use-case */
     }
 
     post {
