@@ -29,12 +29,6 @@ pipeline {
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
-         /*
-         string(name: 'BackupBucketArn', description: 'ARN of S3 Bucket to host Collibra backups')
-         string(name: 'IamBoundaryName', description: 'Name of the permissions-boundary to apply to the to-be-created IAM role')
-         string(name: 'RolePrefix', description: 'Prefix to apply to IAM role to make things a bit prettier (optional)')
-         string(name: 'CloudwatchBucketName', description: 'Name of the S3 Bucket hosting the CloudWatch agent archive files')
-         */
     }
 
     stages {
@@ -71,6 +65,22 @@ pipeline {
                     def GitProjBranch = sh script:'awk -F "=" \'/GitProjBranch/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
                     env.GitProjBranch = GitProjBranch.trim()
+
+                    def BackupBucketArn = sh script:'awk -F "=" \'/BackupBucketArn/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.BackupBucketArn = BackupBucketArn.trim()
+
+                    def IamBoundaryName = sh script:'awk -F "=" \'/IamBoundaryName/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.IamBoundaryName = IamBoundaryName.trim()
+
+                    def RolePrefix = sh script:'awk -F "=" \'/RolePrefix/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.RolePrefix = RolePrefix.trim()
+
+                    def CloudwatchBucketName = sh script:'awk -F "=" \'/CloudwatchBucketName/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.CloudwatchBucketName = CloudwatchBucketName.trim()
                 }
             }
         }
