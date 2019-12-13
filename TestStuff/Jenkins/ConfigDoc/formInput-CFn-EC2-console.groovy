@@ -459,7 +459,6 @@ options {
             }
         }
 
-        /* Deactivate stages until move parameters to file
         stage ('Launch EC2 Template') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
@@ -583,7 +582,6 @@ options {
                 }
             }
         }
-        Deactivate stages until move parameters to file */
     }
 
     post {
