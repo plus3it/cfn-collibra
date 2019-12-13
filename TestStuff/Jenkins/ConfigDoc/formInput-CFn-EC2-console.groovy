@@ -58,155 +58,155 @@ options {
                 script {
                     def GitCred = sh script:'awk -F "=" \'/GitCred/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.GitCred = GitCred
+                    env.GitCred = GitCred.trim()
 
                     def GitProjUrl = sh script:'awk -F "=" \'/GitProjUrl/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.GitProjUrl = GitProjUrl
+                    env.GitProjUrl = GitProjUrl.trim()
 
                     def GitProjBranch = sh script:'awk -F "=" \'/GitProjBranch/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.GitProjBranch = GitProjBranch
+                    env.GitProjBranch = GitProjBranch.trim()
 
                     def TemplateUrl = sh script:'awk -F "=" \'/TemplateUrl/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.TemplateUrl = TemplateUrl
+                    env.TemplateUrl = TemplateUrl.trim()
                    
                     def AdminPubkeyURL = sh script:'awk -F "=" \'/AdminPubkeyURL/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.AdminPubkeyURL = AdminPubkeyURL
+                    env.AdminPubkeyURL = AdminPubkeyURL.trim()
 
                     def AmiId = sh script:'awk -F "=" \'/AmiId/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.AmiId = AmiId
+                    env.AmiId = AmiId.trim()
 
                     def AppVolumeDevice = sh script:'awk -F "=" \'/AppVolumeDevice/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.AppVolumeDevice = AppVolumeDevice
+                    env.AppVolumeDevice = AppVolumeDevice.trim()
                     
                     def AppVolumeMountPath = sh script:'awk -F "=" \'/AppVolumeMountPath/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.AppVolumeMountPath = AppVolumeMountPath
+                    env.AppVolumeMountPath = AppVolumeMountPath.trim()
 
                     def AppVolumeSize = sh script:'awk -F "=" \'/AppVolumeSize/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.AppVolumeSize = AppVolumeSize
+                    env.AppVolumeSize = AppVolumeSize.trim()
 
                     def AppVolumeType = sh script:'awk -F "=" \'/AppVolumeType/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.AppVolumeType = AppVolumeType
+                    env.AppVolumeType = AppVolumeType.trim()
 
                     def CloudWatchAgentUrl = sh script:'awk -F "=" \'/CloudWatchAgentUrl/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.CloudWatchAgentUrl = CloudWatchAgentUrl
+                    env.CloudWatchAgentUrl = CloudWatchAgentUrl.trim()
 
                     def CollibraConsolePassword = sh script:'awk -F "=" \'/CollibraConsolePassword/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.CollibraConsolePassword = CollibraConsolePassword
+                    env.CollibraConsolePassword = CollibraConsolePassword.trim()
 
                     def CollibraDataDir = sh script:'awk -F "=" \'/CollibraDataDir/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.CollibraDataDir = CollibraDataDir
+                    env.CollibraDataDir = CollibraDataDir.trim()
 
                     def CollibraDgcComponent = sh script:'awk -F "=" \'/CollibraDgcComponent/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.CollibraDgcComponent = CollibraDgcComponent
+                    env.CollibraDgcComponent = CollibraDgcComponent.trim()
 
                     def CollibraInstallerUrl = sh script:'awk -F "=" \'/CollibraInstallerUrl/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.CollibraInstallerUrl = CollibraInstallerUrl
+                    env.CollibraInstallerUrl = CollibraInstallerUrl.trim()
 
                     def CollibraRepoPassword = sh script:'awk -F "=" \'/CollibraRepoPassword/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.CollibraRepoPassword = CollibraRepoPassword
+                    env.CollibraRepoPassword = CollibraRepoPassword.trim()
 
                     def CollibraSoftwareDir = sh script:'awk -F "=" \'/CollibraSoftwareDir/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.CollibraSoftwareDir = CollibraSoftwareDir
+                    env.CollibraSoftwareDir = CollibraSoftwareDir.trim()
 
                     def InstanceType = sh script:'awk -F "=" \'/InstanceType/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.InstanceType = InstanceType
+                    env.InstanceType = InstanceType.trim()
 
                     def KeyPairName = sh script:'awk -F "=" \'/KeyPairName/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.KeyPairName = KeyPairName
+                    env.KeyPairName = KeyPairName.trim()
 
                     def NoReboot = sh script:'awk -F "=" \'/NoReboot/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.NoReboot = NoReboot
+                    env.NoReboot = NoReboot.trim()
 
                     def NoUpdates = sh script:'awk -F "=" \'/NoUpdates/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.NoUpdates = NoUpdates
+                    env.NoUpdates = NoUpdates.trim()
 
                     def ProvisionUser = sh script:'awk -F "=" \'/ProvisionUser/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.ProvisionUser = ProvisionUser
+                    env.ProvisionUser = ProvisionUser.trim()
 
                     def PypiIndexUrl = sh script:'awk -F "=" \'/PypiIndexUrl/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.PypiIndexUrl = PypiIndexUrl
+                    env.PypiIndexUrl = PypiIndexUrl.trim()
 
                     def R53ZoneId = sh script:'awk -F "=" \'/R53ZoneId/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.R53ZoneId = R53ZoneId
+                    env.R53ZoneId = R53ZoneId.trim()
 
                     def RootVolumeSize = sh script:'awk -F "=" \'/RootVolumeSize/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.RootVolumeSize = RootVolumeSize
+                    env.RootVolumeSize = RootVolumeSize.trim()
 
                     def SubnetId = sh script:'awk -F "=" \'/SubnetId/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.SubnetId = SubnetId
+                    env.SubnetId = SubnetId.trim()
 
                     def WatchmakerAdminGroups = sh script:'awk -F "=" \'/WatchmakerAdminGroups/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.WatchmakerAdminGroups = WatchmakerAdminGroups
+                    env.WatchmakerAdminGroups = WatchmakerAdminGroups.trim()
 
                     def WatchmakerAdminUsers = sh script:'awk -F "=" \'/WatchmakerAdminUsers/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.WatchmakerAdminUsers = WatchmakerAdminUsers
+                    env.WatchmakerAdminUsers = WatchmakerAdminUsers.trim()
 
                     def WatchmakerComputerName = sh script:'awk -F "=" \'/WatchmakerComputerName/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.WatchmakerComputerName = WatchmakerComputerName
+                    env.WatchmakerComputerName = WatchmakerComputerName.trim()
 
                     def WatchmakerConfig = sh script:'awk -F "=" \'/WatchmakerConfig/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.WatchmakerConfig = WatchmakerConfig
+                    env.WatchmakerConfig = WatchmakerConfig.trim()
 
                     def WatchmakerEnvironment = sh script:'awk -F "=" \'/WatchmakerEnvironment/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.WatchmakerEnvironment = WatchmakerEnvironment
+                    env.WatchmakerEnvironment = WatchmakerEnvironment.trim()
 
                     def WatchmakerOuPath = sh script:'awk -F "=" \'/WatchmakerOuPath/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.WatchmakerOuPath = WatchmakerOuPath
+                    env.WatchmakerOuPath = WatchmakerOuPath.trim()
 
                     def BackupBucket = sh script:'awk -F "=" \'/BackupBucket/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.BackupBucket = BackupBucket
+                    env.BackupBucket = BackupBucket.trim()
 
                     def BackupSchedule = sh script:'awk -F "=" \'/BackupSchedule/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.BackupSchedule = BackupSchedule
+                    env.BackupSchedule = BackupSchedule.trim()
 
                     def BackupScript = sh script:'awk -F "=" \'/BackupScript/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.BackupScript = BackupScript
+                    env.BackupScript = BackupScript.trim()
 
                     def BackupUserName = sh script:'awk -F "=" \'/BackupUserName/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.BackupUserName = BackupUserName
+                    env.BackupUserName = BackupUserName.trim()
 
                     def BackupUserPassword = sh script:'awk -F "=" \'/BackupUserPassword/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.BackupUserPassword = BackupUserPassword
+                    env.BackupUserPassword = BackupUserPassword.trim()
 
                     def EpelRepoName = sh script:'awk -F "=" \'/EpelRepoName/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
-                    env.EpelRepoName = EpelRepoName
+                    env.EpelRepoName = EpelRepoName.trim()
                 }
             }
         }
