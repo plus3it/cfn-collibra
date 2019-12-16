@@ -69,10 +69,6 @@ pipeline {
                         returnStdout: true
                     env.GitProjBranch = GitProjBranch.trim()
 
-                    def CfnStackRoot = sh script:'awk -F "=" \'/CfnStackRoot/{ print $2 }\' Pipeline.envs',
-                        returnStdout: true
-                    env.CfnStackRoot = CfnStackRoot.trim()
-
                     def TemplateUrl = sh script:'awk -F "=" \'/TemplateUrl/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
                     env.TemplateUrl = TemplateUrl.trim()
