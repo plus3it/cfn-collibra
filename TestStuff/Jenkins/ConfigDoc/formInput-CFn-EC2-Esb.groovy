@@ -32,8 +32,6 @@ pipeline {
          string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the EC2')
          string(name: 'InstanceRoleProfile', description: 'IAM instance profile-name to apply to the EC2')
          string(name: 'InstanceRoleName', description: 'IAM instance role-name to use for signalling')
-         /* 
-         */
     }
 
     stages {
@@ -42,7 +40,7 @@ pipeline {
                 // Make sure work-directory is clean //
                 deleteDir()
 
-                // Fetch parm-file
+                // Pull AWS credentials from Jenkins credential-store
                 withCredentials(
                     [
                         [
@@ -53,15 +51,16 @@ pipeline {
                         ]
                     ]
                 ) {
-                    // Export these to rest of stages
+                    // Pull parameter-file to work-directory
+                    sh '''#!/bin/bash
+                        aws s3 cp "${ParmFileS3location}" Pipeline.envs
+                    '''
+
+                    // Export credentials to rest of stages
                     script {
                         env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
                         env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
                     }
-
-                    sh '''#!/bin/bash
-                        aws s3 cp "${ParmFileS3location}" Pipeline.envs
-                    '''
 
                     // Set endpoint-override vars as necessary
                     script {
