@@ -53,9 +53,24 @@ pipeline {
                         ]
                     ]
                 ) {
+                    // Export these to rest of stages
+                    script {
+                        env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
+                        env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
+                    }
+
                     sh '''#!/bin/bash
                         aws s3 cp "${ParmFileS3location}" Pipeline.envs
                     '''
+
+                    // Set endpoint-override vars as necessary
+                    script {
+                        if ( env.AwsSvcDomain == '' ) {
+                            env.CFNCMD = "aws cloudformation"
+                        } else {
+                            env.CFNCMD = "aws cloudformation --endpoint-url https://cloudformation.${env.AWS_SVC_DOMAIN}/"
+                        }
+                    }
                 }
 
                 script {
@@ -325,143 +340,88 @@ pipeline {
                 }
             }
             steps {
-                withCredentials(
-                    [
-                        [
-                            $class: 'AmazonWebServicesCredentialsBinding',
-                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                            credentialsId: "${AwsCred}",
-                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                        ]
-                    ]
-                ) {
-                    sh '''#!/bin/bash
-                       # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
+                sh '''#!/bin/bash
+                   echo "Attempting to delete any active ${CfnStackRoot}-R53Res-ESB stacks..."
+                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-ESB || true
+                   sleep 5
 
-                       echo "Attempting to delete any active ${CfnStackRoot}-R53Res-ESB stacks..."
-                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-ESB || true
-                       sleep 5
-
-                       # Pause if delete is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-R53Res-ESB \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q DELETE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-R53Res-ESB to delete..."
-                          sleep 30
-                       done
-                    '''
-                }
+                   # Pause if delete is slow
+                   while [[ $(
+                               ${CFNCMD} describe-stacks \
+                                 --stack-name ${CfnStackRoot}-R53Res-ESB \
+                                 --query 'Stacks[].{Status:StackStatus}' \
+                                 --out text 2> /dev/null | \
+                               grep -q DELETE_IN_PROGRESS
+                              )$? -eq 0 ]]
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-R53Res-ESB to delete..."
+                      sleep 30
+                   done
+                '''
             }
         }
 
         // Clean up any colliding EC2 resources //
         stage ('Nuke Stale EC2') {
             steps {
-                withCredentials(
-                    [
-                        [
-                            $class: 'AmazonWebServicesCredentialsBinding',
-                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                            credentialsId: "${AwsCred}",
-                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                        ]
-                    ]
-                ) {
-                    sh '''#!/bin/bash
-                       # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
-                       echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-ESB stacks..."
-                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB || true
-                       sleep 5
+                sh '''#!/bin/bash
+                   echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-ESB stacks..."
+                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB || true
+                   sleep 5
 
-                       # Pause if delete is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-Ec2Res-ESB \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q DELETE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-Ec2Res-ESB to delete..."
-                          sleep 30
-                       done
-                    '''
-                }
+                   # Pause if delete is slow
+                   while [[ $(
+                               ${CFNCMD} describe-stacks \
+                                 --stack-name ${CfnStackRoot}-Ec2Res-ESB \
+                                 --query 'Stacks[].{Status:StackStatus}' \
+                                 --out text 2> /dev/null | \
+                               grep -q DELETE_IN_PROGRESS
+                              )$? -eq 0 ]]
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-Ec2Res-ESB to delete..."
+                      sleep 30
+                   done
+                '''
             }
         }
 
         stage ('Launch EC2 Template') {
             steps {
-                withCredentials(
-                    [
-                        [
-                            $class: 'AmazonWebServicesCredentialsBinding',
-                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                            credentialsId: "${AwsCred}",
-                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                        ]
-                    ]
-                ) {
-                    sh '''#!/bin/bash
-                       # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
+                sh '''#!/bin/bash
+                   # For compatibility with ancient AWS CLI utilities
+                   echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-ESB..."
+                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB \
+                       --disable-rollback --template-url "${TemplateUrl}" \
+                       --parameters file://EC2.parms.json
+                   sleep 5
 
-                       echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-ESB..."
-                       ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB \
-                           --disable-rollback --template-url "${TemplateUrl}" \
-                           --parameters file://EC2.parms.json
-                       sleep 5
-
-                       # Pause if create is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-Ec2Res-ESB \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q CREATE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-Ec2Res-ESB to finish create process..."
-                          sleep 30
-                       done
-
-                       if [[ $(
+                   # Pause if create is slow
+                   while [[ $(
                                ${CFNCMD} describe-stacks \
                                  --stack-name ${CfnStackRoot}-Ec2Res-ESB \
                                  --query 'Stacks[].{Status:StackStatus}' \
                                  --out text 2> /dev/null | \
-                               grep -q CREATE_COMPLETE
+                               grep -q CREATE_IN_PROGRESS
                               )$? -eq 0 ]]
-                       then
-                          echo "Stack-creation successful"
-                       else
-                          echo "Stack-creation ended with non-successful state"
-                          exit 1
-                       fi
-                    '''
-                }
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-Ec2Res-ESB to finish create process..."
+                      sleep 30
+                   done
+
+                   if [[ $(
+                           ${CFNCMD} describe-stacks \
+                             --stack-name ${CfnStackRoot}-Ec2Res-ESB \
+                             --query 'Stacks[].{Status:StackStatus}' \
+                             --out text 2> /dev/null | \
+                           grep -q CREATE_COMPLETE
+                          )$? -eq 0 ]]
+                   then
+                      echo "Stack-creation successful"
+                   else
+                      echo "Stack-creation ended with non-successful state"
+                      exit 1
+                   fi
+                '''
             }
         }
 
@@ -496,60 +456,41 @@ pipeline {
                    /
 
                 // AWS creds-setup
-                withCredentials(
-                    [
-                        [
-                            $class: 'AmazonWebServicesCredentialsBinding',
-                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                            credentialsId: "${AwsCred}",
-                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                        ]
-                    ]
-                ) {
-                    // Use AWS CLI to execute CFn tasks
-                    sh '''#!/bin/bash
-                       # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
+                // Use AWS CLI to execute CFn tasks
+                sh '''#!/bin/bash
+                   echo "Bind a R53 Alias to the ELB"
+                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-R53Res-ESB \
+                       --template-body file://Templates/make_collibra_R53-record.tmplt.json \
+                       --parameters file://R53alias.parms.json
+                   sleep 5
 
-                       echo "Bind a R53 Alias to the ELB"
-                       ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-R53Res-ESB \
-                           --template-body file://Templates/make_collibra_R53-record.tmplt.json \
-                           --parameters file://R53alias.parms.json
-                       sleep 5
-
-                       # Pause if create is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-R53Res-ESB \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q CREATE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-R53Res-ESB to finish create process..."
-                          sleep 30
-                       done
-
-                       if [[ $(
+                   # Pause if create is slow
+                   while [[ $(
                                ${CFNCMD} describe-stacks \
                                  --stack-name ${CfnStackRoot}-R53Res-ESB \
                                  --query 'Stacks[].{Status:StackStatus}' \
                                  --out text 2> /dev/null | \
-                               grep -q CREATE_COMPLETE
+                               grep -q CREATE_IN_PROGRESS
                               )$? -eq 0 ]]
-                       then
-                          echo "Stack-creation successful"
-                       else
-                          echo "Stack-creation ended with non-successful state"
-                          exit 1
-                       fi
-                    '''
-                }
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-R53Res-ESB to finish create process..."
+                      sleep 30
+                   done
+
+                   if [[ $(
+                           ${CFNCMD} describe-stacks \
+                             --stack-name ${CfnStackRoot}-R53Res-ESB \
+                             --query 'Stacks[].{Status:StackStatus}' \
+                             --out text 2> /dev/null | \
+                           grep -q CREATE_COMPLETE
+                          )$? -eq 0 ]]
+                   then
+                      echo "Stack-creation successful"
+                   else
+                      echo "Stack-creation ended with non-successful state"
+                      exit 1
+                   fi
+                '''
             }
         }
     }
