@@ -18,14 +18,14 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = "${AwsRegion}"
-        AWS_SVC_ENDPOINT = "${AwsSvcEndpoint}"
+        AWS_SVC_DOMAIN = "${AwsSvcDomain}"
         AWS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
         REQUESTS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
     }
 
     parameters {
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcEndpoint',  description: 'Override the CFN service-endpoint as necessary')
+         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS domain FQDN as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
@@ -176,7 +176,6 @@ pipeline {
             }
         }
 
-        /* Disable during conversion to parameter-file
         stage ('Prep Work Environment') {
             steps {
                 // Make sure work-directory is clean //
@@ -309,38 +308,79 @@ pipeline {
                              }
                          ]
                    /
+            }
+        }
 
+        stage ('Nuke Stale R53 Resources') {
+            when {
+                expression {
+                    return env.R53ZoneId != '';
+                }
+            }
+            steps {
                 // Clean up stale AWS resources //
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
+
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                        then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
                        else
                           CFNCMD="aws cloudformation"
                        fi
 
-                       if [[ ! -z ${R53ZoneId} ]]
+                       echo "Attempting to delete any active ${CfnStackRoot}-R53Res-MMC stacks..."
+                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-MMC || true
+                       sleep 5
+
+                       # Pause if delete is slow
+                       while [[ $(
+                                   ${CFNCMD} describe-stacks \
+                                     --stack-name ${CfnStackRoot}-R53Res-MMC \
+                                     --query 'Stacks[].{Status:StackStatus}' \
+                                     --out text 2> /dev/null | \
+                                   grep -q DELETE_IN_PROGRESS
+                                  )$? -eq 0 ]]
+                       do
+                          echo "Waiting for stack ${CfnStackRoot}-R53Res-MMC to delete..."
+                          sleep 30
+                       done
+                    '''
+                }
+            }
+        }
+
+        stage ('Nuke Stale EC2 Resources') {
+            steps {
+                // Clean up stale AWS resources //
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
+                    sh '''#!/bin/bash
+                       # For compatibility with ancient AWS CLI utilities
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                        then
-                          echo "Attempting to delete any active ${CfnStackRoot}-R53Res-MMC stacks..."
-                          ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-MMC || true
-                          sleep 5
-
-                          # Pause if delete is slow
-                          while [[ $(
-                                      ${CFNCMD} describe-stacks \
-                                        --stack-name ${CfnStackRoot}-R53Res-MMC \
-                                        --query 'Stacks[].{Status:StackStatus}' \
-                                        --out text 2> /dev/null | \
-                                      grep -q DELETE_IN_PROGRESS
-                                     )$? -eq 0 ]]
-                          do
-                             echo "Waiting for stack ${CfnStackRoot}-R53Res-MMC to delete..."
-                             sleep 30
-                          done
+                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
+                       else
+                          CFNCMD="aws cloudformation"
                        fi
-
                        echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-MMC stacks..."
                        ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-MMC || true
                        sleep 5
@@ -366,9 +406,9 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                        then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
                        else
                           CFNCMD="aws cloudformation"
                        fi
@@ -440,9 +480,9 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                        then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
                        else
                           CFNCMD="aws cloudformation"
                        fi
@@ -483,7 +523,6 @@ pipeline {
                 }
             }
         }
-        Disable during conversion to parameter-file */
     }
 
     post {
