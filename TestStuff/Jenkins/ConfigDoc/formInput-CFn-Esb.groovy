@@ -314,7 +314,16 @@ pipeline {
                              }
                          ]
                    /
+            }
+        }
 
+        stage ('Nuke Stale R53') {
+            when {
+                expression {
+                    return env.R53ZoneId != '';
+                }
+            }
+            steps {
                 // Clean up stale AWS resources //
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     sh '''#!/bin/bash
@@ -326,26 +335,38 @@ pipeline {
                           CFNCMD="aws cloudformation"
                        fi
 
-                       if [[ ! -z ${R53ZoneId} ]]
-                       then
-                          echo "Attempting to delete any active ${CfnStackRoot}-R53Res-ESB stacks..."
-                          ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-ESB || true
-                          sleep 5
-   
-                          # Pause if delete is slow
-                          while [[ $(
-                                      ${CFNCMD} describe-stacks \
-                                        --stack-name ${CfnStackRoot}-R53Res-ESB \
-                                        --query 'Stacks[].{Status:StackStatus}' \
-                                        --out text 2> /dev/null | \
-                                      grep -q DELETE_IN_PROGRESS
-                                     )$? -eq 0 ]]
-                          do
-                             echo "Waiting for stack ${CfnStackRoot}-R53Res-ESB to delete..."
-                             sleep 30
-                          done
-                       fi
+                       echo "Attempting to delete any active ${CfnStackRoot}-R53Res-ESB stacks..."
+                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-ESB || true
+                       sleep 5
 
+                       # Pause if delete is slow
+                       while [[ $(
+                                   ${CFNCMD} describe-stacks \
+                                     --stack-name ${CfnStackRoot}-R53Res-ESB \
+                                     --query 'Stacks[].{Status:StackStatus}' \
+                                     --out text 2> /dev/null | \
+                                   grep -q DELETE_IN_PROGRESS
+                                  )$? -eq 0 ]]
+                       do
+                          echo "Waiting for stack ${CfnStackRoot}-R53Res-ESB to delete..."
+                          sleep 30
+                       done
+                }
+            }
+        }
+
+        stage ('Nuke Stale EC2') {
+            steps {
+                // Clean up stale AWS resources //
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                    sh '''#!/bin/bash
+                       # For compatibility with ancient AWS CLI utilities
+                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                       then
+                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                       else
+                          CFNCMD="aws cloudformation"
+                       fi
                        echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-ESB stacks..."
                        ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB || true
                        sleep 5
