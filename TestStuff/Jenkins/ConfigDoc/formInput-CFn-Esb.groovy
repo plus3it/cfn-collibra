@@ -18,14 +18,14 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = "${AwsRegion}"
-        AWS_SVC_ENDPOINT = "${AwsSvcEndpoint}"
+        AWS_SVC_DOMAIN = "${AwsSvcDomain}"
         AWS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
         REQUESTS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
     }
 
     parameters {
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcEndpoint',  description: 'Override the CFN service-endpoint as necessary')
+         string(name: 'AwsSvcDomain',  description: 'Override the AWS service-endpoints DNS FQDNs as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
@@ -337,9 +337,9 @@ pipeline {
                 ) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                        then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
                        else
                           CFNCMD="aws cloudformation"
                        fi
@@ -380,9 +380,9 @@ pipeline {
                 ) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                        then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
                        else
                           CFNCMD="aws cloudformation"
                        fi
@@ -407,7 +407,6 @@ pipeline {
             }
         }
 
-        /* Disable stages during parm-file conversion
         stage ('Launch EC2 Template') {
             steps {
                 withCredentials(
@@ -422,9 +421,9 @@ pipeline {
                 ) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                        then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
                        else
                           CFNCMD="aws cloudformation"
                        fi
@@ -465,6 +464,7 @@ pipeline {
                 }
             }
         }
+
         stage ('Create R53 Alias') {
             when {
                 expression {
@@ -472,6 +472,7 @@ pipeline {
                 }
             }
             steps {
+                // Write a parm-file for use with template
                 writeFile file: 'R53alias.parms.json',
                    text: /
                          [
@@ -493,12 +494,24 @@ pipeline {
                              }
                          ]
                    /
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+
+                // AWS creds-setup
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
+                    // Use AWS CLI to execute CFn tasks
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                        then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
                        else
                           CFNCMD="aws cloudformation"
                        fi
@@ -539,7 +552,6 @@ pipeline {
                 }
             }
         }
-        Disable stages during parm-file conversion */
     }
 
     post {
