@@ -317,6 +317,7 @@ pipeline {
             }
         }
 
+        // Clean up any colliding R53 resources //
         stage ('Nuke Stale R53') {
             when {
                 expression {
@@ -324,8 +325,16 @@ pipeline {
                 }
             }
             steps {
-                // Clean up stale AWS resources //
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
                        if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
@@ -351,14 +360,24 @@ pipeline {
                           echo "Waiting for stack ${CfnStackRoot}-R53Res-ESB to delete..."
                           sleep 30
                        done
+                    '''
                 }
             }
         }
 
+        // Clean up any colliding EC2 resources //
         stage ('Nuke Stale EC2') {
             steps {
-                // Clean up stale AWS resources //
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
                        if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
@@ -391,7 +410,16 @@ pipeline {
         /* Disable stages during parm-file conversion
         stage ('Launch EC2 Template') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
                     sh '''#!/bin/bash
                        # For compatibility with ancient AWS CLI utilities
                        if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
