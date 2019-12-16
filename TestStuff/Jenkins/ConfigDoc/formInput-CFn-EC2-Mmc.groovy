@@ -61,6 +61,15 @@ pipeline {
                     sh '''#!/bin/bash
                         aws s3 cp "${ParmFileS3location}" Pipeline.envs
                     '''
+
+                    // Set endpoint-override vars as necessary
+                    script {
+                        if ( env.AwsSvcDomain == '' ) {
+                            env.CFNCMD = "aws cloudformation"
+                        } else {
+                            env.CFNCMD = "aws cloudformation --endpoint-url https://cloudformation.${env.AWS_SVC_DOMAIN}/"
+                        }
+                    }
                 }
 
                 script {
@@ -323,13 +332,6 @@ pipeline {
             steps {
                 // Clean up stale AWS resources //
                 sh '''#!/bin/bash
-                   # For compatibility with ancient AWS CLI utilities
-                   if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                   then
-                      CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
-                   else
-                      CFNCMD="aws cloudformation"
-                   fi
 
                    echo "Attempting to delete any active ${CfnStackRoot}-R53Res-MMC stacks..."
                    ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-MMC || true
@@ -355,13 +357,6 @@ pipeline {
             steps {
                 // Clean up stale AWS resources //
                 sh '''#!/bin/bash
-                   # For compatibility with ancient AWS CLI utilities
-                   if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                   then
-                      CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
-                   else
-                      CFNCMD="aws cloudformation"
-                   fi
                    echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-MMC stacks..."
                    ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-MMC || true
                    sleep 5
@@ -384,14 +379,6 @@ pipeline {
         stage ('Launch EC2 Template') {
             steps {
                 sh '''#!/bin/bash
-                   # For compatibility with ancient AWS CLI utilities
-                   if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                   then
-                      CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
-                   else
-                      CFNCMD="aws cloudformation"
-                   fi
-
                    echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-MMC..."
                    ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-Ec2Res-MMC \
                        --disable-rollback --template-url "${TemplateUrl}" \
@@ -456,14 +443,6 @@ pipeline {
                          ]
                    /
                 sh '''#!/bin/bash
-                   # For compatibility with ancient AWS CLI utilities
-                   if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                   then
-                      CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
-                   else
-                      CFNCMD="aws cloudformation"
-                   fi
-
                    echo "Bind a R53 Alias to the ELB"
                    ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-R53Res-MMC \
                        --template-body file://Templates/make_collibra_R53-record.tmplt.json \
