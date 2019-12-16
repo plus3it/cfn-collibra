@@ -24,7 +24,7 @@ options {
 
     parameters {
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcDomain',  description: 'Override the CFN service-endpoint as necessary')
+         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS FQDN as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
@@ -34,7 +34,7 @@ options {
     }
 
     stages {
-        stage ('Push form-vals into Job-Environment') {
+        stage ('Cross-stage Env-setup') {
             steps {
                 // Make sure work-directory is clean //
                 deleteDir()
@@ -227,7 +227,7 @@ options {
             }
         }
 
-        stage ('Prep Work Environment') {
+        stage ('Prep Workspace') {
             steps {
                 // Make sure work-directory is clean //
                 deleteDir()

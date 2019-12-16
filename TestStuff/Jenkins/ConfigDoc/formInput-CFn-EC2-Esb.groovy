@@ -35,7 +35,7 @@ pipeline {
     }
 
     stages {
-        stage ('Push form-vals into Job-Environment') {
+        stage ('Cross-stage Env-setup') {
             steps {
                 // Make sure work-directory is clean //
                 deleteDir()
@@ -192,7 +192,7 @@ pipeline {
             }
         }
 
-        stage ('Prep Work Environment') {
+        stage ('Prep Workspace') {
             steps {
                 // Make sure work-directory is clean //
                 deleteDir()
