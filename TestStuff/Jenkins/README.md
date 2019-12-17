@@ -3,7 +3,7 @@
 This directory contains Jenkins pipeline definition files. In order for these files to operate correctly, the Jenkins agent-nodes must:
 
 * Have the AWS CLI installed and usable &ndash; preferably a fairly up-to-date version
-* Have the "CloudBees Amazon Web Services Credentials Plugin" installed
+* Have the [CloudBees Amazon Web Services Credentials Plugin](https://wiki.jenkins.io/display/JENKINS/CloudBees+AWS+Credentials+Plugin) installed
 
 ## CloudFormation Templates
 
@@ -13,7 +13,7 @@ Most of the pipeline-definitions will pull CFn templates out of a git repository
 * `GitProjUrl`: The git-over-ssh URL to the git repository containing the CFn templates
 * `GitProjBranch`: The branch or commit-tag/alias within the target repository that contains the desired version of the CFn templates.
 
-Note that, due to a AWS-imposed character length-limit on CFN templates, for the pipelines that deploy EC2 elements &ndash; the pipeline-definitions that contain `EC2nodes` in their filenames &ndash; it will be necessary to store copies of those files in S3. Those S3 URLs will be referenced via the `TemplateUrl` parameter in those pipeline-definitions.
+Note that, due to a AWS-imposed character length-limit on CFN templates, for the pipelines that deploy EC2 elements &ndash; the pipeline-definitions that contain `EC2nodes` in their filenames &ndash; it will be necessary to store copies of their CFn template-files in S3. The templates' S3 URLs will be referenced via the `TemplateUrl` parameter in EC2-deploying pipeline-definitions.
 
 Further, it will be necessary to S3-host a file containing the Collibra OS administrators' public keys. That file will be referenced via the `AdminPubkeyURL` parameter and will provide the Collibra OS administrators key-based SSH access to the deployed-EC2's default-user account.
 
