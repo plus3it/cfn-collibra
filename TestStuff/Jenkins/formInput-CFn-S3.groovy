@@ -60,6 +60,15 @@ pipeline {
                         env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
                         env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
                     }
+
+                    // Set endpoint-override vars as necessary
+                    script {
+                        if ( env.AwsSvcDomain == '' ) {
+                            env.CFNCMD = "aws cloudformation"
+                        } else {
+                            env.CFNCMD = "aws cloudformation --endpoint-url https://cloudformation.${env.AWS_SVC_DOMAIN}/"
+                        }
+                    }
                 }
 
                 script {
@@ -161,14 +170,6 @@ pipeline {
                    # Bail on failures
                    set -euo pipefail
 
-                   # For compatibility with ancient AWS CLI utilities
-                   if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                   then
-                      CFNCMD="aws cloudformation --endpoint-url https://cloudformation.${AWS_SVC_DOMAIN}/"
-                   else
-                      CFNCMD="aws cloudformation"
-                   fi 
-
                    echo "Attempting to delete any active ${CfnStackRoot}-S3Res stacks..."
                    ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-S3Res || true
                    sleep 5
@@ -194,14 +195,6 @@ pipeline {
                 sh '''#!/bin/bash
                    # Bail on failures
                    set -euo pipefail
-
-                   # For compatibility with ancient AWS CLI utilities
-                   if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                   then
-                      CFNCMD="aws cloudformation --endpoint-url https://cloudformation.${AWS_SVC_DOMAIN}/"
-                   else
-                      CFNCMD="aws cloudformation"
-                   fi
 
                    echo "Attempting to create stack ${CfnStackRoot}-S3Res..."
                    ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-S3Res \
