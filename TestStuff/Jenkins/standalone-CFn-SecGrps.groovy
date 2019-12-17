@@ -90,17 +90,10 @@ pipeline {
                     script {
                         if ( env.AwsSvcDomain == '' ) {
                             env.CFNCMD = "aws cloudformation"
-                            env.S3CMD = "aws s3"
                         } else {
                             env.CFNCMD = "aws cloudformation --endpoint-url https://cloudformation.${env.AWS_SVC_DOMAIN}/"
-                            env.S3CMD = "aws s3 --endpoint-url https://s3.${env.AWS_SVC_DOMAIN}/"
                         }
                     }
-
-                    // Pull parameter-file to work-directory
-                    sh '''#!/bin/bash
-                        ${S3CMD} cp "${ParmFileS3location}" Pipeline.envs
-                    '''
 
                     sh '''#!/bin/bash
                        echo "Attempting to delete any active ${CfnStackRoot}-SgRes stacks..."
