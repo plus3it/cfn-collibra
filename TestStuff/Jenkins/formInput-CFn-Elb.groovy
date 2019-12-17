@@ -34,12 +34,12 @@ pipeline {
     }
 
     stages {
-        stage ('Push form-vals into Job-Environment') {
+        stage ('Cross-stage Env-setup') {
             steps {
                 // Make sure work-directory is clean //
                 deleteDir()
 
-                // Fetch parm-file
+                // Pull AWS credentials from Jenkins credential-store
                 withCredentials(
                     [
                         [
@@ -50,9 +50,16 @@ pipeline {
                         ]
                     ]
                 ) {
+                    // Pull parameter-file to work-directory
                     sh '''#!/bin/bash
                         aws s3 cp "${ParmFileS3location}" Pipeline.envs
                     '''
+
+                    // Export credentials to rest of stages
+                    script {
+                        env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
+                        env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
+                    }
                 }
 
                 script {
@@ -194,141 +201,117 @@ pipeline {
             }
             steps {
                 // Clean up stale AWS resources //
-                withCredentials(
-                    [
-                        [
-                            $class: 'AmazonWebServicesCredentialsBinding',
-                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                            credentialsId: "${AwsCred}",
-                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                        ]
-                    ]
-                ) {
-                    sh '''#!/bin/bash
-                       # Bail on failures
-                       set -euo pipefail
+                sh '''#!/bin/bash
+                   # Bail on failures
+                   set -euo pipefail
 
-                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url clouformation.${AWS_SVC_DOMAIN}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
+                   if [[ -v ${AWS_SVC_DOMAIN+x} ]]
+                   then
+                      CFNCMD="aws cloudformation --endpoint-url clouformation.${AWS_SVC_DOMAIN}"
+                   else
+                      CFNCMD="aws cloudformation"
+                   fi
 
-                       echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
-                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
-                       sleep 5
+                   echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
+                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
+                   sleep 5
 
-                       # Pause if delete is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q DELETE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${ProxyForService} to delete..."
-                          sleep 30
-                       done
-                    '''
-                }
+                   # Pause if delete is slow
+                   while [[ $(
+                               ${CFNCMD} describe-stacks \
+                                 --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
+                                 --query 'Stacks[].{Status:StackStatus}' \
+                                 --out text 2> /dev/null | \
+                               grep -q DELETE_IN_PROGRESS
+                              )$? -eq 0 ]]
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${ProxyForService} to delete..."
+                      sleep 30
+                   done
+                '''
             }
         }
 
         stage ('Nuke Stale ELB') {
             steps {
                 // Clean up stale AWS resources //
-                withCredentials(
-                    [
-                        [
-                            $class: 'AmazonWebServicesCredentialsBinding',
-                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                            credentialsId: "${AwsCred}",
-                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                        ]
-                    ]
-                ) {
-                    sh '''#!/bin/bash
-                       # Bail on failures
-                       set -euo pipefail
+                sh '''#!/bin/bash
+                   # Bail on failures
+                   set -euo pipefail
 
-                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
+                   if [[ -v ${AWS_SVC_DOMAIN+x} ]]
+                   then
+                      CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_DOMAIN}"
+                   else
+                      CFNCMD="aws cloudformation"
+                   fi
 
-                       echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${ProxyForService} stacks..."
-                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} || true
-                       sleep 5
+                   echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${ProxyForService} stacks..."
+                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} || true
+                   sleep 5
 
-                       # Pause if delete is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q DELETE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to delete..."
-                          sleep 30
-                       done
-                    '''
-                }
+                   # Pause if delete is slow
+                   while [[ $(
+                               ${CFNCMD} describe-stacks \
+                                 --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
+                                 --query 'Stacks[].{Status:StackStatus}' \
+                                 --out text 2> /dev/null | \
+                               grep -q DELETE_IN_PROGRESS
+                              )$? -eq 0 ]]
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to delete..."
+                      sleep 30
+                   done
+                '''
             }
         }
 
         stage ('Launch ELB Template') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
-                       # Bail on failures
-                       set -euo pipefail
+                sh '''#!/bin/bash
+                   # Bail on failures
+                   set -euo pipefail
 
-                       if [[ -v ${AWS_SVC_DOMAIN+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_DOMAIN}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
+                   if [[ -v ${AWS_SVC_DOMAIN+x} ]]
+                   then
+                      CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_DOMAIN}"
+                   else
+                      CFNCMD="aws cloudformation"
+                   fi
 
-                       echo "Attempting to create stack ${CfnStackRoot}-ElbRes-${ProxyForService}..."
-                       ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
-                           --template-body file://Templates/make_collibra_ELBv2.tmplt.json \
-                           --parameters file://ELB.parms.json
-                       sleep 5
+                   echo "Attempting to create stack ${CfnStackRoot}-ElbRes-${ProxyForService}..."
+                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
+                       --template-body file://Templates/make_collibra_ELBv2.tmplt.json \
+                       --parameters file://ELB.parms.json
+                   sleep 5
 
-                       # Pause if create is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q CREATE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to finish create process..."
-                          sleep 30
-                       done
-
-                       if [[ $(
+                   # Pause if create is slow
+                   while [[ $(
                                ${CFNCMD} describe-stacks \
                                  --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
                                  --query 'Stacks[].{Status:StackStatus}' \
                                  --out text 2> /dev/null | \
-                               grep -q CREATE_COMPLETE
+                               grep -q CREATE_IN_PROGRESS
                               )$? -eq 0 ]]
-                       then
-                          echo "Stack-creation successful"
-                       else
-                          echo "Stack-creation ended with non-successful state"
-                          exit 1
-                       fi
-                    '''
-                }
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to finish create process..."
+                      sleep 30
+                   done
+
+                   if [[ $(
+                           ${CFNCMD} describe-stacks \
+                             --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
+                             --query 'Stacks[].{Status:StackStatus}' \
+                             --out text 2> /dev/null | \
+                           grep -q CREATE_COMPLETE
+                          )$? -eq 0 ]]
+                   then
+                      echo "Stack-creation successful"
+                   else
+                      echo "Stack-creation ended with non-successful state"
+                      exit 1
+                   fi
+                '''
             }
         }
         stage ('Create R53 Alias') {
@@ -355,45 +338,43 @@ pipeline {
                            }
                        ]
                    /
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
-                       # Bail on failures
-                       set -euo pipefail
+                sh '''#!/bin/bash
+                   # Bail on failures
+                   set -euo pipefail
 
-                       echo "Bind a Route53 Alias to the ELB"
-                       aws cloudformation create-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
-                           --template-body file://Templates/make_collibra_R53-ElbAlias.tmplt.json \
-                           --parameters file://R53alias.parms.json
-                       sleep 5
+                   echo "Bind a Route53 Alias to the ELB"
+                   aws cloudformation create-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
+                       --template-body file://Templates/make_collibra_R53-ElbAlias.tmplt.json \
+                       --parameters file://R53alias.parms.json
+                   sleep 5
 
-                       # Pause if create is slow
-                       while [[ $(
-                                   aws cloudformation describe-stacks \
-                                     --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q CREATE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to finish create process..."
-                          sleep 30
-                       done
-
-                       if [[ $(
+                   # Pause if create is slow
+                   while [[ $(
                                aws cloudformation describe-stacks \
                                  --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
                                  --query 'Stacks[].{Status:StackStatus}' \
                                  --out text 2> /dev/null | \
-                               grep -q CREATE_COMPLETE
+                               grep -q CREATE_IN_PROGRESS
                               )$? -eq 0 ]]
-                       then
-                          echo "Stack-creation successful"
-                       else
-                          echo "Stack-creation ended with non-successful state"
-                          exit 1
-                       fi
-                    '''
-                }
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to finish create process..."
+                      sleep 30
+                   done
+
+                   if [[ $(
+                           aws cloudformation describe-stacks \
+                             --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
+                             --query 'Stacks[].{Status:StackStatus}' \
+                             --out text 2> /dev/null | \
+                           grep -q CREATE_COMPLETE
+                          )$? -eq 0 ]]
+                   then
+                      echo "Stack-creation successful"
+                   else
+                      echo "Stack-creation ended with non-successful state"
+                      exit 1
+                   fi
+                '''
             }
         }
     }

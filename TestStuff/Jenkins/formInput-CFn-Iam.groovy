@@ -33,12 +33,12 @@ pipeline {
     }
 
     stages {
-        stage ('Push form-vals into Job-Environment') {
+        stage ('Cross-stage Env-setup') {
             steps {
                 // Make sure work-directory is clean //
                 deleteDir()
 
-                // Fetch parm-file
+                // Pull AWS credentials from Jenkins credential-store
                 withCredentials(
                     [
                         [
@@ -49,9 +49,16 @@ pipeline {
                         ]
                     ]
                 ) {
+                    // Pull parameter-file to work-directory
                     sh '''#!/bin/bash
                         aws s3 cp "${ParmFileS3location}" Pipeline.envs
                     '''
+
+                    // Export credentials to rest of stages
+                    script {
+                        env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
+                        env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
+                    }
                 }
 
                 script {
@@ -132,83 +139,79 @@ pipeline {
                    /
 
                 // Clean up stale AWS resources //
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
-                       # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
+                sh '''#!/bin/bash
+                   # For compatibility with ancient AWS CLI utilities
+                   if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                   then
+                      CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                   else
+                      CFNCMD="aws cloudformation"
+                   fi
 
-                       echo "Attempting to delete any active ${CfnStackRoot}-IamRes stacks..."
-                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-IamRes || true
-                       sleep 5
+                   echo "Attempting to delete any active ${CfnStackRoot}-IamRes stacks..."
+                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-IamRes || true
+                   sleep 5
 
-                       # Pause if delete is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-IamRes \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q DELETE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-IamRes to delete..."
-                          sleep 30
-                       done
-                    '''
-                }
-            }
-        }
-        stage ('Launch IAM Template') {
-            steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
-                       # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
-
-                       echo "Attempting to create stack ${CfnStackRoot}-IamRes..."
-                       ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-IamRes \
-                           --capabilities CAPABILITY_NAMED_IAM \
-                           --template-body file://Templates/make_collibra_IAM-instance.tmplt.json \
-                           --parameters file://IAM.parms.json
-                       sleep 5
-
-                       # Pause if create is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-IamRes \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q CREATE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-IamRes to finish create process..."
-                          sleep 30
-                       done
-
-                       if [[ $(
+                   # Pause if delete is slow
+                   while [[ $(
                                ${CFNCMD} describe-stacks \
                                  --stack-name ${CfnStackRoot}-IamRes \
                                  --query 'Stacks[].{Status:StackStatus}' \
                                  --out text 2> /dev/null | \
-                               grep -q CREATE_COMPLETE
+                               grep -q DELETE_IN_PROGRESS
                               )$? -eq 0 ]]
-                       then
-                          echo "Stack-creation successful"
-                       else
-                          echo "Stack-creation ended with non-successful state"
-                          exit 1
-                       fi
-                    '''
-                }
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-IamRes to delete..."
+                      sleep 30
+                   done
+                '''
+            }
+        }
+        stage ('Launch IAM Template') {
+            steps {
+                sh '''#!/bin/bash
+                   # For compatibility with ancient AWS CLI utilities
+                   if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                   then
+                      CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                   else
+                      CFNCMD="aws cloudformation"
+                   fi
+
+                   echo "Attempting to create stack ${CfnStackRoot}-IamRes..."
+                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-IamRes \
+                       --capabilities CAPABILITY_NAMED_IAM \
+                       --template-body file://Templates/make_collibra_IAM-instance.tmplt.json \
+                       --parameters file://IAM.parms.json
+                   sleep 5
+
+                   # Pause if create is slow
+                   while [[ $(
+                               ${CFNCMD} describe-stacks \
+                                 --stack-name ${CfnStackRoot}-IamRes \
+                                 --query 'Stacks[].{Status:StackStatus}' \
+                                 --out text 2> /dev/null | \
+                               grep -q CREATE_IN_PROGRESS
+                              )$? -eq 0 ]]
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-IamRes to finish create process..."
+                      sleep 30
+                   done
+
+                   if [[ $(
+                           ${CFNCMD} describe-stacks \
+                             --stack-name ${CfnStackRoot}-IamRes \
+                             --query 'Stacks[].{Status:StackStatus}' \
+                             --out text 2> /dev/null | \
+                           grep -q CREATE_COMPLETE
+                          )$? -eq 0 ]]
+                   then
+                      echo "Stack-creation successful"
+                   else
+                      echo "Stack-creation ended with non-successful state"
+                      exit 1
+                   fi
+                '''
             }
         }
     }
