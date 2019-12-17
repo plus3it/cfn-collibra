@@ -18,7 +18,7 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = "${AwsRegion}"
-        AWS_SVC_ENDPOINT = "${AwsSvcEndpoint}"
+        AWS_SVC_DOMAIN = "${AwsSvcDomain}"
         AWS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
         REQUESTS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
     }
@@ -26,7 +26,7 @@ pipeline {
     parameters {
          string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcEndpoint',  description: 'Override the CFN service-endpoint as necessary')
+         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-domain as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
@@ -162,9 +162,9 @@ pipeline {
                    set -euo pipefail
 
                    # For compatibility with ancient AWS CLI utilities
-                   if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                   if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                    then
-                      CFNCMD="aws cloudformation --endpoint-url cloudformation.${AWS_SVC_ENDPOINT}"
+                      CFNCMD="aws cloudformation --endpoint-url https://cloudformation.${AWS_SVC_DOMAIN}/"
                    else
                       CFNCMD="aws cloudformation"
                    fi 
@@ -196,9 +196,9 @@ pipeline {
                    set -euo pipefail
 
                    # For compatibility with ancient AWS CLI utilities
-                   if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
+                   if [[ -v ${AWS_SVC_DOMAIN+x} ]]
                    then
-                      CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
+                      CFNCMD="aws cloudformation --endpoint-url https://cloudformation.${AWS_SVC_DOMAIN}/"
                    else
                       CFNCMD="aws cloudformation"
                    fi
