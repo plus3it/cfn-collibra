@@ -18,7 +18,7 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = "${AwsRegion}"
-        AWS_SVC_ENDPOINT = "${AwsSvcEndpoint}"
+        AWS_SVC_DOMAIN = "${AwsSvcDomain}"
         AWS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
         REQUESTS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
     }
@@ -26,7 +26,7 @@ pipeline {
     parameters {
          string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcEndpoint',  description: 'Override the CFN service-endpoint as necessary')
+         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-FQDN as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
          string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
