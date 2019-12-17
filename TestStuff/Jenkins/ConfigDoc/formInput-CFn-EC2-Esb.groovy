@@ -24,6 +24,7 @@ pipeline {
     }
 
     parameters {
+         string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
          string(name: 'AwsSvcDomain',  description: 'Override the AWS service-endpoints DNS FQDNs as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
@@ -497,6 +498,16 @@ pipeline {
     post {
         always {
             deleteDir() /* lets be a good citizen */
+        }
+        // Emit a failure-email if a notification-address is set
+        failure {
+            script {
+                if ( env.NotifyEmail != '' ) {
+                    mail to: "${env.NotifyEmail}",
+                        subject: "Failed Pipeline: ${currentBuild.fullDisplayName}",
+                        body: "Something is wrong with ${env.BUILD_URL}"
+                }
+            }
         }
     }
 }
