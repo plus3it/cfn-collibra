@@ -5,7 +5,7 @@ pipeline {
     options {
         buildDiscarder(
             logRotator(
-                numToKeepStr: '5'
+                numToKeepStr: '5',
                 daysToKeepStr: '90'
             )
         )
@@ -18,7 +18,7 @@ pipeline {
 
     environment {
         AWS_DEFAULT_REGION = "${AwsRegion}"
-        AWS_SVC_ENDPOINT = "${AwsSvcEndpoint}"
+        AWS_SVC_DOMAIN = "${AwsSvcDomain}"
         AWS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
         REQUESTS_CA_BUNDLE = '/etc/pki/tls/certs/ca-bundle.crt'
     }
@@ -26,7 +26,7 @@ pipeline {
     parameters {
          string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcEndpoint',  description: 'Override the CFN service-endpoint as necessary')
+         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-FQDN as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
          string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
          string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
@@ -95,17 +95,33 @@ pipeline {
                          ]
                    /
 
-                // Clean up stale AWS resources //
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
-                       # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
+                // Pull AWS credentials from Jenkins credential-store
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
+                    // Export credentials to rest of stages
+                    script {
+                        env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
+                        env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
+                    }
 
+                    // Set endpoint-override vars as necessary
+                    script {
+                        if ( env.AwsSvcDomain == '' ) {
+                            env.CFNCMD = "aws cloudformation"
+                        } else {
+                            env.CFNCMD = "aws cloudformation --endpoint-url https://cloudformation.${env.AWS_SVC_DOMAIN}/"
+                        }
+                    }
+
+                    sh '''#!/bin/bash
                        echo "Attempting to delete any active ${CfnStackRoot}-S3Res stacks..."
                        ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-S3Res || true
                        sleep 5
@@ -128,53 +144,43 @@ pipeline {
         }
         stage ('Launch Bucket Template') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
-                       # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
+                sh '''#!/bin/bash
+                   echo "Attempting to create stack ${CfnStackRoot}-S3Res..."
+                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-S3Res \
+                       --template-body file://Templates/make_collibra_S3-bucket.tmplt.json \
+                       --parameters file://S3bucket.parms.json
+                   sleep 5
 
-                       echo "Attempting to create stack ${CfnStackRoot}-S3Res..."
-                       ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-S3Res \
-                           --template-body file://Templates/make_collibra_S3-bucket.tmplt.json \
-                           --parameters file://S3bucket.parms.json
-                       sleep 5
-
-                       # Pause if create is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-S3Res \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q CREATE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-S3Res to finish create process..."
-                          sleep 30
-                       done
-
-                       if [[ $(
+                   # Pause if create is slow
+                   while [[ $(
                                ${CFNCMD} describe-stacks \
                                  --stack-name ${CfnStackRoot}-S3Res \
                                  --query 'Stacks[].{Status:StackStatus}' \
                                  --out text 2> /dev/null | \
-                               grep -q CREATE_COMPLETE
+                               grep -q CREATE_IN_PROGRESS
                               )$? -eq 0 ]]
-                       then
-                          echo "Success. Created:"
-                          aws cloudformation describe-stacks --stack-name ${CfnStackRoot}-S3Res \
-                            --query 'Stacks[].Outputs[].{Description:Description,Value:OutputValue}' \
-                            --output table | sed 's/^/    /'
-                       else
-                          echo "Stack-creation ended with non-successful state"
-                          exit 1
-                       fi
-                    '''
-                }
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-S3Res to finish create process..."
+                      sleep 30
+                   done
+
+                   if [[ $(
+                           ${CFNCMD} describe-stacks \
+                             --stack-name ${CfnStackRoot}-S3Res \
+                             --query 'Stacks[].{Status:StackStatus}' \
+                             --out text 2> /dev/null | \
+                           grep -q CREATE_COMPLETE
+                          )$? -eq 0 ]]
+                   then
+                      echo "Success. Created:"
+                      aws cloudformation describe-stacks --stack-name ${CfnStackRoot}-S3Res \
+                        --query 'Stacks[].Outputs[].{Description:Description,Value:OutputValue}' \
+                        --output table | sed 's/^/    /'
+                   else
+                      echo "Stack-creation ended with non-successful state"
+                      exit 1
+                   fi
+                '''
             }
         }
     }

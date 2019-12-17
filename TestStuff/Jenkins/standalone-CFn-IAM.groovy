@@ -5,7 +5,7 @@ pipeline {
     options {
         buildDiscarder(
             logRotator(
-                numToKeepStr: '5'
+                numToKeepStr: '5',
                 daysToKeepStr: '90'
             )
         )
@@ -84,17 +84,33 @@ pipeline {
                          ]
                    /
 
-                // Clean up stale AWS resources //
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
-                       # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
+                // Pull AWS credentials from Jenkins credential-store
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
+                    // Export credentials to rest of stages
+                    script {
+                        env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
+                        env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
+                    }
 
+                    // Set endpoint-override vars as necessary
+                    script {
+                        if ( env.AwsSvcDomain == '' ) {
+                            env.CFNCMD = "aws cloudformation"
+                        } else {
+                            env.CFNCMD = "aws cloudformation --endpoint-url https://cloudformation.${env.AWS_SVC_DOMAIN}/"
+                        }
+                    }
+
+                    sh '''#!/bin/bash
                        echo "Attempting to delete any active ${CfnStackRoot}-IamRes stacks..."
                        ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-IamRes || true
                        sleep 5
@@ -117,51 +133,41 @@ pipeline {
         }
         stage ('Launch IAM Template') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: "${AwsCred}", secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    sh '''#!/bin/bash
-                       # For compatibility with ancient AWS CLI utilities
-                       if [[ -v ${AWS_SVC_ENDPOINT+x} ]]
-                       then
-                          CFNCMD="aws cloudformation --endpoint-url ${AWS_SVC_ENDPOINT}"
-                       else
-                          CFNCMD="aws cloudformation"
-                       fi
+                sh '''#!/bin/bash
+                   echo "Attempting to create stack ${CfnStackRoot}-IamRes..."
+                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-IamRes \
+                       --capabilities CAPABILITY_NAMED_IAM \
+                       --template-body file://Templates/make_collibra_IAM-instance.tmplt.json \
+                       --parameters file://IAM.parms.json
+                   sleep 5
 
-                       echo "Attempting to create stack ${CfnStackRoot}-IamRes..."
-                       ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-IamRes \
-                           --capabilities CAPABILITY_NAMED_IAM \
-                           --template-body file://Templates/make_collibra_IAM-instance.tmplt.json \
-                           --parameters file://IAM.parms.json
-                       sleep 5
-
-                       # Pause if create is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-IamRes \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q CREATE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-IamRes to finish create process..."
-                          sleep 30
-                       done
-
-                       if [[ $(
+                   # Pause if create is slow
+                   while [[ $(
                                ${CFNCMD} describe-stacks \
                                  --stack-name ${CfnStackRoot}-IamRes \
                                  --query 'Stacks[].{Status:StackStatus}' \
                                  --out text 2> /dev/null | \
-                               grep -q CREATE_COMPLETE
+                               grep -q CREATE_IN_PROGRESS
                               )$? -eq 0 ]]
-                       then
-                          echo "Stack-creation successful"
-                       else
-                          echo "Stack-creation ended with non-successful state"
-                          exit 1
-                       fi
-                    '''
-                }
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-IamRes to finish create process..."
+                      sleep 30
+                   done
+
+                   if [[ $(
+                           ${CFNCMD} describe-stacks \
+                             --stack-name ${CfnStackRoot}-IamRes \
+                             --query 'Stacks[].{Status:StackStatus}' \
+                             --out text 2> /dev/null | \
+                           grep -q CREATE_COMPLETE
+                          )$? -eq 0 ]]
+                   then
+                      echo "Stack-creation successful"
+                   else
+                      echo "Stack-creation ended with non-successful state"
+                      exit 1
+                   fi
+                '''
             }
         }
     }
