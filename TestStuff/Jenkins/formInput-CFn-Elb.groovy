@@ -26,27 +26,111 @@ pipeline {
     parameters {
          string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-FQDN as necessary')
+         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS domain as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
-         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
-         string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
+         string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
-         choice(name: 'ProxyForService', choices:[ 'Console', 'DGC' ], description: 'Which DGC component this ELB proxies')
-         string(name: 'UserProxyFqdn', description: 'FQDN of name to register within R53 for ELB')
-         string(name: 'R53ZoneId', description: 'Route53 ZoneId to create proxy-alias DNS record')
-         string(name: 'ElbShortName', description: 'A short, human-friendly label to assign to the ELB (no capital letters)')
-         string(name: 'CollibraInstanceId', defaultValue: '', description: 'ID of the EC2-instance this template should create a proxy for (typically left blank)')
-         string(name: 'CollibraListenPort', defaultValue: '443', description: 'Public-facing TCP Port number on which the ELB listens for requests to proxy')
-         string(name: 'HaSubnets', description: 'Provide a comma-separated list of user-facing subnet IDs in which to create service-listeners')
-         choice(name: 'CertHostingService', choices:[ 'IAM', 'ACM' ], description: 'AWS service containing the certificate to SSL-enable the ELB')
-         string(name: 'CollibraListenerCert', description: 'AWS Certificate Manager Certificate ID to bind to SSL listener')
          string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the ELB')
-         string(name: 'TargetVPC', description: 'ID of the VPC to deploy cluster nodes into')
-         choice(name: 'PublicFacing', choices:[ 'false', 'true' ], description: 'Whether or not proxy is "internet-facing"')
     }
 
     stages {
+        stage ('Cross-stage Env-setup') {
+            steps {
+                // Make sure work-directory is clean //
+                deleteDir()
+
+                // Pull AWS credentials from Jenkins credential-store
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
+                    // Pull parameter-file to work-directory
+                    sh '''#!/bin/bash
+                        aws s3 cp "${ParmFileS3location}" Pipeline.envs
+                    '''
+
+                    // Export credentials to rest of stages
+                    script {
+                        env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
+                        env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
+                    }
+
+                    // Set endpoint-override vars as necessary
+                    script {
+                        if ( env.AwsSvcDomain == '' ) {
+                            env.CFNCMD = "aws cloudformation"
+                        } else {
+                            env.CFNCMD = "aws cloudformation --endpoint-url https://cloudformation.${env.AWS_SVC_DOMAIN}/"
+                        }
+                    }
+                }
+
+                script {
+                    def GitCred = sh script:'awk -F "=" \'/GitCred/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.GitCred = GitCred.trim()
+
+                    def GitProjUrl = sh script:'awk -F "=" \'/GitProjUrl/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.GitProjUrl = GitProjUrl.trim()
+
+                    def GitProjBranch = sh script:'awk -F "=" \'/GitProjBranch/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.GitProjBranch = GitProjBranch.trim()
+
+                    def ProxyForService = sh script:'awk -F "=" \'/ProxyForService/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.ProxyForService = ProxyForService.trim()
+
+                    def UserProxyFqdn = sh script:'awk -F "=" \'/UserProxyFqdn/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.UserProxyFqdn = UserProxyFqdn.trim()
+
+                    def R53ZoneId = sh script:'awk -F "=" \'/R53ZoneId/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.R53ZoneId = R53ZoneId.trim()
+
+                    def ElbShortName = sh script:'awk -F "=" \'/ElbShortName/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.ElbShortName = ElbShortName.trim()
+
+                    def CollibraInstanceId = sh script:'awk -F "=" \'/CollibraInstanceId/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.CollibraInstanceId = CollibraInstanceId.trim()
+
+                    def CollibraListenPort = sh script:'awk -F "=" \'/CollibraListenPort/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.CollibraListenPort = CollibraListenPort.trim()
+
+                    def HaSubnets = sh script:'awk -F "=" \'/HaSubnets/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.HaSubnets = HaSubnets.trim()
+
+                    def CertHostingService = sh script:'awk -F "=" \'/CertHostingService/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.CertHostingService = CertHostingService.trim()
+
+                    def CollibraListenerCert = sh script:'awk -F "=" \'/CollibraListenerCert/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.CollibraListenerCert = CollibraListenerCert.trim()
+
+                    def TargetVPC = sh script:'awk -F "=" \'/TargetVPC/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.TargetVPC = TargetVPC.trim()
+
+                    def PublicFacing = sh script:'awk -F "=" \'/PublicFacing/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.PublicFacing = PublicFacing.trim()
+                }
+            }
+        }
+
         stage ('Prep Work Environment') {
             steps {
                 // Make sure work-directory is clean //
@@ -115,77 +199,74 @@ pipeline {
                            }
                        ]
                    /
-
-                // Pull AWS credentials from Jenkins credential-store
-                withCredentials(
-                    [
-                        [
-                            $class: 'AmazonWebServicesCredentialsBinding',
-                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                            credentialsId: "${AwsCred}",
-                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                        ]
-                    ]
-                ) {
-                    // Export credentials to rest of stages
-                    script {
-                        env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
-                        env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
-                    }
-
-                    // Set endpoint-override vars as necessary
-                    script {
-                        if ( env.AwsSvcDomain == '' ) {
-                            env.CFNCMD = "aws cloudformation"
-                        } else {
-                            env.CFNCMD = "aws cloudformation --endpoint-url https://cloudformation.${env.AWS_SVC_DOMAIN}/"
-                        }
-                    }
-
-                    sh '''#!/bin/bash
-                       if [[ -v ${R53ZoneId+x} ]]
-                       then
-                          echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
-                          ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
-                          sleep 5
-
-                          # Pause if delete is slow
-                          while [[ $(
-                                      ${CFNCMD} describe-stacks \
-                                        --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
-                                        --query 'Stacks[].{Status:StackStatus}' \
-                                        --out text 2> /dev/null | \
-                                      grep -q DELETE_IN_PROGRESS
-                                     )$? -eq 0 ]]
-                          do
-                             echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${ProxyForService} to delete..."
-                             sleep 30
-                          done
-                       fi
-
-                       echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${ProxyForService} stacks..."
-                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} || true
-                       sleep 5
-
-                       # Pause if delete is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q DELETE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to delete..."
-                          sleep 30
-                       done
-                    '''
-                }
             }
         }
+
+        stage ('Nuke Stale R53') {
+            when {
+                expression {
+                    return env.R53ZoneId != '';
+                }
+            }
+            steps {
+                // Clean up stale AWS resources //
+                sh '''#!/bin/bash
+                   # Bail on failures
+                   set -euo pipefail
+
+                   echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
+                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
+                   sleep 5
+
+                   # Pause if delete is slow
+                   while [[ $(
+                               ${CFNCMD} describe-stacks \
+                                 --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
+                                 --query 'Stacks[].{Status:StackStatus}' \
+                                 --out text 2> /dev/null | \
+                               grep -q DELETE_IN_PROGRESS
+                              )$? -eq 0 ]]
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${ProxyForService} to delete..."
+                      sleep 30
+                   done
+                '''
+            }
+        }
+
+        stage ('Nuke Stale ELB') {
+            steps {
+                // Clean up stale AWS resources //
+                sh '''#!/bin/bash
+                   # Bail on failures
+                   set -euo pipefail
+
+                   echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${ProxyForService} stacks..."
+                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} || true
+                   sleep 5
+
+                   # Pause if delete is slow
+                   while [[ $(
+                               ${CFNCMD} describe-stacks \
+                                 --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
+                                 --query 'Stacks[].{Status:StackStatus}' \
+                                 --out text 2> /dev/null | \
+                               grep -q DELETE_IN_PROGRESS
+                              )$? -eq 0 ]]
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to delete..."
+                      sleep 30
+                   done
+                '''
+            }
+        }
+
         stage ('Launch ELB Template') {
             steps {
                 sh '''#!/bin/bash
+                   # Bail on failures
+                   set -euo pipefail
+
                    echo "Attempting to create stack ${CfnStackRoot}-ElbRes-${ProxyForService}..."
                    ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
                        --template-body file://Templates/make_collibra_ELBv2.tmplt.json \
@@ -246,6 +327,9 @@ pipeline {
                        ]
                    /
                 sh '''#!/bin/bash
+                   # Bail on failures
+                   set -euo pipefail
+
                    echo "Bind a Route53 Alias to the ELB"
                    aws cloudformation create-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
                        --template-body file://Templates/make_collibra_R53-ElbAlias.tmplt.json \
@@ -283,11 +367,9 @@ pipeline {
         }
     }
 
-    // Do after job-stages end
     post {
-        // Clean up work-dir no matter what
         always {
-            deleteDir()
+            deleteDir() /* lets be a good citizen */
         }
         // Emit a failure-email if a notification-address is set
         failure {

@@ -26,19 +26,82 @@ pipeline {
     parameters {
          string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-FQDN as necessary')
+         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-domain as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
-         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
-         string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
+         string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
-         string(name: 'BackupBucketArn', description: 'ARN of S3 Bucket to host Collibra backups')
-         string(name: 'IamBoundaryName', description: 'Name of the permissions-boundary to apply to the to-be-created IAM role')
-         string(name: 'RolePrefix', description: 'Prefix to apply to IAM role to make things a bit prettier (optional)')
-         string(name: 'CloudwatchBucketName', description: 'Name of the S3 Bucket hosting the CloudWatch agent archive files')
     }
 
     stages {
+        stage ('Cross-stage Env-setup') {
+            steps {
+                // Make sure work-directory is clean //
+                deleteDir()
+
+                // Pull AWS credentials from Jenkins credential-store
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
+                    // Pull parameter-file to work-directory
+                    sh '''#!/bin/bash
+                        aws s3 cp "${ParmFileS3location}" Pipeline.envs
+                    '''
+
+                    // Export credentials to rest of stages
+                    script {
+                        env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
+                        env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
+                    }
+
+                    // Set endpoint-override vars as necessary
+                    script {
+                        if ( env.AwsSvcDomain == '' ) {
+                            env.CFNCMD = "aws cloudformation"
+                        } else {
+                            env.CFNCMD = "aws cloudformation --endpoint-url https://cloudformation.${env.AWS_SVC_DOMAIN}/"
+                        }
+                    }
+                }
+
+                script {
+                    def GitCred = sh script:'awk -F "=" \'/GitCred/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.GitCred = GitCred.trim()
+
+                    def GitProjUrl = sh script:'awk -F "=" \'/GitProjUrl/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.GitProjUrl = GitProjUrl.trim()
+
+                    def GitProjBranch = sh script:'awk -F "=" \'/GitProjBranch/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.GitProjBranch = GitProjBranch.trim()
+
+                    def BackupBucketArn = sh script:'awk -F "=" \'/BackupBucketArn/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.BackupBucketArn = BackupBucketArn.trim()
+
+                    def IamBoundaryName = sh script:'awk -F "=" \'/IamBoundaryName/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.IamBoundaryName = IamBoundaryName.trim()
+
+                    def RolePrefix = sh script:'awk -F "=" \'/RolePrefix/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.RolePrefix = RolePrefix.trim()
+
+                    def CloudwatchBucketName = sh script:'awk -F "=" \'/CloudwatchBucketName/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.CloudwatchBucketName = CloudwatchBucketName.trim()
+                }
+            }
+        }
+
         stage ('Prep Work Environment') {
             steps {
                 // Make sure work-directory is clean //
@@ -84,51 +147,25 @@ pipeline {
                          ]
                    /
 
-                // Pull AWS credentials from Jenkins credential-store
-                withCredentials(
-                    [
-                        [
-                            $class: 'AmazonWebServicesCredentialsBinding',
-                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                            credentialsId: "${AwsCred}",
-                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                        ]
-                    ]
-                ) {
-                    // Export credentials to rest of stages
-                    script {
-                        env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
-                        env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
-                    }
+                // Clean up stale AWS resources //
+                sh '''#!/bin/bash
+                   echo "Attempting to delete any active ${CfnStackRoot}-IamRes stacks..."
+                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-IamRes || true
+                   sleep 5
 
-                    // Set endpoint-override vars as necessary
-                    script {
-                        if ( env.AwsSvcDomain == '' ) {
-                            env.CFNCMD = "aws cloudformation"
-                        } else {
-                            env.CFNCMD = "aws cloudformation --endpoint-url https://cloudformation.${env.AWS_SVC_DOMAIN}/"
-                        }
-                    }
-
-                    sh '''#!/bin/bash
-                       echo "Attempting to delete any active ${CfnStackRoot}-IamRes stacks..."
-                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-IamRes || true
-                       sleep 5
-
-                       # Pause if delete is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-IamRes \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q DELETE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-IamRes to delete..."
-                          sleep 30
-                       done
-                    '''
-                }
+                   # Pause if delete is slow
+                   while [[ $(
+                               ${CFNCMD} describe-stacks \
+                                 --stack-name ${CfnStackRoot}-IamRes \
+                                 --query 'Stacks[].{Status:StackStatus}' \
+                                 --out text 2> /dev/null | \
+                               grep -q DELETE_IN_PROGRESS
+                              )$? -eq 0 ]]
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-IamRes to delete..."
+                      sleep 30
+                   done
+                '''
             }
         }
         stage ('Launch IAM Template') {
@@ -172,11 +209,9 @@ pipeline {
         }
     }
 
-    // Do after job-stages end
     post {
-        // Clean up work-dir no matter what
         always {
-            deleteDir()
+            deleteDir() /* lets be a good citizen */
         }
         // Emit a failure-email if a notification-address is set
         failure {

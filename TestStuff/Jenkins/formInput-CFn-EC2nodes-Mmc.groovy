@@ -26,44 +26,170 @@ pipeline {
     parameters {
          string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
          string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-FQDN as necessary')
+         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS domain FQDN as necessary')
          string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
-         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
-         string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
+         string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
-         string(name: 'TemplateUrl', description: 'S3-hosted URL for the EC2 template file')
-         string(name: 'AdminPubkeyURL', defaultValue: '', description: '(Optional) URL of file containing admin groups SSH public-keys')
-         string(name: 'AmiId', description: 'ID of the AMI to launch')
-         choice(name: 'AppVolumeDevice', choices:[ 'false', 'true' ], description: 'Whether to attach a secondary volume to host application contents')
-         string(name: 'AppVolumeMountPath', description: 'Filesystem path to mount the extra app volume. Ignored if "AppVolumeDevice" is false')
-         string(name: 'AppVolumeSize', description: 'Size in GiB of the secondary EBS to create')
-         string(name: 'AppVolumeType', defaultValue: 'gp2', description: 'Type of EBS volume to create')
-         string(name: 'BackupBucket', description: 'S3 Bucket-name in which to store DGC backups')
-         string(name: 'CloudWatchAgentUrl', defaultValue: 's3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip', description: '(Optional) S3 URL to CloudWatch Agent installer')
+         string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the EC2')
+         string(name: 'InstanceRoleProfile', description: 'IAM instance profile-name to apply to the EC2')
          string(name: 'InstanceRoleName', description: 'IAM instance role-name to use for signalling')
-         string(name: 'InstanceRoleProfile', description: 'IAM instance profile-name to apply to the instance')
-         string(name: 'InstanceType', description: 'AWS EC2 instance type to select for launch')
-         string(name: 'KeyPairName', description: 'Registered SSH key used to provision the node')
-         string(name: 'MuleMmcWarUri', description: 'A curl-fetchable URL for the mmc WAR-file')
-         choice(name: 'NoReboot', choices:[ 'false', 'true' ], description: 'Whether to prevent the instance from rebooting at completion of build')
-         choice(name: 'NoUpdates', choices:[ 'false', 'true' ], description: 'Whether to prevent updating all installed RPMs as part of build process')
-         string(name: 'ProvisionUser', defaultValue: 'ec2-user', description: 'Default login-user to create upon instance-launch')
-         string(name: 'PypiIndexUrl', defaultValue: 'https://pypi.org/simple', description: 'Source from which to pull Pypi packages')
-         string(name: 'RootVolumeSize', defaultValue: '20', description: 'How big to make the root EBS volume (ensure value specified is at least as big as the AMI-default)')
-         string(name: 'SecurityGroupIds', description: 'Comma-separated list of EC2 security-groups to apply to the instance')
-         string(name: 'SubnetId', description: 'Subnet-ID to deploy EC2 instance into')
-         string(name: 'WatchmakerAdminGroups', description: 'What ActiveDirectory groups to give admin access to (if bound to an AD domain)')
-         string(name: 'WatchmakerAdminUsers', description: 'What ActiveDirectory users to give admin access to (if bound to an AD domain)')
-         string(name: 'WatchmakerComputerName', description: 'Hostname to apply to the deployed instance')
-         string(name: 'WatchmakerConfig', description: '(Optional) Path to a Watchmaker config file.  The config file path can be a remote source (i.e. http[s]://, s3://) or local directory (i.e. file://)')
-         string(name: 'WatchmakerEnvironment', defaultValue: 'dev', description: 'What build environment to deploy instance to')
-         string(name: 'WatchmakerOuPath', description: 'OU-path in which to create Active Directory computer object')
-         string(name: 'R53ZoneId', description: 'Route53 ZoneId to create proxy-alias DNS record')
     }
 
     stages {
-        stage ('Prep Work Environment') {
+        stage ('Cross-stage Env-setup') {
+            steps {
+                // Make sure work-directory is clean //
+                deleteDir()
+
+                // Fetch parm-file
+                withCredentials(
+                    [
+                        [
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            credentialsId: "${AwsCred}",
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]
+                    ]
+                ) {
+                    // Export these to rest of stages
+                    script {
+                        env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
+                        env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
+                    }
+
+                    // Pull down pipleine-envs file so we can extract parm-vals
+                    sh '''#!/bin/bash
+                        aws s3 cp "${ParmFileS3location}" Pipeline.envs
+                    '''
+
+                    // Set endpoint-override vars as necessary
+                    script {
+                        if ( env.AwsSvcDomain == '' ) {
+                            env.CFNCMD = "aws cloudformation"
+                        } else {
+                            env.CFNCMD = "aws cloudformation --endpoint-url https://cloudformation.${env.AWS_SVC_DOMAIN}/"
+                        }
+                    }
+                }
+
+                script {
+                    def GitCred = sh script:'awk -F "=" \'/GitCred/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.GitCred = GitCred.trim()
+
+                    def GitProjUrl = sh script:'awk -F "=" \'/GitProjUrl/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.GitProjUrl = GitProjUrl.trim()
+
+                    def GitProjBranch = sh script:'awk -F "=" \'/GitProjBranch/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.GitProjBranch = GitProjBranch.trim()
+
+                    def TemplateUrl = sh script:'awk -F "=" \'/TemplateUrl/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.TemplateUrl = TemplateUrl.trim()
+
+                    def AdminPubkeyURL = sh script:'awk -F "=" \'/AdminPubkeyURL/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.AdminPubkeyURL = AdminPubkeyURL.trim()
+
+                    def AmiId = sh script:'awk -F "=" \'/AmiId/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.AmiId = AmiId.trim()
+
+                    def AppVolumeDevice = sh script:'awk -F "=" \'/AppVolumeDevice/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.AppVolumeDevice = AppVolumeDevice.trim()
+
+                    def AppVolumeMountPath = sh script:'awk -F "=" \'/AppVolumeMountPath/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.AppVolumeMountPath = AppVolumeMountPath.trim()
+
+                    def AppVolumeSize = sh script:'awk -F "=" \'/AppVolumeSize/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.AppVolumeSize = AppVolumeSize.trim()
+
+                    def AppVolumeType = sh script:'awk -F "=" \'/AppVolumeType/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.AppVolumeType = AppVolumeType.trim()
+
+                    def BackupBucket = sh script:'awk -F "=" \'/BackupBucket/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.BackupBucket = BackupBucket.trim()
+
+                    def CloudWatchAgentUrl = sh script:'awk -F "=" \'/CloudWatchAgentUrl/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.CloudWatchAgentUrl = CloudWatchAgentUrl.trim()
+
+                    def InstanceType = sh script:'awk -F "=" \'/InstanceType/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.InstanceType = InstanceType.trim()
+
+                    def KeyPairName = sh script:'awk -F "=" \'/KeyPairName/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.KeyPairName = KeyPairName.trim()
+
+                    def MuleMmcWarUri = sh script:'awk -F "=" \'/MuleMmcWarUri/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.MuleMmcWarUri = MuleMmcWarUri.trim()
+
+                    def NoReboot = sh script:'awk -F "=" \'/NoReboot/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.NoReboot = NoReboot.trim()
+
+                    def NoUpdates = sh script:'awk -F "=" \'/NoUpdates/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.NoUpdates = NoUpdates.trim()
+
+                    def ProvisionUser = sh script:'awk -F "=" \'/ProvisionUser/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.ProvisionUser = ProvisionUser.trim()
+
+                    def PypiIndexUrl = sh script:'awk -F "=" \'/PypiIndexUrl/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.PypiIndexUrl = PypiIndexUrl.trim()
+
+                    def RootVolumeSize = sh script:'awk -F "=" \'/RootVolumeSize/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.RootVolumeSize = RootVolumeSize.trim()
+
+                    def SubnetId = sh script:'awk -F "=" \'/SubnetId/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.SubnetId = SubnetId.trim()
+
+                    def WatchmakerAdminGroups = sh script:'awk -F "=" \'/WatchmakerAdminGroups/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.WatchmakerAdminGroups = WatchmakerAdminGroups.trim()
+
+                    def WatchmakerAdminUsers = sh script:'awk -F "=" \'/WatchmakerAdminUsers/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.WatchmakerAdminUsers = WatchmakerAdminUsers.trim()
+
+                    def WatchmakerComputerName = sh script:'awk -F "=" \'/WatchmakerComputerName/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.WatchmakerComputerName = WatchmakerComputerName.trim()
+
+                    def WatchmakerConfig = sh script:'awk -F "=" \'/WatchmakerConfig/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.WatchmakerConfig = WatchmakerConfig.trim()
+
+                    def WatchmakerEnvironment = sh script:'awk -F "=" \'/WatchmakerEnvironment/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.WatchmakerEnvironment = WatchmakerEnvironment.trim()
+
+                    def WatchmakerOuPath = sh script:'awk -F "=" \'/WatchmakerOuPath/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.WatchmakerOuPath = WatchmakerOuPath.trim()
+
+                    def R53ZoneId = sh script:'awk -F "=" \'/R53ZoneId/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.R53ZoneId = R53ZoneId.trim()
+                }
+            }
+        }
+
+        stage ('Prep Workspace') {
             steps {
                 // Make sure work-directory is clean //
                 deleteDir()
@@ -195,72 +321,60 @@ pipeline {
                              }
                          ]
                    /
+            }
+        }
 
-                // Clean up stale AWS resources //
-                withCredentials(
-                    [
-                        [
-                            $class: 'AmazonWebServicesCredentialsBinding',
-                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                            credentialsId: "${AwsCred}",
-                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                        ]
-                    ]
-                ) {
-                    // Export credentials to rest of stages
-                    script {
-                        env.AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
-                        env.AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
-                    }
-
-                    // Set endpoint-override vars as necessary
-                    script {
-                        if ( env.AwsSvcDomain == '' ) {
-                            env.CFNCMD = "aws cloudformation"
-                        } else {
-                            env.CFNCMD = "aws cloudformation --endpoint-url https://cloudformation.${env.AWS_SVC_DOMAIN}/"
-                        }
-                    }
-
-                    sh '''#!/bin/bash
-                       if [[ ! -z ${R53ZoneId} ]]
-                       then
-                          echo "Attempting to delete any active ${CfnStackRoot}-R53Res-MMC stacks..."
-                          ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-MMC || true
-                          sleep 5
-
-                          # Pause if delete is slow
-                          while [[ $(
-                                      ${CFNCMD} describe-stacks \
-                                        --stack-name ${CfnStackRoot}-R53Res-MMC \
-                                        --query 'Stacks[].{Status:StackStatus}' \
-                                        --out text 2> /dev/null | \
-                                      grep -q DELETE_IN_PROGRESS
-                                     )$? -eq 0 ]]
-                          do
-                             echo "Waiting for stack ${CfnStackRoot}-R53Res-MMC to delete..."
-                             sleep 30
-                          done
-                       fi
-
-                       echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-MMC stacks..."
-                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-MMC || true
-                       sleep 5
-
-                       # Pause if delete is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-Ec2Res-MMC \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q DELETE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-Ec2Res-MMC to delete..."
-                          sleep 30
-                       done
-                    '''
+        stage ('Nuke Stale R53 Resources') {
+            when {
+                expression {
+                    return env.R53ZoneId != '';
                 }
+            }
+            steps {
+                // Clean up stale AWS resources //
+                sh '''#!/bin/bash
+
+                   echo "Attempting to delete any active ${CfnStackRoot}-R53Res-MMC stacks..."
+                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-MMC || true
+                   sleep 5
+
+                   # Pause if delete is slow
+                   while [[ $(
+                               ${CFNCMD} describe-stacks \
+                                 --stack-name ${CfnStackRoot}-R53Res-MMC \
+                                 --query 'Stacks[].{Status:StackStatus}' \
+                                 --out text 2> /dev/null | \
+                               grep -q DELETE_IN_PROGRESS
+                              )$? -eq 0 ]]
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-R53Res-MMC to delete..."
+                      sleep 30
+                   done
+                '''
+            }
+        }
+
+        stage ('Nuke Stale EC2 Resources') {
+            steps {
+                // Clean up stale AWS resources //
+                sh '''#!/bin/bash
+                   echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-MMC stacks..."
+                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-MMC || true
+                   sleep 5
+
+                   # Pause if delete is slow
+                   while [[ $(
+                               ${CFNCMD} describe-stacks \
+                                 --stack-name ${CfnStackRoot}-Ec2Res-MMC \
+                                 --query 'Stacks[].{Status:StackStatus}' \
+                                 --out text 2> /dev/null | \
+                               grep -q DELETE_IN_PROGRESS
+                              )$? -eq 0 ]]
+                   do
+                      echo "Waiting for stack ${CfnStackRoot}-Ec2Res-MMC to delete..."
+                      sleep 30
+                   done
+                '''
             }
         }
         stage ('Launch EC2 Template') {
@@ -367,11 +481,9 @@ pipeline {
         }
     }
 
-    // Do after job-stages end
     post {
-        // Clean up work-dir no matter what
         always {
-            deleteDir()
+            deleteDir() /* lets be a good citizen */
         }
         // Emit a failure-email if a notification-address is set
         failure {
