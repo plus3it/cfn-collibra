@@ -1,0 +1,1028 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Conditions:
+  AssignInstanceRole: !Not
+    - !Equals
+      - !Ref 'InstanceRoleName'
+      - ''
+  CreateAppVolume: !Equals
+    - !Ref 'AppVolumeDevice'
+    - 'true'
+  InstallCloudWatchAgent: !Not
+    - !Equals
+      - !Ref 'CloudWatchAgentUrl'
+      - ''
+  InstallUpdates: !Not
+    - !Equals
+      - !Ref 'NoUpdates'
+      - 'true'
+  Reboot: !Not
+    - !Equals
+      - !Ref 'NoReboot'
+      - 'true'
+  SupportsNvme: !Equals
+    - !FindInMap
+      - InstanceTypeMap
+      - !Ref 'InstanceType'
+      - SupportsNvme
+    - 'true'
+  UseAdminGroups: !Not
+    - !Equals
+      - !Ref 'WatchmakerAdminGroups'
+      - ''
+  UseAdminUsers: !Not
+    - !Equals
+      - !Ref 'WatchmakerAdminUsers'
+      - ''
+  UseComputerName: !Not
+    - !Equals
+      - !Ref 'WatchmakerComputerName'
+      - ''
+  UseEnvironment: !Not
+    - !Equals
+      - !Ref 'WatchmakerEnvironment'
+      - ''
+  UseGroupKeyfile: !Not
+    - !Equals
+      - !Ref 'AdminPubkeyURL'
+      - ''
+  UseKeyPair: !Not
+    - !Equals
+      - !Ref 'KeyPairName'
+      - ''
+  UseOuPath: !Not
+    - !Equals
+      - !Ref 'WatchmakerOuPath'
+      - ''
+  UseWamConfig: !Not
+    - !Equals
+      - !Ref 'WatchmakerConfig'
+      - ''
+Description: This template deploys the Mule Management Console (mmc) service onto
+  a STIG-hardened EL7-based Linux instance
+Mappings:
+  InstanceTypeMap:
+    c4.2xlarge:
+      SupportsNvme: 'false'
+    c4.large:
+      SupportsNvme: 'false'
+    c4.xlarge:
+      SupportsNvme: 'false'
+    c5.2xlarge:
+      SupportsNvme: 'true'
+    c5.large:
+      SupportsNvme: 'true'
+    c5.xlarge:
+      SupportsNvme: 'true'
+    m4.large:
+      SupportsNvme: 'false'
+    m4.xlarge:
+      SupportsNvme: 'false'
+    m5.large:
+      SupportsNvme: 'true'
+    m5.xlarge:
+      SupportsNvme: 'true'
+    t2.2xlarge:
+      SupportsNvme: 'false'
+    t2.large:
+      SupportsNvme: 'false'
+    t2.medium:
+      SupportsNvme: 'false'
+    t2.xlarge:
+      SupportsNvme: 'false'
+    t3.2xlarge:
+      SupportsNvme: 'true'
+    t3.large:
+      SupportsNvme: 'true'
+    t3.medium:
+      SupportsNvme: 'true'
+    t3.xlarge:
+      SupportsNvme: 'true'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: EC2 Instance Configuration
+        Parameters:
+          - AmiId
+          - InstanceType
+          - RootVolumeSize
+          - ProvisionUser
+          - KeyPairName
+          - AdminPubkeyURL
+          - InstanceRoleName
+          - InstanceRoleProfile
+          - SubnetId
+          - SecurityGroupIds
+          - NoReboot
+          - NoUpdates
+      - Label:
+          default: Application Storage
+        Parameters:
+          - AppVolumeDevice
+          - AppVolumeMountPath
+          - AppVolumeSize
+          - AppVolumeType
+      - Label:
+          default: Backup Configuration
+        Parameters:
+          - BackupBucket
+      - Label:
+          default: Watchmaker Configuration
+        Parameters:
+          - PypiIndexUrl
+          - WatchmakerConfig
+          - WatchmakerEnvironment
+          - WatchmakerOuPath
+          - WatchmakerComputerName
+          - WatchmakerAdminGroups
+          - WatchmakerAdminUsers
+      - Label:
+          default: CloudFormation Configuration
+        Parameters:
+          - CloudWatchAgentUrl
+  Version: 1.4.3
+Outputs:
+  InstanceAz:
+    Description: Availability-zone hosting the instance
+    Export:
+      Name: !Sub '${AWS::StackName}-InstanceAz'
+    Value: !GetAtt 'MmcHost.AvailabilityZone'
+  InstanceId:
+    Description: Instance ID
+    Export:
+      Name: !Sub '${AWS::StackName}-InstanceID'
+    Value: !Ref 'MmcHost'
+  InstancePrivateIPv4:
+    Description: Instance private IPv4 IP address
+    Export:
+      Name: !Sub '${AWS::StackName}-InstancePrivateIPv4'
+    Value: !GetAtt 'MmcHost.PrivateIp'
+  MmcHostLogGroupName:
+    Condition: InstallCloudWatchAgent
+    Description: Log Group Name
+    Value: !Ref 'CollibraLogGroup'
+Parameters:
+  AdminPubkeyURL:
+    AllowedPattern: ^http[s]?://.*|^$
+    Description: (Optional) URL of file containing admin group's SSH public-keys
+    Type: String
+  AmiId:
+    AllowedPattern: ^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$
+    Description: ID of the AMI to launch
+    Type: AWS::EC2::Image::Id
+  AppVolumeDevice:
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+    Description: Decision on whether to mount an extra EBS volume. Leave as default
+      ("false") to launch without an extra application volume
+    Type: String
+  AppVolumeMountPath:
+    AllowedPattern: /.*
+    Default: /opt/collibra
+    Description: Filesystem path to mount the extra app volume. Ignored if "AppVolumeDevice"
+      is false
+    Type: String
+  AppVolumeSize:
+    ConstraintDescription: Must be between 1GB and 16384GB.
+    Default: '1'
+    Description: Size in GB of the EBS volume to create. Ignored if "AppVolumeDevice"
+      is false
+    MaxValue: '16384'
+    MinValue: '1'
+    Type: Number
+  AppVolumeType:
+    AllowedValues:
+      - gp2
+      - io1
+      - sc1
+      - st1
+      - standard
+    Default: gp2
+    Description: Type of EBS volume to create. Ignored if "AppVolumeDevice" is false
+    Type: String
+  BackupBucket:
+    Description: '(Optional: Only used if "CollibraDgcComponent" is set to "CONSOLE")
+      Name of the S3 bucket in which to store Collibra backups'
+    Type: String
+  CloudWatchAgentUrl:
+    AllowedPattern: ^$|^s3://.*$
+    Default: ''
+    Description: '(Optional) S3 URL to CloudWatch Agent installer. Example: s3://amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip'
+    Type: String
+  InstanceRoleName:
+    Default: ''
+    Description: (Optional) IAM instance role-name to use for signalling
+    Type: String
+  InstanceRoleProfile:
+    Default: ''
+    Description: (Optional) IAM instance profile-name to apply to the instance
+    Type: String
+  InstanceType:
+    AllowedValues:
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m5.large
+      - m5.xlarge
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - t2.medium
+      - t2.large
+      - t2.xlarge
+      - t2.2xlarge
+    Default: t2.large
+    Description: Amazon EC2 instance type
+    Type: String
+  KeyPairName:
+    Description: (Optional) Public/private key pairs allow you to securely connect
+      to your instance after it launches
+    Type: String
+  MuleMmcWarUri:
+    AllowedPattern: ^http[s]?://.*$
+    Description: URL to the curl-fetchable Collibra DGC Connector software for Mule
+      ESB
+    Type: String
+  NoReboot:
+    AllowedValues:
+      - 'false'
+      - 'true'
+    Default: 'false'
+    Description: Controls whether to reboot the instance as the last step of cfn-init
+      execution
+    Type: String
+  NoUpdates:
+    AllowedValues:
+      - 'false'
+      - 'true'
+    Default: 'false'
+    Description: Controls whether to run yum update during a stack update (on the
+      initial instance launch, Watchmaker _always_ installs updates)
+    Type: String
+  ProvisionUser:
+    AllowedPattern: '[a-z0-9-]{6,12}+'
+    ConstraintDescription: Alphanumeric string between 6 and 12 characters.
+    Default: ec2-user
+    Description: Default login user account name
+    Type: String
+  PypiIndexUrl:
+    AllowedPattern: ^http[s]?://.*$
+    Default: https://pypi.org/simple
+    Description: URL to the PyPi Index
+    Type: String
+  RootVolumeSize:
+    ConstraintDescription: Must be between 20GB and 16384GB.
+    Default: '20'
+    Description: Size in GB of the EBS volume to create. Ignored if "AppVolumeDevice"
+      is blank
+    MaxValue: '16384'
+    MinValue: '20'
+    Type: Number
+  SecurityGroupIds:
+    Description: List of security groups to apply to the instance
+    Type: List<AWS::EC2::SecurityGroup::Id>
+  SubnetId:
+    Description: ID of the subnet to assign to the instance
+    Type: AWS::EC2::Subnet::Id
+  WatchmakerAdminGroups:
+    Default: ''
+    Description: (Optional) Colon-separated list of domain groups that should have
+      admin permissions on the EC2 instance
+    Type: String
+  WatchmakerAdminUsers:
+    Default: ''
+    Description: (Optional) Colon-separated list of domain users that should have
+      admin permissions on the EC2 instance
+    Type: String
+  WatchmakerComputerName:
+    Default: ''
+    Description: (Optional) Sets the hostname/computername within the OS
+    Type: String
+  WatchmakerConfig:
+    AllowedPattern: ^$|^(http[s]?|s3|file)://.*$
+    Default: ''
+    Description: (Optional) Path to a Watchmaker config file.  The config file path
+      can be a remote source (i.e. http[s]://, s3://) or local directory (i.e. file://)
+    Type: String
+  WatchmakerEnvironment:
+    AllowedValues:
+      - ''
+      - dev
+      - test
+      - prod
+    Default: ''
+    Description: Environment in which the instance is being deployed
+    Type: String
+  WatchmakerOuPath:
+    AllowedPattern: ^$|^(OU=.+,)+(DC=.+)+$
+    Default: ''
+    Description: >-
+      (Optional) DN of the OU to place the instance when joining a domain. If blank
+      and "WatchmakerEnvironment" enforces a domain join, the instance will be placed
+      in a default container. Leave blank if not joining a domain, or if "WatchmakerEnvironment"
+      is "false"
+    Type: String
+Resources:
+  CollibraLogGroup:
+    Condition: InstallCloudWatchAgent
+    Properties:
+      LogGroupName: !Join
+        - ''
+        - - /aws/ec2/lx/
+          - !Ref 'AWS::StackName'
+    Type: AWS::Logs::LogGroup
+  MmcHost:
+    CreationPolicy:
+      ResourceSignal:
+        Count: '1'
+        Timeout: PT30M
+    Metadata:
+      AWS::CloudFormation::Init:
+        admkey-install:
+          commands:
+            1-install-keyfile:
+              command: bash -xe /etc/cfn/scripts/admkey.sh
+          files:
+            /etc/cfn/files/AdminKeys.pub:
+              group: root
+              mode: '000600'
+              owner: root
+              source: !Ref 'AdminPubkeyURL'
+            /etc/cfn/scripts/admkey.sh:
+              content: !Join
+                - ''
+                - - "#!/bin/bash\n\n"
+                  - 'PROVHOME=$(getent passwd '
+                  - !Ref 'ProvisionUser'
+                  - " | awk -F\":\" '{print $6}')\n"
+                  - "\n"
+                  - 'install -b -m 000600 -o '
+                  - !Ref 'ProvisionUser'
+                  - ' -g '
+                  - !Ref 'ProvisionUser'
+                  - " /etc/cfn/files/AdminKeys.pub ${PROVHOME}/.ssh/authorized_keys\n"
+                  - "\n"
+              group: root
+              mode: '000700'
+              owner: root
+        configSets:
+          launch:
+            - setup
+            - !If
+              - UseGroupKeyfile
+              - admkey-install
+              - !Ref 'AWS::NoValue'
+            - !If
+              - InstallCloudWatchAgent
+              - cw-agent-install
+              - !Ref 'AWS::NoValue'
+            - watchmaker-install
+            - watchmaker-launch
+            - tomcatSetup
+            - mmcSetup
+            - finalize
+            - !If
+              - Reboot
+              - reboot
+              - !Ref 'AWS::NoValue'
+          update:
+            - setup
+            - !If
+              - UseGroupKeyfile
+              - admkey-install
+              - !Ref 'AWS::NoValue'
+            - !If
+              - InstallUpdates
+              - install-updates
+              - !Ref 'AWS::NoValue'
+            - watchmaker-install
+            - watchmaker-update
+            - tomcatSetup
+            - mmcSetup
+            - finalize
+            - !If
+              - Reboot
+              - reboot
+              - !Ref 'AWS::NoValue'
+        cw-agent-install:
+          commands:
+            '01-get-cloudwatch-agent':
+              command: !Join
+                - ''
+                - - install -Dbm 700 -o root -g root /dev/null /etc/cfn/scripts/AmazonCloudWatchAgent.zip
+                    &&
+                  - ' aws s3 cp '
+                  - !Ref 'CloudWatchAgentUrl'
+                  - ' /etc/cfn/scripts/AmazonCloudWatchAgent.zip'
+            '02-extract-cloudwatch-agent':
+              command: !Join
+                - ''
+                - - yum -y install unzip &&
+                  - unzip /etc/cfn/scripts/AmazonCloudWatchAgent.zip -d /etc/cfn/scripts/aws-cw-agent
+            10-install-cloudwatch-agent:
+              command: !Join
+                - ''
+                - - ' bash -xe install.sh &&'
+                  - ' /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl'
+                  - ' -a fetch-config -m ec2 -c'
+                  - ' file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+                    -s'
+              cwd: /etc/cfn/scripts/aws-cw-agent
+          files:
+            /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json:
+              content: !Join
+                - ''
+                - - '{'
+                  - "  \"logs\": {\n"
+                  - "  \"logs_collected\": {\n"
+                  - "    \"files\": {\n"
+                  - "    \"collect_list\": [\n"
+                  - "      {\n"
+                  - "      \"file_path\": \"/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log\"\
+                    ,\n"
+                  - '      "log_group_name": "'
+                  - !If
+                    - InstallCloudWatchAgent
+                    - !Ref 'CollibraLogGroup'
+                    - !Ref 'AWS::NoValue'
+                  - "\",\n"
+                  - "      \"log_stream_name\": \"cloudwatch_agent_logs_{instance_id}\"\
+                    ,\n"
+                  - "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n"
+                  - "      },\n"
+                  - "      {\n"
+                  - "      \"file_path\": \"/var/log/cfn-init.log\",\n"
+                  - '      "log_group_name": "'
+                  - !If
+                    - InstallCloudWatchAgent
+                    - !Ref 'CollibraLogGroup'
+                    - !Ref 'AWS::NoValue'
+                  - "\",\n"
+                  - "      \"log_stream_name\": \"cfn_init_logs_{instance_id}\",\n"
+                  - "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n"
+                  - "      },\n"
+                  - "      {\n"
+                  - "      \"file_path\": \"/var/log/messages\",\n"
+                  - '      "log_group_name": "'
+                  - !If
+                    - InstallCloudWatchAgent
+                    - !Ref 'CollibraLogGroup'
+                    - !Ref 'AWS::NoValue'
+                  - "\",\n"
+                  - "      \"log_stream_name\": \"messages_logs_{instance_id}\",\n"
+                  - "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n"
+                  - "      },\n"
+                  - "      {\n"
+                  - "      \"file_path\": \"/var/log/watchmaker/watchmaker.log\",\n"
+                  - '      "log_group_name": "'
+                  - !If
+                    - InstallCloudWatchAgent
+                    - !Ref 'CollibraLogGroup'
+                    - !Ref 'AWS::NoValue'
+                  - "\",\n"
+                  - "      \"log_stream_name\": \"watchmaker_logs_{instance_id}\"\
+                    ,\n"
+                  - "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n"
+                  - "      },\n"
+                  - "      {\n"
+                  - "      \"file_path\": \"/var/log/watchmaker/salt_call.debug.log\"\
+                    ,\n"
+                  - '      "log_group_name": "'
+                  - !If
+                    - InstallCloudWatchAgent
+                    - !Ref 'CollibraLogGroup'
+                    - !Ref 'AWS::NoValue'
+                  - "\",\n"
+                  - "      \"log_stream_name\": \"salt_call_debug_logs_{instance_id}\"\
+                    ,\n"
+                  - "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n"
+                  - "      }\n"
+                  - "    ]\n"
+                  - "    }\n"
+                  - "  },\n"
+                  - "  \"log_stream_name\": \"default_logs_{instance_id}\"\n"
+                  - "  }\n"
+                  - "}\n"
+        finalize:
+          commands:
+            10-signal-success:
+              command: !Join
+                - ''
+                - - cfn-signal -e 0
+                  - ' --stack '
+                  - !Ref 'AWS::StackName'
+                  - ' --resource MmcHost'
+                  - !If
+                    - AssignInstanceRole
+                    - !Join
+                      - ''
+                      - - ' --role '
+                        - !Ref 'InstanceRoleName'
+                    - ''
+                  - !Join
+                    - ''
+                    - - ' --url '
+                      - https://cloudformation.
+                      - !Ref 'AWS::Region'
+                      - .
+                      - !Ref 'AWS::URLSuffix'
+                  - ' --region '
+                  - !Ref 'AWS::Region'
+                  - "\n"
+              ignoreErrors: 'true'
+        install-updates:
+          commands:
+            10-install-updates:
+              command: yum -y update
+        mmcSetup:
+          files:
+            /usr/share/tomcat/webapps/mmc.war:
+              group: tomcat
+              mode: '000644'
+              owner: tomcat
+              source: !Ref 'MuleMmcWarUri'
+        reboot:
+          commands:
+            10-reboot:
+              command: shutdown -r +1 &
+        setup:
+          files:
+            /etc/cfn/Collibra.envs:
+              content: !Join
+                - ''
+                - - MULE_BACKUP_BUCKET=
+                  - !Ref 'BackupBucket'
+                  - "\n"
+              group: root
+              mode: '000640'
+              owner: root
+            /etc/cfn/cfn-hup.conf:
+              content: !Join
+                - ''
+                - - "[main]\n"
+                  - stack=
+                  - !Ref 'AWS::StackId'
+                  - "\n"
+                  - region=
+                  - !Ref 'AWS::Region'
+                  - "\n"
+                  - !If
+                    - AssignInstanceRole
+                    - !Join
+                      - ''
+                      - - role=
+                        - !Ref 'InstanceRoleName'
+                        - "\n"
+                    - ''
+                  - !Join
+                    - ''
+                    - - url=
+                      - https://cloudformation.
+                      - !Ref 'AWS::Region'
+                      - .
+                      - !Ref 'AWS::URLSuffix'
+                      - "\n"
+                  - interval=1
+                  - "\n"
+                  - verbose=true
+                  - "\n"
+              group: root
+              mode: '000400'
+              owner: root
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Join
+                - ''
+                - - "[cfn-auto-reloader-hook]\n"
+                  - "triggers=post.update\n"
+                  - "path=Resources.MmcHost.Metadata\n"
+                  - action=cfn-init -v -c update
+                  - ' --stack '
+                  - !Ref 'AWS::StackName'
+                  - ' --resource MmcHost'
+                  - !If
+                    - AssignInstanceRole
+                    - !Join
+                      - ''
+                      - - ' --role '
+                        - !Ref 'InstanceRoleName'
+                    - ''
+                  - !Join
+                    - ''
+                    - - ' --url '
+                      - https://cloudformation.
+                      - !Ref 'AWS::Region'
+                      - .
+                      - !Ref 'AWS::URLSuffix'
+                  - ' --region '
+                  - !Ref 'AWS::Region'
+                  - "\n"
+                  - "runas=root\n"
+              group: root
+              mode: '000400'
+              owner: root
+            /etc/cfn/scripts/watchmaker-install.sh:
+              content: !Join
+                - ''
+                - - "#!/bin/bash\n\n"
+                  - PYPI_URL=
+                  - !Ref 'PypiIndexUrl'
+                  - "\n"
+                  - "# Install pip\n"
+                  - "python3 -m ensurepip\n"
+                  - "\n"
+                  - "# Upgrade pip and setuptools\n"
+                  - "python3 -m pip install --index-url=\"$PYPI_URL\" --upgrade pip\
+                    \ setuptools\n"
+                  - "\n"
+                  - "# Install watchmaker\n"
+                  - "python3 -m pip install --index-url=\"$PYPI_URL\" --upgrade watchmaker\n"
+              group: root
+              mode: '000700'
+              owner: root
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                  - /etc/cfn/cfn-hup.conf
+                  - /etc/cfn/hooks.d/cfn-auto-reloader.conf
+        tomcatSetup:
+          commands:
+            '01-tomcat-install':
+              command: yum install -y tomcat
+            '02-tomcat-enable':
+              command: systemctl enable tomcat
+            '03-tomcat-relax_sel':
+              command: semanage permissive -a tomcat_t
+            '04-tomcat-firewalld-create_service':
+              command: firewall-offline-cmd --new-service-from-file=/etc/cfn/files/tomcat-mmc.xml
+            '05-tomcat-firewalld-enable_service':
+              command: firewall-offline-cmd --add-service=tomcat-mmc
+          files:
+            /etc/cfn/files/tomcat-mmc.xml:
+              content: !Join
+                - "\n"
+                - - <?xml version="1.0" encoding="utf-8"?>
+                  - <service>
+                  - <short>MMC via Tomcat</short>
+                  - <description>Firewalld exceptions for Mule Management Console
+                    via Tomcat</description>
+                  - <port protocol="tcp" port="7777"/>
+                  - <port protocol="tcp" port="8009"/>
+                  - <port protocol="tcp" port="8080"/>
+                  - </service>
+              group: root
+              mode: '000600'
+              owner: root
+        watchmaker-install:
+          commands:
+            10-watchmaker-install:
+              command: bash -xe /etc/cfn/scripts/watchmaker-install.sh
+        watchmaker-launch:
+          commands:
+            10-watchmaker-launch:
+              command: !Join
+                - ''
+                - - 'export LC_ALL=en_US.utf-8 && export LANG=en_US.utf-8 && '
+                  - watchmaker --log-level debug
+                  - ' --log-dir /var/log/watchmaker'
+                  - ' --exclude-states scap*scan'
+                  - ' --no-reboot'
+                  - !If
+                    - UseWamConfig
+                    - !Join
+                      - ''
+                      - - ' --config "'
+                        - !Ref 'WatchmakerConfig'
+                        - '"'
+                    - ''
+                  - !If
+                    - UseEnvironment
+                    - !Join
+                      - ''
+                      - - ' --env "'
+                        - !Ref 'WatchmakerEnvironment'
+                        - '"'
+                    - ''
+                  - !If
+                    - UseOuPath
+                    - !Join
+                      - ''
+                      - - ' --ou-path "'
+                        - !Ref 'WatchmakerOuPath'
+                        - '"'
+                    - ''
+                  - !If
+                    - UseComputerName
+                    - !Join
+                      - ''
+                      - - ' --computer-name "'
+                        - !Ref 'WatchmakerComputerName'
+                        - '"'
+                    - ''
+                  - !If
+                    - UseAdminGroups
+                    - !Join
+                      - ''
+                      - - ' --admin-groups "'
+                        - !Ref 'WatchmakerAdminGroups'
+                        - '"'
+                    - ''
+                  - !If
+                    - UseAdminUsers
+                    - !Join
+                      - ''
+                      - - ' --admin-users "'
+                        - !Ref 'WatchmakerAdminUsers'
+                        - '"'
+                    - ''
+        watchmaker-update:
+          commands:
+            10-watchmaker-update:
+              command: !Join
+                - ''
+                - - watchmaker --log-level debug
+                  - ' --log-dir /var/log/watchmaker'
+                  - ' --salt-states None'
+                  - ' --no-reboot'
+                  - !If
+                    - UseWamConfig
+                    - !Join
+                      - ''
+                      - - ' --config "'
+                        - !Ref 'WatchmakerConfig'
+                        - '"'
+                    - ''
+                  - !If
+                    - UseEnvironment
+                    - !Join
+                      - ''
+                      - - ' --env "'
+                        - !Ref 'WatchmakerEnvironment'
+                        - '"'
+                    - ''
+                  - !If
+                    - UseOuPath
+                    - !Join
+                      - ''
+                      - - ' --oupath "'
+                        - !Ref 'WatchmakerOuPath'
+                        - '"'
+                    - ''
+                  - !If
+                    - UseComputerName
+                    - !Join
+                      - ''
+                      - - ' --computer-name "'
+                        - !Ref 'WatchmakerComputerName'
+                        - '"'
+                    - ''
+                  - !If
+                    - UseAdminGroups
+                    - !Join
+                      - ''
+                      - - ' --admin-groups "'
+                        - !Ref 'WatchmakerAdminGroups'
+                        - '"'
+                    - ''
+                  - !If
+                    - UseAdminUsers
+                    - !Join
+                      - ''
+                      - - ' --admin-users "'
+                        - !Ref 'WatchmakerAdminUsers'
+                        - '"'
+                    - ''
+    Properties:
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            DeleteOnTermination: true
+            VolumeSize: !Ref 'RootVolumeSize'
+            VolumeType: gp2
+        - !If
+          - CreateAppVolume
+          - DeviceName: /dev/xvdf
+            Ebs:
+              DeleteOnTermination: true
+              VolumeSize: !Ref 'AppVolumeSize'
+              VolumeType: !Ref 'AppVolumeType'
+          - !Ref 'AWS::NoValue'
+      IamInstanceProfile: !If
+        - AssignInstanceRole
+        - !Ref 'InstanceRoleProfile'
+        - !Ref 'AWS::NoValue'
+      ImageId: !Ref 'AmiId'
+      InstanceType: !Ref 'InstanceType'
+      KeyName: !If
+        - UseKeyPair
+        - !Ref 'KeyPairName'
+        - !Ref 'AWS::NoValue'
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          GroupSet: !Ref 'SecurityGroupIds'
+          SubnetId: !Ref 'SubnetId'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref 'AWS::StackName'
+      UserData: !Base64
+        Fn::Join:
+          - ''
+          - - "Content-Type: multipart/mixed; boundary=\"===============3585321300151562773==\"\
+              \n"
+            - "MIME-Version: 1.0\n"
+            - "\n"
+            - "--===============3585321300151562773==\n"
+            - "Content-Type: text/cloud-config; charset=\"us-ascii\"\n"
+            - "MIME-Version: 1.0\n"
+            - "Content-Transfer-Encoding: 7bit\n"
+            - "Content-Disposition: attachment; filename=\"cloud.cfg\"\n"
+            - "\n"
+            - "#cloud-config\n"
+            - "\n"
+            - "system_info:\n"
+            - "  default_user:\n"
+            - '    name: '
+            - !Ref 'ProvisionUser'
+            - "\n"
+            - "users:\n"
+            - "  - default\n"
+            - "\n"
+            - 'hostname: '
+            - !Ref 'WatchmakerComputerName'
+            - "\n"
+            - "\n"
+            - "growpart:\n"
+            - "  mode: auto\n"
+            - "  devices: [ '/dev/xvda', '/dev/xvda2', '/dev/nvme0n1p2' ]\n"
+            - "  ignore_growroot_disabled: false\n"
+            - "\n"
+            - !If
+              - CreateAppVolume
+              - !Join
+                - ''
+                - - "bootcmd:\n"
+                  - '- cloud-init-per instance mkfs-appvolume mkfs -t ext4 '
+                  - !If
+                    - SupportsNvme
+                    - /dev/nvme1n1
+                    - /dev/xvdf
+                  - "\n"
+                  - "mounts:\n"
+                  - '- [ '
+                  - !If
+                    - SupportsNvme
+                    - /dev/nvme1n1
+                    - /dev/xvdf
+                  - ', '
+                  - !Ref 'AppVolumeMountPath'
+                  - " , \"auto\", \"defaults,x-initrd.mount\", \"0\", \"0\" ]\n"
+              - !Ref 'AWS::NoValue'
+            - "\n"
+            - "--===============3585321300151562773==\n"
+            - "Content-Type: text/x-shellscript; charset=\"us-ascii\"\n"
+            - "MIME-Version: 1.0\n"
+            - "Content-Transfer-Encoding: 7bit\n"
+            - "Content-Disposition: attachment; filename=\"script.sh\"\n"
+            - "\n"
+            - "#!/bin/bash -xe\n\n"
+            - "# Export AWS ENVs\n"
+            - "test -r /etc/aws/models/endpoints.json && export AWS_DATA_PATH=/etc/aws/models\
+              \ || true\n"
+            - "export AWS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n"
+            - "export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt\n"
+            - export AWS_DEFAULT_REGION=
+            - !Ref 'AWS::Region'
+            - "\n\n"
+            - 'printf "%s\t%s %s\n" '
+            - '"$( ip addr show eth0 | sed -n ''/eth0$/p'' | sed -e ''s/^ *inet *//''
+              -e ''s#/.*$##'' )" '
+            - "\"$( hostname -f)\" \"$( hostname -s )\" >> /etc/hosts\n"
+            - "# Expand root and audit volume (40/60), based on any additional capacity\
+              \ available\n"
+            - "# If no addtional space allocated (> 20), command run w/o expanding\n"
+            - "# lvextedn command return code is ignored/masked below -- basically\
+              \ brute force\n"
+            - "if [[ -x $( which pvs ) ]]\n"
+            - "then\n"
+            - "   LVMPVS=( $( pvs --noheadings -o pv_name ) )\n"
+            - "   for PV in \"${LVMPVS[@]}\"\n"
+            - "   do\n"
+            - "      pvresize \"${PV}\"\n"
+            - "   done\n"
+            - "fi\n"
+            - "# Brute force expansion of audit/root\n"
+            - "lvextend -r -l +40%FREE /dev/VolGroup00/rootVol || true\n"
+            - "lvextend -r -l +60%FREE /dev/VolGroup00/auditVol || true\n"
+            - "\n"
+            - "# Get/Install pip\n"
+            - PYPI_URL=
+            - !Ref 'PypiIndexUrl'
+            - "\n"
+            - "python3 -m ensurepip\n"
+            - "\n"
+            - "# Add pip to path\n"
+            - 'hash pip 2> /dev/null || '
+            - PATH="${PATH}:/usr/local/bin"
+            - "\n\n"
+            - "# Upgrade pip and setuptools\n"
+            - "python3 -m pip install --index-url=\"${PYPI_URL}\" --upgrade pip setuptools\n"
+            - "\n"
+            - "# Fix python urllib3 warnings\n"
+            - "yum install -y gcc python-devel libffi-devel openssl-devel\n"
+            - python3 -m pip install
+            - ' --index-url="${PYPI_URL}"'
+            - " --upgrade cffi\n"
+            - python3 -m pip install
+            - ' --index-url="${PYPI_URL}"'
+            - ' --upgrade pyopenssl ndg-httpsclient pyasn1 ''cryptography<2.2;python_version<"2.7"''
+              ''cryptography;python_version>="2.7"'''
+            - "\n\n"
+            - "if [[ $( rpm --quiet -q aws-cfn-bootstrap )$? -ne 0 ]]\n"
+            - "then\n"
+            - "   # Get cfn utils\n"
+            - "   yum install -y aws-cfn-bootstrap\n"
+            - "\n\n"
+            - "   # Fixup cfn utils\n"
+            - '   INITDIR=$( find -L /opt/aws/apitools/cfn-init/init -name redhat'
+            - " 2> /dev/null || echo /usr/init/redhat )\n"
+            - "   chmod 775 ${INITDIR}/cfn-hup\n"
+            - "   ln -f -s ${INITDIR}/cfn-hup /etc/rc.d/init.d/cfn-hup\n"
+            - "   chkconfig --add cfn-hup\n"
+            - "   chkconfig cfn-hup on\n"
+            - "   mkdir -p /opt/aws/bin\n"
+            - '   BINDIR=$( find -L /opt/aws/apitools/cfn-init -name bin'
+            - " 2> /dev/null || echo /usr/bin )\n"
+            - '   for SCRIPT in cfn-elect-cmd-leader cfn-get-metadata cfn-hup'
+            - " cfn-init cfn-send-cmd-event cfn-send-cmd-result cfn-signal\n"
+            - "   do\n"
+            - '      ln -s ${BINDIR}/${SCRIPT} /opt/aws/bin/${SCRIPT} 2> /dev/null
+              || '
+            - "      echo Skipped symbolic link, /opt/aws/bin/${SCRIPT} already exists\n"
+            - "   done\n\n"
+            - "fi\n\n"
+            - "# Remove gcc now that it is no longer needed\n"
+            - "yum -y remove gcc --setopt=clean_requirements_on_remove=1\n\n"
+            - "# Add cfn utils to path\n"
+            - 'hash cfn-signal 2> /dev/null || '
+            - PATH="${PATH}:/usr/local/bin:/opt/aws/bin"
+            - "\n\n"
+            - "# Execute cfn-init\n"
+            - cfn-init -v -c launch
+            - ' --stack '
+            - !Ref 'AWS::StackName'
+            - ' --resource MmcHost'
+            - !If
+              - AssignInstanceRole
+              - !Join
+                - ''
+                - - ' --role '
+                  - !Ref 'InstanceRoleName'
+              - ''
+            - !Join
+              - ''
+              - - ' --url '
+                - https://cloudformation.
+                - !Ref 'AWS::Region'
+                - .
+                - !Ref 'AWS::URLSuffix'
+            - ' --region '
+            - !Ref 'AWS::Region'
+            - ' ||'
+            - ' ( echo ''ERROR: cfn-init failed! Aborting!'';'
+            - ' cfn-signal -e 1'
+            - '  --stack '
+            - !Ref 'AWS::StackName'
+            - '  --resource MmcHost'
+            - !If
+              - AssignInstanceRole
+              - !Join
+                - ''
+                - - ' --role '
+                  - !Ref 'InstanceRoleName'
+              - ''
+            - !Join
+              - ''
+              - - ' --url '
+                - https://cloudformation.
+                - !Ref 'AWS::Region'
+                - .
+                - !Ref 'AWS::URLSuffix'
+            - '  --region '
+            - !Ref 'AWS::Region'
+            - ;
+            - ' exit 1'
+            - " )\n\n"
+            - --===============3585321300151562773==--
+    Type: AWS::EC2::Instance

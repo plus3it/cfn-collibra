@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Conditions: {}
+Description: Template for creating Security groups used to support Collibra
+Mappings: {}
+Outputs:
+  AppSg:
+    Description: Application-access Security Group
+    Export:
+      Name: !Sub '${AWS::StackName}-AppSgId'
+    Value: !Ref 'AppSg'
+  NasSg:
+    Description: EC2-to-NAS Security Group
+    Export:
+      Name: !Sub '${AWS::StackName}-NasSgId'
+    Value: !Ref 'NasSg'
+  RdsSg:
+    Description: EC2-to-RDS Security Group
+    Export:
+      Name: !Sub '${AWS::StackName}-RdsSgId'
+    Value: !Ref 'RdsSg'
+Parameters:
+  TargetVPC:
+    AllowedPattern: ^vpc-[0-9a-f]*$
+    Description: ID of the VPC to deploy cluster nodes into.
+    Type: String
+Resources:
+  AppSg:
+    Properties:
+      GroupDescription: Collibra Application access-ports Security Group
+      SecurityGroupIngress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      Tags:
+        - Key: Name
+          Value: Collibra EC2/application Security Group
+      VpcId: !Ref 'TargetVPC'
+    Type: AWS::EC2::SecurityGroup
+  NasSg:
+    Properties:
+      GroupDescription: Collibra EC2-to-Storage Security Group
+      Tags:
+        - Key: Name
+          Value: Collibra EC2/Storage Security Group
+      VpcId: !Ref 'TargetVPC'
+    Type: AWS::EC2::SecurityGroup
+  RdsSg:
+    Properties:
+      GroupDescription: Collibra EC2-to-RDS Security Group
+      Tags:
+        - Key: Name
+          Value: Collibra EC2/RDS Security Group
+      VpcId: !Ref 'TargetVPC'
+    Type: AWS::EC2::SecurityGroup
+  UpdateAppSgPrimaryCmd:
+    Properties:
+      FromPort: 4400
+      GroupId: !Ref 'AppSg'
+      IpProtocol: tcp
+      SourceSecurityGroupId: !Ref 'AppSg'
+      ToPort: 4404
+    Type: AWS::EC2::SecurityGroupIngress
+  UpdateAppSgShutdownCmd:
+    Properties:
+      FromPort: 4430
+      GroupId: !Ref 'AppSg'
+      IpProtocol: tcp
+      SourceSecurityGroupId: !Ref 'AppSg'
+      ToPort: 4430
+    Type: AWS::EC2::SecurityGroupIngress
+  UpdateNasSg:
+    Properties:
+      FromPort: 0
+      GroupId: !Ref 'NasSg'
+      IpProtocol: tcp
+      SourceSecurityGroupId: !Ref 'NasSg'
+      ToPort: 65535
+    Type: AWS::EC2::SecurityGroupIngress
+  UpdateRdsSg:
+    Properties:
+      FromPort: 5432
+      GroupId: !Ref 'RdsSg'
+      IpProtocol: tcp
+      SourceSecurityGroupId: !Ref 'RdsSg'
+      ToPort: 5432
+    Type: AWS::EC2::SecurityGroupIngress
