@@ -65,7 +65,7 @@
     "Parameters": {
         "BackupBucket": {
             "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
-            "Description": "S3 Bucket to host Collibra content. (Optional parameter)",
+            "Description": "S3 Bucket to host Collibra backups. (Optional parameter)",
             "Type": "String"
         },
         "BackupBucketInventoryTracking": {
@@ -82,6 +82,56 @@
             "ConstraintDescription": "String must start with 'arn:' (or be left wholly blank).",
             "Default": "",
             "Description": "(Optional) Destination for storing analytics data. Must be provided in ARN format.",
+            "Type": "String"
+        },
+        "BucketLoggingDestination": {
+            "AllowedPattern": "^[a-z][a-z0-9-]*[a-z0-9]*$|^$",
+            "Description": "(Optional) Where to log bucket-related activity to",
+            "Type": "String"
+        },
+        "BucketSecurityBlockPublicAcls": {
+            "AllowedValues": [
+                false,
+                true
+            ],
+            "Default": true,
+            "Description": "Block setting of public ACLs on bucket or objects within it",
+            "Type": "String"
+        },
+        "BucketSecurityBlockPublicPolicy": {
+            "AllowedValues": [
+                false,
+                true
+            ],
+            "Default": true,
+            "Description": "Prevent setting access policies on bucket that would render it effectively public.",
+            "Type": "String"
+        },
+        "BucketSecurityIgnorePublicAcls": {
+            "AllowedValues": [
+                false,
+                true
+            ],
+            "Default": true,
+            "Description": "Ignore all public ACLs on a bucket and any objects that it contains",
+            "Type": "String"
+        },
+        "BucketSecurityRestrictPublicBuckets": {
+            "AllowedValues": [
+                false,
+                true
+            ],
+            "Default": true,
+            "Description": "Restrict cross-account access to bucket",
+            "Type": "String"
+        },
+        "ComplianceRetention": {
+            "AllowedPattern": "[1-9][0-9]*$|^$",
+            "Description": "If specified, the number of years that content must be retained for compliance reasons.",
+            "Type": "String"
+        },
+        "EncryptionKeyArn": {
+            "Description": "(Optional) If set to a valid KMS key-ARN, KMS will be used for bucket contents-encryption; otherwise, generic AES256 will be used",
             "Type": "String"
         },
         "FinalExpirationDays": {
