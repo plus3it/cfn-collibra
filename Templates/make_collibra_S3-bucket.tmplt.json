@@ -1,6 +1,30 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Conditions": {
+        "EnableBucketLogging": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "BucketLoggingDestination"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "EnableCompliance": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "ComplianceRetention"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
         "SetBackupBucketName": {
             "Fn::Not": [
                 {
@@ -27,6 +51,18 @@
                     "Fn::Equals": [
                         {
                             "Ref": "BackupReportingBucket"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "UseKMSencryption": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "EncryptionKeyArn"
                         },
                         ""
                     ]
@@ -187,6 +223,26 @@
                         }
                     }
                 ],
+                "BucketEncryption": {
+                    "ServerSideEncryptionConfiguration": [
+                        {
+                            "ServerSideEncryptionByDefault": {
+                                "Fn::If": [
+                                    "UseKMSencryption",
+                                    {
+                                        "KMSMasterKeyID": {
+                                            "Ref": "EncryptionKeyArn"
+                                        },
+                                        "SSEAlgorithm": "aws:kms"
+                                    },
+                                    {
+                                        "SSEAlgorithm": "AES256"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
                 "BucketName": {
                     "Fn::If": [
                         "SetBackupBucketName",
@@ -246,6 +302,72 @@
                             ]
                         }
                     ]
+                },
+                "LoggingConfiguration": {
+                    "Fn::If": [
+                        "EnableBucketLogging",
+                        {
+                            "DestinationBucketName": {
+                                "Ref": "BucketLoggingDestination"
+                            },
+                            "LogFilePrefix": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "bucket-logs/",
+                                        {
+                                            "Ref": "BackupBucket"
+                                        }
+                                    ]
+                                ]
+                            }
+                        },
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "ObjectLockConfiguration": {
+                    "Fn::If": [
+                        "EnableCompliance",
+                        {
+                            "ObjectLockEnabled": "Enabled",
+                            "Rule": {
+                                "DefaultRetention": {
+                                    "Mode": "COMPLIANCE",
+                                    "Years": {
+                                        "Ref": "ComplianceRetention"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "ObjectLockEnabled": {
+                    "Fn::If": [
+                        "EnableCompliance",
+                        true,
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "PublicAccessBlockConfiguration": {
+                    "BlockPublicAcls": {
+                        "Ref": "BucketSecurityBlockPublicAcls"
+                    },
+                    "BlockPublicPolicy": {
+                        "Ref": "BucketSecurityBlockPublicPolicy"
+                    },
+                    "IgnorePublicAcls": {
+                        "Ref": "BucketSecurityIgnorePublicAcls"
+                    },
+                    "RestrictPublicBuckets": {
+                        "Ref": "BucketSecurityRestrictPublicBuckets"
+                    }
                 }
             },
             "Type": "AWS::S3::Bucket"
