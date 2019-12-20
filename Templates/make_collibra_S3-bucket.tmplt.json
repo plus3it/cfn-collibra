@@ -114,7 +114,7 @@
             "Type": "String"
         },
         "BackupReportingBucket": {
-            "AllowedPattern": "^arn:.*$|^$",
+            "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
             "ConstraintDescription": "String must start with 'arn:' (or be left wholly blank).",
             "Default": "",
             "Description": "(Optional) Destination for storing analytics data. Must be provided in ARN format.",
@@ -208,7 +208,19 @@
                                     {
                                         "Destination": {
                                             "BucketArn": {
-                                                "Ref": "BackupReportingBucket"
+                                                "Fn::Join": [
+                                                    "",
+                                                    [
+                                                        "arn:",
+                                                        {
+                                                            "Ref": "AWS::Partition"
+                                                        },
+                                                        ":s3:::",
+                                                        {
+                                                            "Ref": "BackupReportingBucket"
+                                                        }
+                                                    ]
+                                                ]
                                             },
                                             "Format": "CSV",
                                             "Prefix": "StorageReporting/Analytics"
@@ -261,7 +273,19 @@
                             {
                                 "Destination": {
                                     "BucketArn": {
-                                        "Ref": "BackupReportingBucket"
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:",
+                                                {
+                                                    "Ref": "AWS::Partition"
+                                                },
+                                                ":s3:::",
+                                                {
+                                                    "Ref": "BackupReportingBucket"
+                                                }
+                                            ]
+                                        ]
                                     },
                                     "Format": "CSV",
                                     "Prefix": "StorageReporting/Inventory"
