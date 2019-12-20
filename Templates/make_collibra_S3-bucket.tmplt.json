@@ -1,152 +1,204 @@
 {
-  "AWSTemplateFormatVersion": "2010-09-09",
-  "Conditions": {
-    "SetBackupBucketName": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "BackupBucket" }, "" ] }
-      ]
-    },
-    "UseBackupBucketInventoryTracking": {
-      "Fn::Equals": [ { "Ref": "BackupBucketInventoryTracking" }, "true" ]
-    },
-    "UseBackupReportingLocation": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "BackupReportingBucket" }, "" ] }
-      ]
-    }
-  },
-  "Description": "This template sets up the S3 Bucket used by an Collibra instance.",
-  "Parameters": {
-    "BackupBucket": {
-      "Description": "S3 Bucket to host Collibra content. (Optional parameter)",
-      "Type": "String",
-      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$"
-    },
-    "BackupBucketInventoryTracking": {
-      "AllowedValues": [
-        "true",
-        "false"
-      ],
-      "Default": "false",
-      "Description": "(Optional) Whether to enable generic bucket inventory-tracking. Requires setting of the 'BackupReportingBucket' parameter.",
-      "Type": "String"
-    },
-    "BackupReportingBucket": {
-      "AllowedPattern": "^arn:.*$|^$",
-      "ConstraintDescription": "String must start with 'arn:' (or be left wholly blank).",
-      "Default": "",
-      "Description": "(Optional) Destination for storing analytics data. Must be provided in ARN format.",
-      "Type": "String"
-    },
-    "FinalExpirationDays": {
-      "ConstraintDescription": "Must be an integer value greater than '0'.",
-      "Default": "30",
-      "Description": "Number of days to retain objects before aging them out of the bucket",
-      "Type": "Number"
-    },
-    "RetainIncompleteDays": {
-      "ConstraintDescription": "Must be an integer value between '0' and '30'",
-      "Default": "3",
-      "Description": "Number of days to retain objects that were not completely uploaded.",
-      "MaxValue": "30",
-      "MinValue": "0",
-      "Type": "Number"
-    },
-    "TierToGlacierDays": {
-      "ConstraintDescription": "Must be an integer value between '1' and '30'",
-      "Default": "5",
-      "Description": "Number of days to retain objects in standard storage tier.",
-      "MaxValue": "30",
-      "MinValue": "1",
-      "Type": "Number"
-    }
-  },
-  "Resources": {
-    "CollibraS3Bucket": {
-      "Properties": {
-        "AccessControl": "BucketOwnerFullControl",
-        "AnalyticsConfigurations": [
-          {
-            "Id": "Archivable",
-            "Prefix": "Backups/",
-            "StorageClassAnalysis": {
-              "DataExport": {
-                "Fn::If": [
-                  "UseBackupReportingLocation",
-                  {
-                    "Destination": {
-                      "BucketArn": { "Ref": "BackupReportingBucket" },
-                      "Format": "CSV",
-                      "Prefix": "StorageReporting/Analytics"
-                    },
-                    "OutputSchemaVersion": "V_1"
-                  },
-                  { "Ref": "AWS::NoValue" }
-                ]
-              }
-            }
-          }
-        ],
-        "BucketName": {
-          "Fn::If": [
-            "SetBackupBucketName",
-            { "Ref": "BackupBucket" },
-            { "Ref": "AWS::NoValue" }
-          ]
-        },
-        "InventoryConfigurations": [
-          {
-            "Fn::If": [
-              "UseBackupBucketInventoryTracking",
-              {
-                "Id": "BackupsInventory",
-                "Destination": {
-                  "BucketArn": { "Ref": "BackupReportingBucket" },
-                  "Format": "CSV",
-                  "Prefix": "StorageReporting/Inventory"
-                },
-                "Enabled": true,
-                "IncludedObjectVersions": "Current",
-                "Prefix": "Backups/",
-                "ScheduleFrequency": "Weekly"
-              },
-              { "Ref": "AWS::NoValue" }
-            ]
-          }
-        ],
-        "LifecycleConfiguration": {
-          "Rules": [
-            {
-              "AbortIncompleteMultipartUpload": {
-                "DaysAfterInitiation": { "Ref": "RetainIncompleteDays" }
-              },
-              "ExpirationInDays": { "Ref": "FinalExpirationDays" },
-              "Id": "BackupTiering",
-              "Prefix": "Backups/",
-              "Status": "Enabled",
-              "Transitions": [
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Conditions": {
+        "SetBackupBucketName": {
+            "Fn::Not": [
                 {
-                  "StorageClass": "GLACIER",
-                  "TransitionInDays": { "Ref": "TierToGlacierDays" }
+                    "Fn::Equals": [
+                        {
+                            "Ref": "BackupBucket"
+                        },
+                        ""
+                    ]
                 }
-              ]
-            }
-          ]
+            ]
+        },
+        "UseBackupBucketInventoryTracking": {
+            "Fn::Equals": [
+                {
+                    "Ref": "BackupBucketInventoryTracking"
+                },
+                "true"
+            ]
+        },
+        "UseBackupReportingLocation": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "BackupReportingBucket"
+                        },
+                        ""
+                    ]
+                }
+            ]
         }
-      },
-      "Type": "AWS::S3::Bucket"
-    }
-  },
-  "Outputs": {
-    "CollibraBucketName": {
-      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-S3BucketName" }},
-      "Value": { "Ref": "CollibraS3Bucket" },
-      "Description": "Collibra S3 Bucket Name."
     },
-    "CollibraBucketArn": {
-      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-S3BucketArn" }},
-      "Value": { "Fn::GetAtt": [ "CollibraS3Bucket", "Arn" ] },
-      "Description": "Collibra S3 Bucket ARN."
+    "Description": "This template sets up the S3 Bucket used by an Collibra instance.",
+    "Outputs": {
+        "CollibraBucketArn": {
+            "Description": "Collibra S3 Bucket ARN.",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-S3BucketArn"
+                }
+            },
+            "Value": {
+                "Fn::GetAtt": [
+                    "CollibraS3Bucket",
+                    "Arn"
+                ]
+            }
+        },
+        "CollibraBucketName": {
+            "Description": "Collibra S3 Bucket Name.",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-S3BucketName"
+                }
+            },
+            "Value": {
+                "Ref": "CollibraS3Bucket"
+            }
+        }
+    },
+    "Parameters": {
+        "BackupBucket": {
+            "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
+            "Description": "S3 Bucket to host Collibra content. (Optional parameter)",
+            "Type": "String"
+        },
+        "BackupBucketInventoryTracking": {
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "Default": "false",
+            "Description": "(Optional) Whether to enable generic bucket inventory-tracking. Requires setting of the 'BackupReportingBucket' parameter.",
+            "Type": "String"
+        },
+        "BackupReportingBucket": {
+            "AllowedPattern": "^arn:.*$|^$",
+            "ConstraintDescription": "String must start with 'arn:' (or be left wholly blank).",
+            "Default": "",
+            "Description": "(Optional) Destination for storing analytics data. Must be provided in ARN format.",
+            "Type": "String"
+        },
+        "FinalExpirationDays": {
+            "ConstraintDescription": "Must be an integer value greater than '0'.",
+            "Default": "30",
+            "Description": "Number of days to retain objects before aging them out of the bucket",
+            "Type": "Number"
+        },
+        "RetainIncompleteDays": {
+            "ConstraintDescription": "Must be an integer value between '0' and '30'",
+            "Default": "3",
+            "Description": "Number of days to retain objects that were not completely uploaded.",
+            "MaxValue": "30",
+            "MinValue": "0",
+            "Type": "Number"
+        },
+        "TierToGlacierDays": {
+            "ConstraintDescription": "Must be an integer value between '1' and '30'",
+            "Default": "5",
+            "Description": "Number of days to retain objects in standard storage tier.",
+            "MaxValue": "30",
+            "MinValue": "1",
+            "Type": "Number"
+        }
+    },
+    "Resources": {
+        "CollibraS3Bucket": {
+            "Properties": {
+                "AccessControl": "BucketOwnerFullControl",
+                "AnalyticsConfigurations": [
+                    {
+                        "Id": "Archivable",
+                        "Prefix": "Backups/",
+                        "StorageClassAnalysis": {
+                            "DataExport": {
+                                "Fn::If": [
+                                    "UseBackupReportingLocation",
+                                    {
+                                        "Destination": {
+                                            "BucketArn": {
+                                                "Ref": "BackupReportingBucket"
+                                            },
+                                            "Format": "CSV",
+                                            "Prefix": "StorageReporting/Analytics"
+                                        },
+                                        "OutputSchemaVersion": "V_1"
+                                    },
+                                    {
+                                        "Ref": "AWS::NoValue"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "BucketName": {
+                    "Fn::If": [
+                        "SetBackupBucketName",
+                        {
+                            "Ref": "BackupBucket"
+                        },
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "InventoryConfigurations": [
+                    {
+                        "Fn::If": [
+                            "UseBackupBucketInventoryTracking",
+                            {
+                                "Destination": {
+                                    "BucketArn": {
+                                        "Ref": "BackupReportingBucket"
+                                    },
+                                    "Format": "CSV",
+                                    "Prefix": "StorageReporting/Inventory"
+                                },
+                                "Enabled": true,
+                                "Id": "BackupsInventory",
+                                "IncludedObjectVersions": "Current",
+                                "Prefix": "Backups/",
+                                "ScheduleFrequency": "Weekly"
+                            },
+                            {
+                                "Ref": "AWS::NoValue"
+                            }
+                        ]
+                    }
+                ],
+                "LifecycleConfiguration": {
+                    "Rules": [
+                        {
+                            "AbortIncompleteMultipartUpload": {
+                                "DaysAfterInitiation": {
+                                    "Ref": "RetainIncompleteDays"
+                                }
+                            },
+                            "ExpirationInDays": {
+                                "Ref": "FinalExpirationDays"
+                            },
+                            "Id": "BackupTiering",
+                            "Prefix": "Backups/",
+                            "Status": "Enabled",
+                            "Transitions": [
+                                {
+                                    "StorageClass": "GLACIER",
+                                    "TransitionInDays": {
+                                        "Ref": "TierToGlacierDays"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            "Type": "AWS::S3::Bucket"
+        }
     }
-  }
 }
