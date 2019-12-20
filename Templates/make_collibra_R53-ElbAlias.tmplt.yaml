@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Conditions: {}
+Description: This template sets up the R53 alias-record pointing to the service-fronting
+  ELB
+Outputs: {}
+Parameters:
+  AliasName:
+    Description: FQDN of R53 alias to create
+    Type: String
+  AliasR53ZoneId:
+    AllowedPattern: ^Z[A-Z0-9]{12,31}$
+    Description: The Route53 Zone-ID string of the DNS zone in which to add the DNS
+      alias.
+    Type: String
+  DependsOnStack:
+    Description: ELB stack this template pulls information from
+    Type: String
+Resources:
+  DNSAlias:
+    Properties:
+      Comment: !Join
+        - ''
+        - - 'DNS Alias for '
+          - !ImportValue
+            Fn::Sub: ${DependsOnStack}-AlbDnsName
+          - ' ELB'
+      HostedZoneId: !Ref 'AliasR53ZoneId'
+      RecordSets:
+        - AliasTarget:
+            DNSName: !ImportValue
+              Fn::Sub: ${DependsOnStack}-AlbDnsName
+            HostedZoneId: !ImportValue
+              Fn::Sub: ${DependsOnStack}-AlbZoneId
+          Name: !Ref 'AliasName'
+          Type: A
+    Type: AWS::Route53::RecordSetGroup

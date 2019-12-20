@@ -1,152 +1,400 @@
 {
-  "AWSTemplateFormatVersion": "2010-09-09",
-  "Conditions": {
-    "SetBackupBucketName": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "BackupBucket" }, "" ] }
-      ]
-    },
-    "UseBackupBucketInventoryTracking": {
-      "Fn::Equals": [ { "Ref": "BackupBucketInventoryTracking" }, "true" ]
-    },
-    "UseBackupReportingLocation": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "BackupReportingBucket" }, "" ] }
-      ]
-    }
-  },
-  "Description": "This template sets up the S3 Bucket used by an Collibra instance.",
-  "Parameters": {
-    "BackupBucket": {
-      "Description": "S3 Bucket to host Collibra content. (Optional parameter)",
-      "Type": "String",
-      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$"
-    },
-    "BackupBucketInventoryTracking": {
-      "AllowedValues": [
-        "true",
-        "false"
-      ],
-      "Default": "false",
-      "Description": "(Optional) Whether to enable generic bucket inventory-tracking. Requires setting of the 'BackupReportingBucket' parameter.",
-      "Type": "String"
-    },
-    "BackupReportingBucket": {
-      "AllowedPattern": "^arn:.*$|^$",
-      "ConstraintDescription": "String must start with 'arn:' (or be left wholly blank).",
-      "Default": "",
-      "Description": "(Optional) Destination for storing analytics data. Must be provided in ARN format.",
-      "Type": "String"
-    },
-    "FinalExpirationDays": {
-      "ConstraintDescription": "Must be an integer value greater than '0'.",
-      "Default": "30",
-      "Description": "Number of days to retain objects before aging them out of the bucket",
-      "Type": "Number"
-    },
-    "RetainIncompleteDays": {
-      "ConstraintDescription": "Must be an integer value between '0' and '30'",
-      "Default": "3",
-      "Description": "Number of days to retain objects that were not completely uploaded.",
-      "MaxValue": "30",
-      "MinValue": "0",
-      "Type": "Number"
-    },
-    "TierToGlacierDays": {
-      "ConstraintDescription": "Must be an integer value between '1' and '30'",
-      "Default": "5",
-      "Description": "Number of days to retain objects in standard storage tier.",
-      "MaxValue": "30",
-      "MinValue": "1",
-      "Type": "Number"
-    }
-  },
-  "Resources": {
-    "CollibraS3Bucket": {
-      "Properties": {
-        "AccessControl": "BucketOwnerFullControl",
-        "AnalyticsConfigurations": [
-          {
-            "Id": "Archivable",
-            "Prefix": "Backups/",
-            "StorageClassAnalysis": {
-              "DataExport": {
-                "Fn::If": [
-                  "UseBackupReportingLocation",
-                  {
-                    "Destination": {
-                      "BucketArn": { "Ref": "BackupReportingBucket" },
-                      "Format": "CSV",
-                      "Prefix": "StorageReporting/Analytics"
-                    },
-                    "OutputSchemaVersion": "V_1"
-                  },
-                  { "Ref": "AWS::NoValue" }
-                ]
-              }
-            }
-          }
-        ],
-        "BucketName": {
-          "Fn::If": [
-            "SetBackupBucketName",
-            { "Ref": "BackupBucket" },
-            { "Ref": "AWS::NoValue" }
-          ]
-        },
-        "InventoryConfigurations": [
-          {
-            "Fn::If": [
-              "UseBackupBucketInventoryTracking",
-              {
-                "Id": "BackupsInventory",
-                "Destination": {
-                  "BucketArn": { "Ref": "BackupReportingBucket" },
-                  "Format": "CSV",
-                  "Prefix": "StorageReporting/Inventory"
-                },
-                "Enabled": true,
-                "IncludedObjectVersions": "Current",
-                "Prefix": "Backups/",
-                "ScheduleFrequency": "Weekly"
-              },
-              { "Ref": "AWS::NoValue" }
-            ]
-          }
-        ],
-        "LifecycleConfiguration": {
-          "Rules": [
-            {
-              "AbortIncompleteMultipartUpload": {
-                "DaysAfterInitiation": { "Ref": "RetainIncompleteDays" }
-              },
-              "ExpirationInDays": { "Ref": "FinalExpirationDays" },
-              "Id": "BackupTiering",
-              "Prefix": "Backups/",
-              "Status": "Enabled",
-              "Transitions": [
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Conditions": {
+        "EnableBucketLogging": {
+            "Fn::Not": [
                 {
-                  "StorageClass": "GLACIER",
-                  "TransitionInDays": { "Ref": "TierToGlacierDays" }
+                    "Fn::Equals": [
+                        {
+                            "Ref": "BucketLoggingDestination"
+                        },
+                        ""
+                    ]
                 }
-              ]
-            }
-          ]
+            ]
+        },
+        "EnableCompliance": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "ComplianceRetention"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "SetBackupBucketName": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "BackupBucket"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "UseBackupBucketInventoryTracking": {
+            "Fn::Equals": [
+                {
+                    "Ref": "BackupBucketInventoryTracking"
+                },
+                "true"
+            ]
+        },
+        "UseBackupReportingLocation": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "BackupReportingBucket"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "UseKMSencryption": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "EncryptionKeyArn"
+                        },
+                        ""
+                    ]
+                }
+            ]
         }
-      },
-      "Type": "AWS::S3::Bucket"
-    }
-  },
-  "Outputs": {
-    "CollibraBucketName": {
-      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-S3BucketName" }},
-      "Value": { "Ref": "CollibraS3Bucket" },
-      "Description": "Collibra S3 Bucket Name."
     },
-    "CollibraBucketArn": {
-      "Export" : { "Name" : {"Fn::Sub": "${AWS::StackName}-S3BucketArn" }},
-      "Value": { "Fn::GetAtt": [ "CollibraS3Bucket", "Arn" ] },
-      "Description": "Collibra S3 Bucket ARN."
+    "Description": "This template sets up the S3 Bucket used by an Collibra instance.",
+    "Outputs": {
+        "CollibraBucketArn": {
+            "Description": "Collibra S3 Bucket ARN.",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-S3BucketArn"
+                }
+            },
+            "Value": {
+                "Fn::GetAtt": [
+                    "CollibraS3Bucket",
+                    "Arn"
+                ]
+            }
+        },
+        "CollibraBucketName": {
+            "Description": "Collibra S3 Bucket Name.",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-S3BucketName"
+                }
+            },
+            "Value": {
+                "Ref": "CollibraS3Bucket"
+            }
+        }
+    },
+    "Parameters": {
+        "BackupBucket": {
+            "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
+            "Description": "S3 Bucket to host Collibra backups. (Optional parameter)",
+            "Type": "String"
+        },
+        "BackupBucketInventoryTracking": {
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "Default": "false",
+            "Description": "(Optional) Whether to enable generic bucket inventory-tracking. Requires setting of the 'BackupReportingBucket' parameter.",
+            "Type": "String"
+        },
+        "BackupReportingBucket": {
+            "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$",
+            "ConstraintDescription": "String must start with 'arn:' (or be left wholly blank).",
+            "Default": "",
+            "Description": "(Optional) Destination for storing analytics data. Must be provided in ARN format.",
+            "Type": "String"
+        },
+        "BucketLoggingDestination": {
+            "AllowedPattern": "^[a-z][a-z0-9-]*[a-z0-9]*$|^$",
+            "Description": "(Optional) Where to log bucket-related activity to",
+            "Type": "String"
+        },
+        "BucketSecurityBlockPublicAcls": {
+            "AllowedValues": [
+                false,
+                true
+            ],
+            "Default": true,
+            "Description": "Block setting of public ACLs on bucket or objects within it",
+            "Type": "String"
+        },
+        "BucketSecurityBlockPublicPolicy": {
+            "AllowedValues": [
+                false,
+                true
+            ],
+            "Default": true,
+            "Description": "Prevent setting access policies on bucket that would render it effectively public.",
+            "Type": "String"
+        },
+        "BucketSecurityIgnorePublicAcls": {
+            "AllowedValues": [
+                false,
+                true
+            ],
+            "Default": true,
+            "Description": "Ignore all public ACLs on a bucket and any objects that it contains",
+            "Type": "String"
+        },
+        "BucketSecurityRestrictPublicBuckets": {
+            "AllowedValues": [
+                false,
+                true
+            ],
+            "Default": true,
+            "Description": "Restrict cross-account access to bucket",
+            "Type": "String"
+        },
+        "ComplianceRetention": {
+            "AllowedPattern": "[1-9][0-9]*$|^$",
+            "Description": "If specified, the number of years that content must be retained for compliance reasons.",
+            "Type": "String"
+        },
+        "EncryptionKeyArn": {
+            "Description": "(Optional) If set to a valid KMS key-ARN, KMS will be used for bucket contents-encryption; otherwise, generic AES256 will be used",
+            "Type": "String"
+        },
+        "FinalExpirationDays": {
+            "ConstraintDescription": "Must be an integer value greater than '0'.",
+            "Default": "30",
+            "Description": "Number of days to retain objects before aging them out of the bucket",
+            "Type": "Number"
+        },
+        "RetainIncompleteDays": {
+            "ConstraintDescription": "Must be an integer value between '0' and '30'",
+            "Default": "3",
+            "Description": "Number of days to retain objects that were not completely uploaded.",
+            "MaxValue": "30",
+            "MinValue": "0",
+            "Type": "Number"
+        },
+        "TierToGlacierDays": {
+            "ConstraintDescription": "Must be an integer value between '1' and '30'",
+            "Default": "5",
+            "Description": "Number of days to retain objects in standard storage tier.",
+            "MaxValue": "30",
+            "MinValue": "1",
+            "Type": "Number"
+        }
+    },
+    "Resources": {
+        "CollibraS3Bucket": {
+            "Properties": {
+                "AccessControl": "BucketOwnerFullControl",
+                "AnalyticsConfigurations": [
+                    {
+                        "Id": "Archivable",
+                        "Prefix": "Backups/",
+                        "StorageClassAnalysis": {
+                            "DataExport": {
+                                "Fn::If": [
+                                    "UseBackupReportingLocation",
+                                    {
+                                        "Destination": {
+                                            "BucketArn": {
+                                                "Fn::Join": [
+                                                    "",
+                                                    [
+                                                        "arn:",
+                                                        {
+                                                            "Ref": "AWS::Partition"
+                                                        },
+                                                        ":s3:::",
+                                                        {
+                                                            "Ref": "BackupReportingBucket"
+                                                        }
+                                                    ]
+                                                ]
+                                            },
+                                            "Format": "CSV",
+                                            "Prefix": "StorageReporting/Analytics"
+                                        },
+                                        "OutputSchemaVersion": "V_1"
+                                    },
+                                    {
+                                        "Ref": "AWS::NoValue"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "BucketEncryption": {
+                    "ServerSideEncryptionConfiguration": [
+                        {
+                            "ServerSideEncryptionByDefault": {
+                                "Fn::If": [
+                                    "UseKMSencryption",
+                                    {
+                                        "KMSMasterKeyID": {
+                                            "Ref": "EncryptionKeyArn"
+                                        },
+                                        "SSEAlgorithm": "aws:kms"
+                                    },
+                                    {
+                                        "SSEAlgorithm": "AES256"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "BucketName": {
+                    "Fn::If": [
+                        "SetBackupBucketName",
+                        {
+                            "Ref": "BackupBucket"
+                        },
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "InventoryConfigurations": [
+                    {
+                        "Fn::If": [
+                            "UseBackupBucketInventoryTracking",
+                            {
+                                "Destination": {
+                                    "BucketArn": {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:",
+                                                {
+                                                    "Ref": "AWS::Partition"
+                                                },
+                                                ":s3:::",
+                                                {
+                                                    "Ref": "BackupReportingBucket"
+                                                }
+                                            ]
+                                        ]
+                                    },
+                                    "Format": "CSV",
+                                    "Prefix": "StorageReporting/Inventory"
+                                },
+                                "Enabled": true,
+                                "Id": "BackupsInventory",
+                                "IncludedObjectVersions": "Current",
+                                "Prefix": "Backups/",
+                                "ScheduleFrequency": "Weekly"
+                            },
+                            {
+                                "Ref": "AWS::NoValue"
+                            }
+                        ]
+                    }
+                ],
+                "LifecycleConfiguration": {
+                    "Rules": [
+                        {
+                            "AbortIncompleteMultipartUpload": {
+                                "DaysAfterInitiation": {
+                                    "Ref": "RetainIncompleteDays"
+                                }
+                            },
+                            "ExpirationInDays": {
+                                "Ref": "FinalExpirationDays"
+                            },
+                            "Id": "BackupTiering",
+                            "Prefix": "Backups/",
+                            "Status": "Enabled",
+                            "Transitions": [
+                                {
+                                    "StorageClass": "GLACIER",
+                                    "TransitionInDays": {
+                                        "Ref": "TierToGlacierDays"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "LoggingConfiguration": {
+                    "Fn::If": [
+                        "EnableBucketLogging",
+                        {
+                            "DestinationBucketName": {
+                                "Ref": "BucketLoggingDestination"
+                            },
+                            "LogFilePrefix": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "bucket-logs/",
+                                        {
+                                            "Ref": "BackupBucket"
+                                        }
+                                    ]
+                                ]
+                            }
+                        },
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "ObjectLockConfiguration": {
+                    "Fn::If": [
+                        "EnableCompliance",
+                        {
+                            "ObjectLockEnabled": "Enabled",
+                            "Rule": {
+                                "DefaultRetention": {
+                                    "Mode": "COMPLIANCE",
+                                    "Years": {
+                                        "Ref": "ComplianceRetention"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "ObjectLockEnabled": {
+                    "Fn::If": [
+                        "EnableCompliance",
+                        true,
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "PublicAccessBlockConfiguration": {
+                    "BlockPublicAcls": {
+                        "Ref": "BucketSecurityBlockPublicAcls"
+                    },
+                    "BlockPublicPolicy": {
+                        "Ref": "BucketSecurityBlockPublicPolicy"
+                    },
+                    "IgnorePublicAcls": {
+                        "Ref": "BucketSecurityIgnorePublicAcls"
+                    },
+                    "RestrictPublicBuckets": {
+                        "Ref": "BucketSecurityRestrictPublicBuckets"
+                    }
+                }
+            },
+            "Type": "AWS::S3::Bucket"
+        }
     }
-  }
 }
