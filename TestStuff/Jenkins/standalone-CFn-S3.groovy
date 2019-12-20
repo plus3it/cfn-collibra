@@ -34,11 +34,69 @@ pipeline {
          string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
          string(name: 'BackupBucket', description: '(Optional) Name to assign to created bucket')
          string(name: 'BackupBucketInventoryTracking', defaultValue: 'false', description: '')
-         string(name: 'BackupReportingBucket', description: '(Optional) Destination for storing analytics data. Must be provided in ARN format')
-         string(name: 'FinalExpirationDays', defaultValue: '30', description: 'Number of days to retain objects before aging them out of the bucket')
-         string(name: 'RetainIncompleteDays', defaultValue: '3', description: 'Number of days to retain objects that were not completely uploaded')
-         string(name: 'TierToGlacierDays', defaultValue: '7', description: 'Number of days to retain objects in standard storage tier')
-
+         string(
+             name: 'BackupReportingBucket',
+             description: '(Optional) Destination for storing analytics data. Must be provided in ARN format'
+         )
+         string(
+             name: 'FinalExpirationDays',
+             defaultValue: '30',
+             description: 'Number of days to retain objects before aging them out of the bucket'
+         )
+         string(
+             name: 'RetainIncompleteDays',
+             defaultValue: '3',
+             description: 'Number of days to retain objects that were not completely uploaded'
+         )
+         string(
+             name: 'TierToGlacierDays',
+             defaultValue: '7',
+             description: 'Number of days to retain objects in standard storage tier'
+         )
+         string(
+             name: 'BucketLoggingDestination',
+             description: '(Optional) Where to log bucket-related activity to'
+         )
+         choice(
+             name: 'BucketSecurityBlockPublicAcls',
+             choices:[
+                 'true',
+                 'false'
+             ],
+             description: 'Block setting of public ACLs on bucket or objects within it'
+         )
+         choice(
+             name: 'BucketSecurityBlockPublicPolicy',
+             choices:[
+                 'true',
+                 'false'
+             ],
+             description: 'Prevent setting access policies on bucket that would render it effectively public.'
+         )
+         choice(
+             name: 'BucketSecurityIgnorePublicAcls',
+             choices:[
+                 'true',
+                 'false'
+             ],
+             description: 'Ignore all public ACLs on a bucket and any objects that it contains'
+         )
+         choice(
+             name: 'BucketSecurityRestrictPublicBuckets',
+             choices:[
+                 'true',
+                 'false'
+             ],
+             description: 'Restrict cross-account access to bucket'
+         )
+         string(
+             name: 'ComplianceRetention',
+             description: '(Optional) The number of years that content must be retained for compliance reasons.'
+         )
+         string(
+             name: 'EncryptionKeyArn',
+             description: '(Optional) KMS key-ARN, KMS will be used for bucket-encryption if set to a valid KMS key-ARN; otherwise, generic AES256 will be used'
+         )
     }
 
     stages {
@@ -79,6 +137,34 @@ pipeline {
                              {
                                  "ParameterKey": "BackupReportingBucket",
                                  "ParameterValue": "${env.BackupReportingBucket}"
+                             },
+                             {
+                                 "ParameterKey": "BucketLoggingDestination",
+                                 "ParameterValue": "${env.BucketLoggingDestination}"
+                             },
+                             {
+                                 "ParameterKey": "BucketSecurityBlockPublicAcls",
+                                 "ParameterValue": "${env.BucketSecurityBlockPublicAcls}"
+                             },
+                             {
+                                 "ParameterKey": "BucketSecurityBlockPublicPolicy",
+                                 "ParameterValue": "${env.BucketSecurityBlockPublicPolicy}"
+                             },
+                             {
+                                 "ParameterKey": "BucketSecurityIgnorePublicAcls",
+                                 "ParameterValue": "${env.BucketSecurityIgnorePublicAcls}"
+                             },
+                             {
+                                 "ParameterKey": "BucketSecurityRestrictPublicBuckets",
+                                 "ParameterValue": "${env.BucketSecurityRestrictPublicBuckets}"
+                             },
+                             {
+                                 "ParameterKey": "ComplianceRetention",
+                                 "ParameterValue": "${env.ComplianceRetention}"
+                             },
+                             {
+                                 "ParameterKey": "EncryptionKeyArn",
+                                 "ParameterValue": "${env.EncryptionKeyArn}"
                              },
                              {
                                  "ParameterKey": "FinalExpirationDays",

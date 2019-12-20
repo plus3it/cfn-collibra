@@ -96,6 +96,33 @@ pipeline {
                         returnStdout: true
                     env.BackupReportingBucket = BackupReportingBucket.trim()
 
+                    def BucketLoggingDestination = sh script:'awk -F "=" \'/BucketLoggingDestination/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.BucketLoggingDestination = BucketLoggingDestination.trim()
+
+                    def BucketSecurityBlockPublicAcls = sh script:'awk -F "=" \'/BucketSecurityBlockPublicAcls/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.BucketSecurityBlockPublicAcls = BucketSecurityBlockPublicAcls.trim()
+
+                    def BucketSecurityBlockPublicPolicy = sh script:'awk -F "=" \'/BucketSecurityBlockPublicPolicy/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.BucketSecurityBlockPublicPolicy = BucketSecurityBlockPublicPolicy.trim()
+
+                    def BucketSecurityIgnorePublicAcls = sh script:'awk -F "=" \'/BucketSecurityIgnorePublicAcls/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.BucketSecurityIgnorePublicAcls = BucketSecurityIgnorePublicAcls.trim()
+
+                    def BucketSecurityRestrictPublicBuckets = sh script:'awk -F "=" \'/BucketSecurityRestrictPublicBuckets/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.BucketSecurityRestrictPublicBuckets = BucketSecurityRestrictPublicBuckets.trim()
+
+                    def ComplianceRetention = sh script:'awk -F "=" \'/ComplianceRetention/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.ComplianceRetention = ComplianceRetention.trim()
+
+                    def EncryptionKeyArn = sh script:'awk -F "=" \'/EncryptionKeyArn/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.EncryptionKeyArn = EncryptionKeyArn.trim()
                     def FinalExpirationDays = sh script:'awk -F "=" \'/FinalExpirationDays/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
 
@@ -149,6 +176,34 @@ pipeline {
                              {
                                  "ParameterKey": "BackupReportingBucket",
                                  "ParameterValue": "${env.BackupReportingBucket}"
+                             },
+                             {
+                                 "ParameterKey": "BucketLoggingDestination",
+                                 "ParameterValue": "${env.BucketLoggingDestination}"
+                             },
+                             {
+                                 "ParameterKey": "BucketSecurityBlockPublicAcls",
+                                 "ParameterValue": "${env.BucketSecurityBlockPublicAcls}"
+                             },
+                             {
+                                 "ParameterKey": "BucketSecurityBlockPublicPolicy",
+                                 "ParameterValue": "${env.BucketSecurityBlockPublicPolicy}"
+                             },
+                             {
+                                 "ParameterKey": "BucketSecurityIgnorePublicAcls",
+                                 "ParameterValue": "${env.BucketSecurityIgnorePublicAcls}"
+                             },
+                             {
+                                 "ParameterKey": "BucketSecurityRestrictPublicBuckets",
+                                 "ParameterValue": "${env.BucketSecurityRestrictPublicBuckets}"
+                             },
+                             {
+                                 "ParameterKey": "ComplianceRetention",
+                                 "ParameterValue": "${env.ComplianceRetention}"
+                             },
+                             {
+                                 "ParameterKey": "EncryptionKeyArn",
+                                 "ParameterValue": "${env.EncryptionKeyArn}"
                              },
                              {
                                  "ParameterKey": "FinalExpirationDays",
