@@ -1,27 +1,30 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: 2010-09-09
 Conditions:
+  EnableBucketAclSetting: !Equals
+    - !Ref BucketSecurityToggle
+    - true
   EnableBucketLogging: !Not
     - !Equals
-      - !Ref 'BucketLoggingDestination'
+      - !Ref BucketLoggingDestination
       - ''
   EnableCompliance: !Not
     - !Equals
-      - !Ref 'ComplianceRetention'
+      - !Ref ComplianceRetention
       - ''
   SetBackupBucketName: !Not
     - !Equals
-      - !Ref 'BackupBucket'
+      - !Ref BackupBucket
       - ''
   UseBackupBucketInventoryTracking: !Equals
-    - !Ref 'BackupBucketInventoryTracking'
+    - !Ref BackupBucketInventoryTracking
     - 'true'
   UseBackupReportingLocation: !Not
     - !Equals
-      - !Ref 'BackupReportingBucket'
+      - !Ref BackupReportingBucket
       - ''
   UseKMSencryption: !Not
     - !Equals
-      - !Ref 'EncryptionKeyArn'
+      - !Ref EncryptionKeyArn
       - ''
 Description: This template sets up the S3 Bucket used by an Collibra instance.
 Outputs:
@@ -29,15 +32,17 @@ Outputs:
     Description: Collibra S3 Bucket ARN.
     Export:
       Name: !Sub '${AWS::StackName}-S3BucketArn'
-    Value: !GetAtt 'CollibraS3Bucket.Arn'
+    Value: !GetAtt
+      - CollibraS3Bucket
+      - Arn
   CollibraBucketName:
     Description: Collibra S3 Bucket Name.
     Export:
       Name: !Sub '${AWS::StackName}-S3BucketName'
-    Value: !Ref 'CollibraS3Bucket'
+    Value: !Ref CollibraS3Bucket
 Parameters:
   BackupBucket:
-    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$'
     Description: S3 Bucket to host Collibra backups. (Optional parameter)
     Type: String
   BackupBucketInventoryTracking:
@@ -45,19 +50,30 @@ Parameters:
       - 'true'
       - 'false'
     Default: 'false'
-    Description: (Optional) Whether to enable generic bucket inventory-tracking. Requires
+    Description: >-
+      (Optional) Whether to enable generic bucket inventory-tracking. Requires
       setting of the 'BackupReportingBucket' parameter.
     Type: String
   BackupReportingBucket:
-    AllowedPattern: ^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$
-    ConstraintDescription: String must start with 'arn:' (or be left wholly blank).
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$|^$'
+    ConstraintDescription: 'String must start with ''arn:'' (or be left wholly blank).'
     Default: ''
-    Description: (Optional) Destination for storing analytics data. Must be provided
-      in ARN format.
+    Description: >-
+      (Optional) Destination for storing analytics data. Must be provided in ARN
+      format.
     Type: String
   BucketLoggingDestination:
-    AllowedPattern: ^[a-z][a-z0-9-]*[a-z0-9]*$|^$
+    AllowedPattern: '^[a-z][a-z0-9-]*[a-z0-9]*$|^$'
     Description: (Optional) Where to log bucket-related activity to
+    Type: String
+  BucketSecurityToggle:
+    AllowedValues:
+      - false
+      - true
+    Default: true
+    Description: >-
+      Whether to attempt blocking public ACLs (Set to 'false' in regions that
+      lack support for this feature)
     Type: String
   BucketSecurityBlockPublicAcls:
     AllowedValues:
@@ -71,7 +87,8 @@ Parameters:
       - false
       - true
     Default: true
-    Description: Prevent setting access policies on bucket that would render it effectively
+    Description: >-
+      Prevent setting access policies on bucket that would render it effectively
       public.
     Type: String
   BucketSecurityIgnorePublicAcls:
@@ -90,11 +107,14 @@ Parameters:
     Type: String
   ComplianceRetention:
     AllowedPattern: '[1-9][0-9]*$|^$'
-    Description: If specified, the number of years that content must be retained for
-      compliance reasons.
+    Description: >-
+      If specified, the number of years that content must be retained for
+      compliance reasons. (Leave null in regions that do not support ObjectLock
+      feature)
     Type: String
   EncryptionKeyArn:
-    Description: (Optional) If set to a valid KMS key-ARN, KMS will be used for bucket
+    Description: >-
+      (Optional) If set to a valid KMS key-ARN, KMS will be used for bucket
       contents-encryption; otherwise, generic AES256 will be used
     Type: String
   FinalExpirationDays:
@@ -132,7 +152,7 @@ Resources:
                     - - 'arn:'
                       - !Ref 'AWS::Partition'
                       - ':s3:::'
-                      - !Ref 'BackupReportingBucket'
+                      - !Ref BackupReportingBucket
                   Format: CSV
                   Prefix: StorageReporting/Analytics
                 OutputSchemaVersion: V_1
@@ -141,12 +161,12 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault: !If
               - UseKMSencryption
-              - KMSMasterKeyID: !Ref 'EncryptionKeyArn'
-                SSEAlgorithm: aws:kms
+              - KMSMasterKeyID: !Ref EncryptionKeyArn
+                SSEAlgorithm: 'aws:kms'
               - SSEAlgorithm: AES256
       BucketName: !If
         - SetBackupBucketName
-        - !Ref 'BackupBucket'
+        - !Ref BackupBucket
         - !Ref 'AWS::NoValue'
       InventoryConfigurations:
         - !If
@@ -157,7 +177,7 @@ Resources:
                 - - 'arn:'
                   - !Ref 'AWS::Partition'
                   - ':s3:::'
-                  - !Ref 'BackupReportingBucket'
+                  - !Ref BackupReportingBucket
               Format: CSV
               Prefix: StorageReporting/Inventory
             Enabled: true
@@ -169,21 +189,21 @@ Resources:
       LifecycleConfiguration:
         Rules:
           - AbortIncompleteMultipartUpload:
-              DaysAfterInitiation: !Ref 'RetainIncompleteDays'
-            ExpirationInDays: !Ref 'FinalExpirationDays'
+              DaysAfterInitiation: !Ref RetainIncompleteDays
+            ExpirationInDays: !Ref FinalExpirationDays
             Id: BackupTiering
             Prefix: Backups/
             Status: Enabled
             Transitions:
               - StorageClass: GLACIER
-                TransitionInDays: !Ref 'TierToGlacierDays'
+                TransitionInDays: !Ref TierToGlacierDays
       LoggingConfiguration: !If
         - EnableBucketLogging
-        - DestinationBucketName: !Ref 'BucketLoggingDestination'
+        - DestinationBucketName: !Ref BucketLoggingDestination
           LogFilePrefix: !Join
             - ''
             - - bucket-logs/
-              - !Ref 'BackupBucket'
+              - !Ref BackupBucket
         - !Ref 'AWS::NoValue'
       ObjectLockConfiguration: !If
         - EnableCompliance
@@ -191,15 +211,17 @@ Resources:
           Rule:
             DefaultRetention:
               Mode: COMPLIANCE
-              Years: !Ref 'ComplianceRetention'
+              Years: !Ref ComplianceRetention
         - !Ref 'AWS::NoValue'
       ObjectLockEnabled: !If
         - EnableCompliance
         - true
         - !Ref 'AWS::NoValue'
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: !Ref 'BucketSecurityBlockPublicAcls'
-        BlockPublicPolicy: !Ref 'BucketSecurityBlockPublicPolicy'
-        IgnorePublicAcls: !Ref 'BucketSecurityIgnorePublicAcls'
-        RestrictPublicBuckets: !Ref 'BucketSecurityRestrictPublicBuckets'
-    Type: AWS::S3::Bucket
+      PublicAccessBlockConfiguration: !If
+        - EnableBucketAclSetting
+        - BlockPublicAcls: !Ref BucketSecurityBlockPublicAcls
+          BlockPublicPolicy: !Ref BucketSecurityBlockPublicPolicy
+          IgnorePublicAcls: !Ref BucketSecurityIgnorePublicAcls
+          RestrictPublicBuckets: !Ref BucketSecurityRestrictPublicBuckets
+        - !Ref 'AWS::NoValue'
+    Type: 'AWS::S3::Bucket'
