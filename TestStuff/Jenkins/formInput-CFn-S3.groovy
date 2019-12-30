@@ -100,6 +100,10 @@ pipeline {
                         returnStdout: true
                     env.BucketLoggingDestination = BucketLoggingDestination.trim()
 
+                    def BucketSecurityToggle = sh script:'awk -F "=" \'/BucketSecurityToggle/{ print $2 }\' Pipeline.envs',
+                        returnStdout: true
+                    env.BucketSecurityToggle = BucketSecurityToggle.trim()
+
                     def BucketSecurityBlockPublicAcls = sh script:'awk -F "=" \'/BucketSecurityBlockPublicAcls/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
                     env.BucketSecurityBlockPublicAcls = BucketSecurityBlockPublicAcls.trim()
@@ -180,6 +184,10 @@ pipeline {
                              {
                                  "ParameterKey": "BucketLoggingDestination",
                                  "ParameterValue": "${env.BucketLoggingDestination}"
+                             },
+                             {
+                                 "ParameterKey": "BucketSecurityToggle",
+                                 "ParameterValue": "${env.BucketSecurityToggle}"
                              },
                              {
                                  "ParameterKey": "BucketSecurityBlockPublicAcls",

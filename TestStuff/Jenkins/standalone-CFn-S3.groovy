@@ -58,6 +58,14 @@ pipeline {
              description: '(Optional) Where to log bucket-related activity to'
          )
          choice(
+             name: 'BucketSecurityToggle',
+             choices:[
+                 'true',
+                 'false'
+             ],
+             description: 'Whether to attempt blocking public ACLs (Set to "false" in regions that lack support for this feature)'
+         )
+         choice(
              name: 'BucketSecurityBlockPublicAcls',
              choices:[
                  'true',
@@ -141,6 +149,9 @@ pipeline {
                              {
                                  "ParameterKey": "BucketLoggingDestination",
                                  "ParameterValue": "${env.BucketLoggingDestination}"
+                             },
+                                 "ParameterKey": "BucketSecurityToggle",
+                                 "ParameterValue": "${env.BucketSecurityToggle}"
                              },
                              {
                                  "ParameterKey": "BucketSecurityBlockPublicAcls",
