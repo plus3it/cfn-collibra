@@ -1,6 +1,14 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Conditions": {
+        "EnableBucketAclSetting": {
+            "Fn::Equals": [
+                {
+                    "Ref": "BucketSecurityToggle"
+                },
+                true
+            ]
+        },
         "EnableBucketLogging": {
             "Fn::Not": [
                 {
@@ -125,6 +133,15 @@
             "Description": "(Optional) Where to log bucket-related activity to",
             "Type": "String"
         },
+        "BucketSecurityToggle": {
+            "AllowedValues": [
+                false,
+                true
+            ],
+            "Default": true,
+            "Description": "Whether to attempt blocking public ACLs (Set to 'false' in regions that lack support for this feature)",
+            "Type": "String"
+        },
         "BucketSecurityBlockPublicAcls": {
             "AllowedValues": [
                 false,
@@ -163,7 +180,7 @@
         },
         "ComplianceRetention": {
             "AllowedPattern": "[1-9][0-9]*$|^$",
-            "Description": "If specified, the number of years that content must be retained for compliance reasons.",
+            "Description": "If specified, the number of years that content must be retained for compliance reasons. (Leave null in regions that do not support ObjectLock feature)",
             "Type": "String"
         },
         "EncryptionKeyArn": {
@@ -380,18 +397,26 @@
                     ]
                 },
                 "PublicAccessBlockConfiguration": {
-                    "BlockPublicAcls": {
-                        "Ref": "BucketSecurityBlockPublicAcls"
-                    },
-                    "BlockPublicPolicy": {
-                        "Ref": "BucketSecurityBlockPublicPolicy"
-                    },
-                    "IgnorePublicAcls": {
-                        "Ref": "BucketSecurityIgnorePublicAcls"
-                    },
-                    "RestrictPublicBuckets": {
-                        "Ref": "BucketSecurityRestrictPublicBuckets"
-                    }
+                    "Fn::If": [
+                        "EnableBucketAclSetting",
+                        {
+                            "BlockPublicAcls": {
+                                "Ref": "BucketSecurityBlockPublicAcls"
+                            },
+                            "BlockPublicPolicy": {
+                                "Ref": "BucketSecurityBlockPublicPolicy"
+                            },
+                            "IgnorePublicAcls": {
+                                "Ref": "BucketSecurityIgnorePublicAcls"
+                            },
+                            "RestrictPublicBuckets": {
+                                "Ref": "BucketSecurityRestrictPublicBuckets"
+                            }
+                        },
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
                 }
             },
             "Type": "AWS::S3::Bucket"
