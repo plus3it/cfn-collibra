@@ -29,7 +29,7 @@ function MkBackup {
          \"description\": \"Cron-initiated backup for ${DATE}\", \
          \"database\": \"dgc\", \
          \"dgcBackupOptionSet\": [\"CUSTOMIZATIONS\"], \
-         \"repoBackupOptionSet\": [\"DATA\",\"HISTORY\",\"CONFIGURATION\"] \
+         \"repoBackupOptionSet\": [\"DATA\",\"HISTORY\"] \
          } \
       "
 
