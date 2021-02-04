@@ -1246,6 +1246,16 @@
                                                     "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
                                                     "      },\n",
                                                     "      {\n",
+                                                    "      \"file_path\": \"/var/log/secure\",\n",
+                                                    "      \"log_group_name\": \"",
+                                                    {
+                                                        "Ref": "CollibraLogGroup"
+                                                    },
+                                                    "\",\n",
+                                                    "      \"log_stream_name\": \"os_security_logs_{instance_id}\",\n",
+                                                    "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                    "      },\n",
+                                                    "      {\n",
                                                     "      \"file_path\": \"/var/log/watchmaker/watchmaker.log\",\n",
                                                     "      \"log_group_name\": \"",
                                                     {
