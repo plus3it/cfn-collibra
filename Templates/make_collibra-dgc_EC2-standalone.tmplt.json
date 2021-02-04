@@ -77,6 +77,14 @@
                 "JOBSERVER"
             ]
         },
+        "IsMonitoringServer": {
+            "Fn::Equals": [
+                {
+                    "Ref": "CollibraDgcComponent"
+                },
+                "MONITORING"
+            ]
+        },
         "IsRepositoryServer": {
             "Fn::Equals": [
                 {
@@ -1255,6 +1263,191 @@
                                                     "      \"log_stream_name\": \"os_security_logs_{instance_id}\",\n",
                                                     "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
                                                     "      },\n",
+                                                    {
+                                                        "Fn::If": [
+                                                            "IsAgentServer",
+                                                            {
+                                                                "Fn::Join": [
+                                                                    "",
+                                                                    [
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/agent/logs/agent_wrapper.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_agent_wrapper_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n"
+                                                                    ]
+                                                                ]
+                                                            },
+                                                            {
+                                                                "Ref": "AWS::NoValue"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "Fn::If": [
+                                                            "IsConsoleServer",
+                                                            {
+                                                                "Fn::Join": [
+                                                                    "",
+                                                                    [
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/console/logs/console.log\",\n",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_console_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n"
+                                                                    ]
+                                                                ]
+                                                            },
+                                                            {
+                                                                "Ref": "AWS::NoValue"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "Fn::If": [
+                                                            "IsDgcServer",
+                                                            {
+                                                                "Fn::Join": [
+                                                                    "",
+                                                                    [
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/dgc/logs/dgc.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_dgc_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n",
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/dgc/logs/dgc_recommender.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_dgc_recommender_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n",
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/dgc/logs/dgc_jobs.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_dgc_jobs_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n"
+                                                                    ]
+                                                                ]
+                                                            },
+                                                            {
+                                                                "Ref": "AWS::NoValue"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "Fn::If": [
+                                                            "IsJobServer",
+                                                            {
+                                                                "Fn::Join": [
+                                                                    "",
+                                                                    [
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/spark-jobserver/logs/spark-job-server.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_spark_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n"
+                                                                    ]
+                                                                ]
+                                                            },
+                                                            {
+                                                                "Ref": "AWS::NoValue"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "Fn::If": [
+                                                            "IsMonitoringServer",
+                                                            {
+                                                                "Fn::Join": [
+                                                                    "",
+                                                                    [
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/agent/logs/agent_wrapper.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_agent_wrapper_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n",
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/monitoring/logs/prometheus.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_prometheus_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n"
+                                                                    ]
+                                                                ]
+                                                            },
+                                                            {
+                                                                "Ref": "AWS::NoValue"
+                                                            }
+                                                        ]
+                                                    },
                                                     "      {\n",
                                                     "      \"file_path\": \"/var/log/watchmaker/watchmaker.log\",\n",
                                                     "      \"log_group_name\": \"",
