@@ -1204,111 +1204,79 @@
                         "files": {
                             "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json": {
                                 "content": {
-                                    "Fn::Join": [
-                                        "",
-                                        [
-                                            "{",
-                                            "  \"logs\": {\n",
-                                            "  \"logs_collected\": {\n",
-                                            "    \"files\": {\n",
-                                            "    \"collect_list\": [\n",
-                                            "      {\n",
-                                            "      \"file_path\": \"/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log\",\n",
-                                            "      \"log_group_name\": \"",
-                                            {
-                                                "Fn::If": [
-                                                    "InstallCloudWatchAgent",
+                                    "Fn::If": [
+                                        "InstallCloudWatchAgent",
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "{",
+                                                    "  \"logs\": {\n",
+                                                    "  \"logs_collected\": {\n",
+                                                    "    \"files\": {\n",
+                                                    "    \"collect_list\": [\n",
+                                                    "      {\n",
+                                                    "      \"file_path\": \"/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log\",\n",
+                                                    "      \"log_group_name\": \"",
                                                     {
                                                         "Ref": "CollibraLogGroup"
                                                     },
-                                                    {
-                                                        "Ref": "AWS::NoValue"
-                                                    }
-                                                ]
-                                            },
-                                            "\",\n",
-                                            "      \"log_stream_name\": \"cloudwatch_agent_logs_{instance_id}\",\n",
-                                            "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                                            "      },\n",
-                                            "      {\n",
-                                            "      \"file_path\": \"/var/log/cfn-init.log\",\n",
-                                            "      \"log_group_name\": \"",
-                                            {
-                                                "Fn::If": [
-                                                    "InstallCloudWatchAgent",
+                                                    "\",\n",
+                                                    "      \"log_stream_name\": \"cloudwatch_agent_logs_{instance_id}\",\n",
+                                                    "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                    "      },\n",
+                                                    "      {\n",
+                                                    "      \"file_path\": \"/var/log/cfn-init.log\",\n",
+                                                    "      \"log_group_name\": \"",
                                                     {
                                                         "Ref": "CollibraLogGroup"
                                                     },
-                                                    {
-                                                        "Ref": "AWS::NoValue"
-                                                    }
-                                                ]
-                                            },
-                                            "\",\n",
-                                            "      \"log_stream_name\": \"cfn_init_logs_{instance_id}\",\n",
-                                            "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                                            "      },\n",
-                                            "      {\n",
-                                            "      \"file_path\": \"/var/log/messages\",\n",
-                                            "      \"log_group_name\": \"",
-                                            {
-                                                "Fn::If": [
-                                                    "InstallCloudWatchAgent",
+                                                    "\",\n",
+                                                    "      \"log_stream_name\": \"cfn_init_logs_{instance_id}\",\n",
+                                                    "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                    "      },\n",
+                                                    "      {\n",
+                                                    "      \"file_path\": \"/var/log/messages\",\n",
+                                                    "      \"log_group_name\": \"",
                                                     {
                                                         "Ref": "CollibraLogGroup"
                                                     },
-                                                    {
-                                                        "Ref": "AWS::NoValue"
-                                                    }
-                                                ]
-                                            },
-                                            "\",\n",
-                                            "      \"log_stream_name\": \"messages_logs_{instance_id}\",\n",
-                                            "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                                            "      },\n",
-                                            "      {\n",
-                                            "      \"file_path\": \"/var/log/watchmaker/watchmaker.log\",\n",
-                                            "      \"log_group_name\": \"",
-                                            {
-                                                "Fn::If": [
-                                                    "InstallCloudWatchAgent",
+                                                    "\",\n",
+                                                    "      \"log_stream_name\": \"messages_logs_{instance_id}\",\n",
+                                                    "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                    "      },\n",
+                                                    "      {\n",
+                                                    "      \"file_path\": \"/var/log/watchmaker/watchmaker.log\",\n",
+                                                    "      \"log_group_name\": \"",
                                                     {
                                                         "Ref": "CollibraLogGroup"
                                                     },
-                                                    {
-                                                        "Ref": "AWS::NoValue"
-                                                    }
-                                                ]
-                                            },
-                                            "\",\n",
-                                            "      \"log_stream_name\": \"watchmaker_logs_{instance_id}\",\n",
-                                            "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                                            "      },\n",
-                                            "      {\n",
-                                            "      \"file_path\": \"/var/log/watchmaker/salt_call.debug.log\",\n",
-                                            "      \"log_group_name\": \"",
-                                            {
-                                                "Fn::If": [
-                                                    "InstallCloudWatchAgent",
+                                                    "\",\n",
+                                                    "      \"log_stream_name\": \"watchmaker_logs_{instance_id}\",\n",
+                                                    "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                    "      },\n",
+                                                    "      {\n",
+                                                    "      \"file_path\": \"/var/log/watchmaker/salt_call.debug.log\",\n",
+                                                    "      \"log_group_name\": \"",
                                                     {
                                                         "Ref": "CollibraLogGroup"
                                                     },
-                                                    {
-                                                        "Ref": "AWS::NoValue"
-                                                    }
+                                                    "\",\n",
+                                                    "      \"log_stream_name\": \"salt_call_debug_logs_{instance_id}\",\n",
+                                                    "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                    "      }\n",
+                                                    "    ]\n",
+                                                    "    }\n",
+                                                    "  },\n",
+                                                    "  \"log_stream_name\": \"default_logs_{instance_id}\"\n",
+                                                    "  }\n",
+                                                    "}\n"
                                                 ]
-                                            },
-                                            "\",\n",
-                                            "      \"log_stream_name\": \"salt_call_debug_logs_{instance_id}\",\n",
-                                            "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                                            "      }\n",
-                                            "    ]\n",
-                                            "    }\n",
-                                            "  },\n",
-                                            "  \"log_stream_name\": \"default_logs_{instance_id}\"\n",
-                                            "  }\n",
-                                            "}\n"
-                                        ]
+                                            ]
+                                        },
+                                        {
+                                            "Ref": "AWS::NoValue"
+                                        }
                                     ]
                                 }
                             }
