@@ -77,6 +77,14 @@
                 "JOBSERVER"
             ]
         },
+        "IsMonitoringServer": {
+            "Fn::Equals": [
+                {
+                    "Ref": "CollibraDgcComponent"
+                },
+                "MONITORING"
+            ]
+        },
         "IsRepositoryServer": {
             "Fn::Equals": [
                 {
@@ -1204,111 +1212,274 @@
                         "files": {
                             "/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json": {
                                 "content": {
-                                    "Fn::Join": [
-                                        "",
-                                        [
-                                            "{",
-                                            "  \"logs\": {\n",
-                                            "  \"logs_collected\": {\n",
-                                            "    \"files\": {\n",
-                                            "    \"collect_list\": [\n",
-                                            "      {\n",
-                                            "      \"file_path\": \"/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log\",\n",
-                                            "      \"log_group_name\": \"",
-                                            {
-                                                "Fn::If": [
-                                                    "InstallCloudWatchAgent",
+                                    "Fn::If": [
+                                        "InstallCloudWatchAgent",
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "{",
+                                                    "  \"logs\": {\n",
+                                                    "  \"logs_collected\": {\n",
+                                                    "    \"files\": {\n",
+                                                    "    \"collect_list\": [\n",
+                                                    "      {\n",
+                                                    "      \"file_path\": \"/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log\",\n",
+                                                    "      \"log_group_name\": \"",
                                                     {
                                                         "Ref": "CollibraLogGroup"
                                                     },
-                                                    {
-                                                        "Ref": "AWS::NoValue"
-                                                    }
-                                                ]
-                                            },
-                                            "\",\n",
-                                            "      \"log_stream_name\": \"cloudwatch_agent_logs_{instance_id}\",\n",
-                                            "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                                            "      },\n",
-                                            "      {\n",
-                                            "      \"file_path\": \"/var/log/cfn-init.log\",\n",
-                                            "      \"log_group_name\": \"",
-                                            {
-                                                "Fn::If": [
-                                                    "InstallCloudWatchAgent",
+                                                    "\",\n",
+                                                    "      \"log_stream_name\": \"cloudwatch_agent_logs_{instance_id}\",\n",
+                                                    "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                    "      },\n",
+                                                    "      {\n",
+                                                    "      \"file_path\": \"/var/log/cfn-init.log\",\n",
+                                                    "      \"log_group_name\": \"",
                                                     {
                                                         "Ref": "CollibraLogGroup"
                                                     },
-                                                    {
-                                                        "Ref": "AWS::NoValue"
-                                                    }
-                                                ]
-                                            },
-                                            "\",\n",
-                                            "      \"log_stream_name\": \"cfn_init_logs_{instance_id}\",\n",
-                                            "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                                            "      },\n",
-                                            "      {\n",
-                                            "      \"file_path\": \"/var/log/messages\",\n",
-                                            "      \"log_group_name\": \"",
-                                            {
-                                                "Fn::If": [
-                                                    "InstallCloudWatchAgent",
+                                                    "\",\n",
+                                                    "      \"log_stream_name\": \"cfn_init_logs_{instance_id}\",\n",
+                                                    "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                    "      },\n",
+                                                    "      {\n",
+                                                    "      \"file_path\": \"/var/log/messages\",\n",
+                                                    "      \"log_group_name\": \"",
                                                     {
                                                         "Ref": "CollibraLogGroup"
                                                     },
-                                                    {
-                                                        "Ref": "AWS::NoValue"
-                                                    }
-                                                ]
-                                            },
-                                            "\",\n",
-                                            "      \"log_stream_name\": \"messages_logs_{instance_id}\",\n",
-                                            "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                                            "      },\n",
-                                            "      {\n",
-                                            "      \"file_path\": \"/var/log/watchmaker/watchmaker.log\",\n",
-                                            "      \"log_group_name\": \"",
-                                            {
-                                                "Fn::If": [
-                                                    "InstallCloudWatchAgent",
+                                                    "\",\n",
+                                                    "      \"log_stream_name\": \"messages_logs_{instance_id}\",\n",
+                                                    "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                    "      },\n",
+                                                    "      {\n",
+                                                    "      \"file_path\": \"/var/log/secure\",\n",
+                                                    "      \"log_group_name\": \"",
                                                     {
                                                         "Ref": "CollibraLogGroup"
                                                     },
+                                                    "\",\n",
+                                                    "      \"log_stream_name\": \"os_security_logs_{instance_id}\",\n",
+                                                    "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                    "      },\n",
                                                     {
-                                                        "Ref": "AWS::NoValue"
-                                                    }
-                                                ]
-                                            },
-                                            "\",\n",
-                                            "      \"log_stream_name\": \"watchmaker_logs_{instance_id}\",\n",
-                                            "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                                            "      },\n",
-                                            "      {\n",
-                                            "      \"file_path\": \"/var/log/watchmaker/salt_call.debug.log\",\n",
-                                            "      \"log_group_name\": \"",
-                                            {
-                                                "Fn::If": [
-                                                    "InstallCloudWatchAgent",
+                                                        "Fn::If": [
+                                                            "IsAgentServer",
+                                                            {
+                                                                "Fn::Join": [
+                                                                    "",
+                                                                    [
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/agent/logs/agent_wrapper.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_agent_wrapper_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n"
+                                                                    ]
+                                                                ]
+                                                            },
+                                                            {
+                                                                "Ref": "AWS::NoValue"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "Fn::If": [
+                                                            "IsConsoleServer",
+                                                            {
+                                                                "Fn::Join": [
+                                                                    "",
+                                                                    [
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/console/logs/console.log\",\n",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_console_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n"
+                                                                    ]
+                                                                ]
+                                                            },
+                                                            {
+                                                                "Ref": "AWS::NoValue"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "Fn::If": [
+                                                            "IsDgcServer",
+                                                            {
+                                                                "Fn::Join": [
+                                                                    "",
+                                                                    [
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/dgc/logs/dgc.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_dgc_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n",
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/dgc/logs/dgc_recommender.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_dgc_recommender_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n",
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/dgc/logs/dgc_jobs.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_dgc_jobs_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n"
+                                                                    ]
+                                                                ]
+                                                            },
+                                                            {
+                                                                "Ref": "AWS::NoValue"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "Fn::If": [
+                                                            "IsJobServer",
+                                                            {
+                                                                "Fn::Join": [
+                                                                    "",
+                                                                    [
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/spark-jobserver/logs/spark-job-server.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_spark_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n"
+                                                                    ]
+                                                                ]
+                                                            },
+                                                            {
+                                                                "Ref": "AWS::NoValue"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "Fn::If": [
+                                                            "IsMonitoringServer",
+                                                            {
+                                                                "Fn::Join": [
+                                                                    "",
+                                                                    [
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/agent/logs/agent_wrapper.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_agent_wrapper_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n",
+                                                                        "      {\n",
+                                                                        "      \"file_path\": \"",
+                                                                        {
+                                                                            "Ref": "AppVolumeMountPath"
+                                                                        },
+                                                                        "/data/monitoring/logs/prometheus.log\",\n",
+                                                                        "      \"log_group_name\": \"",
+                                                                        {
+                                                                            "Ref": "CollibraLogGroup"
+                                                                        },
+                                                                        "\",\n",
+                                                                        "      \"log_stream_name\": \"collibra_prometheus_logs_{instance_id}\",\n",
+                                                                        "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                                        "      },\n"
+                                                                    ]
+                                                                ]
+                                                            },
+                                                            {
+                                                                "Ref": "AWS::NoValue"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "      {\n",
+                                                    "      \"file_path\": \"/var/log/watchmaker/watchmaker.log\",\n",
+                                                    "      \"log_group_name\": \"",
                                                     {
                                                         "Ref": "CollibraLogGroup"
                                                     },
+                                                    "\",\n",
+                                                    "      \"log_stream_name\": \"watchmaker_logs_{instance_id}\",\n",
+                                                    "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                    "      },\n",
+                                                    "      {\n",
+                                                    "      \"file_path\": \"/var/log/watchmaker/salt_call.debug.log\",\n",
+                                                    "      \"log_group_name\": \"",
                                                     {
-                                                        "Ref": "AWS::NoValue"
-                                                    }
+                                                        "Ref": "CollibraLogGroup"
+                                                    },
+                                                    "\",\n",
+                                                    "      \"log_stream_name\": \"salt_call_debug_logs_{instance_id}\",\n",
+                                                    "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
+                                                    "      }\n",
+                                                    "    ]\n",
+                                                    "    }\n",
+                                                    "  },\n",
+                                                    "  \"log_stream_name\": \"default_logs_{instance_id}\"\n",
+                                                    "  }\n",
+                                                    "}\n"
                                                 ]
-                                            },
-                                            "\",\n",
-                                            "      \"log_stream_name\": \"salt_call_debug_logs_{instance_id}\",\n",
-                                            "      \"timestamp_format\": \"%H:%M:%S %y %b %-d\"\n",
-                                            "      }\n",
-                                            "    ]\n",
-                                            "    }\n",
-                                            "  },\n",
-                                            "  \"log_stream_name\": \"default_logs_{instance_id}\"\n",
-                                            "  }\n",
-                                            "}\n"
-                                        ]
+                                            ]
+                                        },
+                                        {
+                                            "Ref": "AWS::NoValue"
+                                        }
                                     ]
                                 }
                             }
