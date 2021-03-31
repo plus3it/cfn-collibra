@@ -523,11 +523,6 @@
         }
     },
     "Parameters": {
-        "AmiLocalizerScript": {
-            "AllowedPattern": "^$|^(http[s]?|s3)://.*$",
-            "Description": "Script to set EC2 to a 'known-good' starting-point",
-            "Type": "String"
-        },
         "AdminPubkeyURL": {
             "AllowedPattern": "^http[s]?://.*|^$",
             "Description": "(Optional) URL of file containing admin group's SSH public-keys",
@@ -537,6 +532,11 @@
             "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$",
             "Description": "ID of the AMI to launch",
             "Type": "AWS::EC2::Image::Id"
+        },
+        "AmiLocalizerScript": {
+            "AllowedPattern": "^$|^(http[s]?|s3)://.*$",
+            "Description": "Script to set EC2 to a 'known-good' starting-point",
+            "Type": "String"
         },
         "AppVolumeDevice": {
             "AllowedValues": [
@@ -575,6 +575,10 @@
         },
         "BackupBucket": {
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Name of the S3 bucket in which to store Collibra backups",
+            "Type": "String"
+        },
+        "BackupFolder": {
+            "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Name of the S3 bucket-key in which to store Collibra backups",
             "Type": "String"
         },
         "BackupSchedule": {
@@ -1303,11 +1307,28 @@
                                                 "Ref": "BackupUserPassword"
                                             },
                                             "\n",
-                                            "S3BUCKET=",
+                                            "S3BUCKET=\"",
                                             {
                                                 "Ref": "BackupBucket"
                                             },
-                                            "\n",
+                                            {
+                                                "Fn::If": [
+                                                    "UseBackupFolder",
+                                                    {
+                                                        "Fn::Join": [
+                                                            "",
+                                                            [
+                                                                "/",
+                                                                {
+                                                                    "Ref": "BackupFolder"
+                                                                }
+                                                            ]
+                                                        ]
+                                                    },
+                                                    ""
+                                                ]
+                                            },
+                                            "\"\n",
                                             "\n",
                                             {
                                                 "Ref": "BackupSchedule"
