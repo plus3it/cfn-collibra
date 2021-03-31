@@ -151,6 +151,30 @@
                 }
             ]
         },
+        "UseAmiFixer": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "AmiLocalizerScript"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "UseBackupFolder": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "BackupFolder"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
         "UseComputerName": {
             "Fn::Not": [
                 {
@@ -499,6 +523,11 @@
         }
     },
     "Parameters": {
+        "AmiLocalizerScript": {
+            "AllowedPattern": "^$|^(http[s]?|s3)://.*$",
+            "Description": "Script to set EC2 to a 'known-good' starting-point",
+            "Type": "String"
+        },
         "AdminPubkeyURL": {
             "AllowedPattern": "^http[s]?://.*|^$",
             "Description": "(Optional) URL of file containing admin group's SSH public-keys",
@@ -2270,6 +2299,59 @@
                                 },
                                 "\n",
                                 "--===============3585321300151562773==\n",
+                                {
+                                    "Fn::If": [
+                                        "UseAmiFixer",
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "Content-Type: text/x-shellscript; charset=\"us-ascii\"\n",
+                                                    "MIME-Version: 1.0\n",
+                                                    "Content-Transfer-Encoding: 7bit\n",
+                                                    "Content-Disposition: attachment; filename=\"ami_fix_script.sh\"\n",
+                                                    "\n",
+                                                    "#!/bin/bash -xe\n\n",
+                                                    "\n",
+                                                    "PATH=\"${PATH}\":/usr/local/bin\n",
+                                                    "export PATH\n",
+                                                    "\n",
+                                                    "if [[ ",
+                                                    {
+                                                        "Ref": "AmiLocalizerScript"
+                                                    },
+                                                    " =~ \"http\"* ]]\n",
+                                                    "then\n",
+                                                    "   install -bDm 0750 <( curl -oL ",
+                                                    {
+                                                        "Ref": "AmiLocalizerScript"
+                                                    },
+                                                    " ) /etc/cfn/scripts/ami_fixer\n",
+                                                    "elif [[ ",
+                                                    {
+                                                        "Ref": "AmiLocalizerScript"
+                                                    },
+                                                    " =~ \"s3:\"* ]]\n",
+                                                    "then\n",
+                                                    "   install -bDm 0750 <( aws s3 cp ",
+                                                    {
+                                                        "Ref": "AmiLocalizerScript"
+                                                    },
+                                                    " - ) /etc/cfn/scripts/ami_fixer\n",
+                                                    "fi\n",
+                                                    "\n",
+                                                    "/etc/cfn/scripts/ami_fixer\n",
+                                                    "\n",
+                                                    "--===============3585321300151562773==\n",
+                                                    "\n"
+                                                ]
+                                            ]
+                                        },
+                                        {
+                                            "Ref": "AWS::NoValue"
+                                        }
+                                    ]
+                                },
                                 "Content-Type: text/x-shellscript; charset=\"us-ascii\"\n",
                                 "MIME-Version: 1.0\n",
                                 "Content-Transfer-Encoding: 7bit\n",
