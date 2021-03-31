@@ -427,6 +427,8 @@
                         "default": "Application Configuration"
                     },
                     "Parameters": [
+                        "AmiLocalizerScript",
+                        "CfnInitUrl",
                         "CollibraInstallerUrl",
                         "CollibraDgcComponent",
                         "CollibraSoftwareDir",
@@ -442,6 +444,7 @@
                     },
                     "Parameters": [
                         "BackupBucket",
+                        "BackupFolder",
                         "BackupSchedule",
                         "BackupScript",
                         "BackupUserName",
@@ -535,6 +538,7 @@
         },
         "AmiLocalizerScript": {
             "AllowedPattern": "^$|^(http[s]?|s3)://.*$",
+            "Default": "",
             "Description": "Script to set EC2 to a 'known-good' starting-point",
             "Type": "String"
         },
@@ -574,10 +578,12 @@
             "Type": "String"
         },
         "BackupBucket": {
+            "Default": "",
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Name of the S3 bucket in which to store Collibra backups",
             "Type": "String"
         },
         "BackupFolder": {
+            "Default": "",
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Name of the S3 bucket-key under which to store Collibra backups",
             "Type": "String"
         },
@@ -587,14 +593,17 @@
             "Type": "String"
         },
         "BackupScript": {
+            "Default": "",
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") S3-hosted location backup script",
             "Type": "String"
         },
         "BackupUserName": {
+            "Default": "",
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") User-name (inside the Collibra console) with permissions to run backup jobs",
             "Type": "String"
         },
         "BackupUserPassword": {
+            "Default": "",
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Password of user (inside the Collibra console) with permissions to run backup jobs",
             "Type": "String"
         },
