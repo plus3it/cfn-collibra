@@ -151,6 +151,30 @@
                 }
             ]
         },
+        "UseAmiFixer": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "AmiLocalizerScript"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
+        "UseBackupFolder": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "BackupFolder"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
         "UseComputerName": {
             "Fn::Not": [
                 {
@@ -403,6 +427,8 @@
                         "default": "Application Configuration"
                     },
                     "Parameters": [
+                        "AmiLocalizerScript",
+                        "CfnInitUrl",
                         "CollibraInstallerUrl",
                         "CollibraDgcComponent",
                         "CollibraSoftwareDir",
@@ -418,6 +444,7 @@
                     },
                     "Parameters": [
                         "BackupBucket",
+                        "BackupFolder",
                         "BackupSchedule",
                         "BackupScript",
                         "BackupUserName",
@@ -509,6 +536,12 @@
             "Description": "ID of the AMI to launch",
             "Type": "AWS::EC2::Image::Id"
         },
+        "AmiLocalizerScript": {
+            "AllowedPattern": "^$|^(http[s]?|s3)://.*$",
+            "Default": "",
+            "Description": "Script to set EC2 to a 'known-good' starting-point",
+            "Type": "String"
+        },
         "AppVolumeDevice": {
             "AllowedValues": [
                 "true",
@@ -545,7 +578,13 @@
             "Type": "String"
         },
         "BackupBucket": {
+            "Default": "",
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Name of the S3 bucket in which to store Collibra backups",
+            "Type": "String"
+        },
+        "BackupFolder": {
+            "Default": "",
+            "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Name of the S3 bucket-key under which to store Collibra backups",
             "Type": "String"
         },
         "BackupSchedule": {
@@ -554,14 +593,17 @@
             "Type": "String"
         },
         "BackupScript": {
+            "Default": "",
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") S3-hosted location backup script",
             "Type": "String"
         },
         "BackupUserName": {
+            "Default": "",
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") User-name (inside the Collibra console) with permissions to run backup jobs",
             "Type": "String"
         },
         "BackupUserPassword": {
+            "Default": "",
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Password of user (inside the Collibra console) with permissions to run backup jobs",
             "Type": "String"
         },
@@ -1274,11 +1316,28 @@
                                                 "Ref": "BackupUserPassword"
                                             },
                                             "\n",
-                                            "S3BUCKET=",
+                                            "S3BUCKET=\"",
                                             {
                                                 "Ref": "BackupBucket"
                                             },
-                                            "\n",
+                                            {
+                                                "Fn::If": [
+                                                    "UseBackupFolder",
+                                                    {
+                                                        "Fn::Join": [
+                                                            "",
+                                                            [
+                                                                "/",
+                                                                {
+                                                                    "Ref": "BackupFolder"
+                                                                }
+                                                            ]
+                                                        ]
+                                                    },
+                                                    ""
+                                                ]
+                                            },
+                                            "\"\n",
                                             "\n",
                                             {
                                                 "Ref": "BackupSchedule"
@@ -2270,6 +2329,56 @@
                                 },
                                 "\n",
                                 "--===============3585321300151562773==\n",
+                                {
+                                    "Fn::If": [
+                                        "UseAmiFixer",
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "Content-Type: text/x-shellscript; charset=\"us-ascii\"\n",
+                                                    "MIME-Version: 1.0\n",
+                                                    "Content-Transfer-Encoding: 7bit\n",
+                                                    "Content-Disposition: attachment; filename=\"ami_fix_script.sh\"\n",
+                                                    "\n",
+                                                    "#!/bin/bash -xe\n\n",
+                                                    "\n",
+                                                    "if [[ ",
+                                                    {
+                                                        "Ref": "AmiLocalizerScript"
+                                                    },
+                                                    " =~ \"http\"* ]]\n",
+                                                    "then\n",
+                                                    "   install -bDm 0750 <( curl -OL ",
+                                                    {
+                                                        "Ref": "AmiLocalizerScript"
+                                                    },
+                                                    " ) /etc/cfn/scripts/ami_fixer\n",
+                                                    "elif [[ ",
+                                                    {
+                                                        "Ref": "AmiLocalizerScript"
+                                                    },
+                                                    " =~ \"s3:\"* ]]\n",
+                                                    "then\n",
+                                                    "   install -bDm 0750 <( aws s3 cp ",
+                                                    {
+                                                        "Ref": "AmiLocalizerScript"
+                                                    },
+                                                    " ) /etc/cfn/scripts/ami_fixer\n",
+                                                    "fi\n",
+                                                    "\n",
+                                                    "/etc/cfn/scripts/ami_fixer\n",
+                                                    "\n",
+                                                    "--===============3585321300151562773==\n",
+                                                    "\n"
+                                                ]
+                                            ]
+                                        },
+                                        {
+                                            "Ref": "AWS::NoValue"
+                                        }
+                                    ]
+                                },
                                 "Content-Type: text/x-shellscript; charset=\"us-ascii\"\n",
                                 "MIME-Version: 1.0\n",
                                 "Content-Transfer-Encoding: 7bit\n",
