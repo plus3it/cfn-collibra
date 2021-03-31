@@ -163,6 +163,18 @@
                 }
             ]
         },
+        "UseBackupFolder": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "BackupFolder"
+                        },
+                        ""
+                    ]
+                }
+            ]
+        },
         "UseComputerName": {
             "Fn::Not": [
                 {
@@ -563,6 +575,10 @@
         },
         "BackupBucket": {
             "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Name of the S3 bucket in which to store Collibra backups",
+            "Type": "String"
+        },
+        "BackupFolder": {
+            "Description": "(Optional: Only used if \"CollibraDgcComponent\" is set to \"CONSOLE\") Name of the S3 bucket-key under which to store Collibra backups",
             "Type": "String"
         },
         "BackupSchedule": {
@@ -1291,11 +1307,28 @@
                                                 "Ref": "BackupUserPassword"
                                             },
                                             "\n",
-                                            "S3BUCKET=",
+                                            "S3BUCKET=\"",
                                             {
                                                 "Ref": "BackupBucket"
                                             },
-                                            "\n",
+                                            {
+                                                "Fn::If": [
+                                                    "UseBackupFolder",
+                                                    {
+                                                        "Fn::Join": [
+                                                            "",
+                                                            [
+                                                                "/",
+                                                                {
+                                                                    "Ref": "BackupFolder"
+                                                                }
+                                                            ]
+                                                        ]
+                                                    },
+                                                    ""
+                                                ]
+                                            },
+                                            "\"\n",
                                             "\n",
                                             {
                                                 "Ref": "BackupSchedule"
