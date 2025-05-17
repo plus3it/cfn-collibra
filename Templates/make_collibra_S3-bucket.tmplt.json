@@ -133,15 +133,6 @@
             "Description": "(Optional) Where to log bucket-related activity to",
             "Type": "String"
         },
-        "BucketSecurityToggle": {
-            "AllowedValues": [
-                false,
-                true
-            ],
-            "Default": true,
-            "Description": "Whether to attempt blocking public ACLs (Set to 'false' in regions that lack support for this feature)",
-            "Type": "String"
-        },
         "BucketSecurityBlockPublicAcls": {
             "AllowedValues": [
                 false,
@@ -176,6 +167,15 @@
             ],
             "Default": true,
             "Description": "Restrict cross-account access to bucket",
+            "Type": "String"
+        },
+        "BucketSecurityToggle": {
+            "AllowedValues": [
+                false,
+                true
+            ],
+            "Default": true,
+            "Description": "Whether to attempt blocking public ACLs (Set to 'false' in regions that lack support for this feature)",
             "Type": "String"
         },
         "ComplianceRetention": {
