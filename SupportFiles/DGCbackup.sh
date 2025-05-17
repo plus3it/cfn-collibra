@@ -13,63 +13,63 @@ DATE=$(date "+%Y%m%d%H%M")
 INSTANCEID=$(curl -skL http://169.254.169.254/latest/meta-data/instance-id/)
 
 function GetEnvId {
-   ENVIRONMENTJSON="$(
-         curl -skLu "${ADMIN}":"${PASSWD}" \
-           -X GET "${SVCURL}/rest/environment"
-      )"
+    ENVIRONMENTJSON="$(
+          curl -skLu "${ADMIN}":"${PASSWD}" \
+            -X GET "${SVCURL}/rest/environment"
+        )"
 
-   echo "${ENVIRONMENTJSON}" | jq '.[0].id' | sed 's/"//g'
+    echo "${ENVIRONMENTJSON}" | jq '.[0].id' | sed 's/"//g'
 }
 
 function MkBackup {
 
-   local BKUPJSON
-   BKUPJSON="{ \
-         \"name\": \"Backup-${DATE}\", \
-         \"description\": \"Cron-initiated backup for ${DATE}\", \
-         \"database\": \"dgc\", \
-         \"dgcBackupOptionSet\": [\"CUSTOMIZATIONS\",\"CONFIGURATION\"], \
-         \"repoBackupOptionSet\": [\"DATA\",\"HISTORY\"] \
-         } \
-      "
+    local BKUPJSON
+    BKUPJSON="{ \
+          \"name\": \"Backup-${DATE}\", \
+          \"description\": \"Cron-initiated backup for ${DATE}\", \
+          \"database\": \"dgc\", \
+          \"dgcBackupOptionSet\": [\"CUSTOMIZATIONS\",\"CONFIGURATION\"], \
+          \"repoBackupOptionSet\": [\"DATA\",\"HISTORY\"] \
+          } \
+        "
 
-   # Intiate backup job
-   BKUPJOB=$(
-         curl -skLu "${ADMIN}":"${PASSWD}" -X POST "${SVCURL}/rest/backup/${1}" \
-           -H 'cache-control: no-cache' -H 'content-type: application/json' \
-           -d "${BKUPJSON}"
-      )
+    # Intiate backup job
+    BKUPJOB=$(
+          curl -skLu "${ADMIN}":"${PASSWD}" -X POST "${SVCURL}/rest/backup/${1}" \
+            -H 'cache-control: no-cache' -H 'content-type: application/json' \
+            -d "${BKUPJSON}"
+        )
 
-   BKUPJOBID=$( echo ${BKUPJOB} | jq .id | sed 's/"//g' )
+    BKUPJOBID=$( echo ${BKUPJOB} | jq .id | sed 's/"//g' )
 
-   # Wait for job to finish
-   while true
-   do
-      JOBSTATE=$( curl -skLu "${ADMIN}":"${PASSWD}" \
-              -X GET "${SVCURL}/rest/backup/${ENVMTID}/state" \
-              -H 'cache-control: no-cache' | \
-            jq .POST_PROCESSING.status | sed 's/"//g'
-         )
-      if [[ ${JOBSTATE} = COMPLETED ]]
-      then
-         echo "Backup done"
-         break
-      else
-         echo "Job is ${JOBSTATE}: waiting... "
-         sleep 10
-      fi
-   done
+    # Wait for job to finish
+    while true
+    do
+        JOBSTATE=$( curl -skLu "${ADMIN}":"${PASSWD}" \
+                -X GET "${SVCURL}/rest/backup/${ENVMTID}/state" \
+                -H 'cache-control: no-cache' | \
+              jq .POST_PROCESSING.status | sed 's/"//g'
+          )
+        if [[ ${JOBSTATE} = COMPLETED ]]
+        then
+          echo "Backup done"
+          break
+        else
+          echo "Job is ${JOBSTATE}: waiting... "
+          sleep 10
+        fi
+    done
 }
 
 function FetchBkup {
 
-   # Download the backup file
-   printf "Downloading backup-ID %s... " "${BKUPJOBID}"
-   curl -skL -u "${ADMIN}":"${PASSWD}" \
-     -H "Content-Type:application/x-www-form-urlencoded" \
-     -X POST "${SVCURL}/rest/backup/file/${BKUPJOBID}" | \
-   aws s3 cp - "s3://${S3BUCKET}/Backups/${INSTANCEID}/DGC-Backup-${DATE}.zip" && \
-   echo "Success" || echo "Failed"
+    # Download the backup file
+    printf "Downloading backup-ID %s... " "${BKUPJOBID}"
+    curl -skL -u "${ADMIN}":"${PASSWD}" \
+      -H "Content-Type:application/x-www-form-urlencoded" \
+      -X POST "${SVCURL}/rest/backup/file/${BKUPJOBID}" | \
+    aws s3 cp - "s3://${S3BUCKET}/Backups/${INSTANCEID}/DGC-Backup-${DATE}.zip" && \
+    echo "Success" || echo "Failed"
 
 }
 
@@ -82,22 +82,22 @@ function FetchBkup {
 # Need jq or this stuff blows up...
 if [[ $(rpm -q --quiet jq)$? -ne 0 ]]
 then
-   echo "Missing 'jq' utility. Aborting" > /dev/stderr
-   exit 1
+    echo "Missing 'jq' utility. Aborting" > /dev/stderr
+    exit 1
 fi
 
 # Make sure we've got a password for our backup user
 if [[ ${PASSWD} = UNDEF ]]
 then
-   echo "No backup-admin password passed. Aborting" > /dev/stderr
-   exit 1
+    echo "No backup-admin password passed. Aborting" > /dev/stderr
+    exit 1
 fi
 
 # Make sure we have a destination
 if [[ ${S3BUCKET} = UNDEF ]]
 then
-   echo "No S3-destination specified. Aborting" > /dev/stderr
-   exit 1
+    echo "No S3-destination specified. Aborting" > /dev/stderr
+    exit 1
 fi
 
 

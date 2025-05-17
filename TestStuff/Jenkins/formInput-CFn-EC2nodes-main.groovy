@@ -23,15 +23,15 @@ options {
     }
 
     parameters {
-         string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
-         string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS FQDN as necessary')
-         string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
-         string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
-         string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the EC2')
-         string(name: 'InstanceRoleProfile', description: 'IAM instance profile-name to apply to the EC2')
-         string(name: 'InstanceRoleName', description: 'IAM instance role-name to use for signalling')
+        string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
+        string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
+        string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS FQDN as necessary')
+        string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
+        string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
+        string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
+        string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the EC2')
+        string(name: 'InstanceRoleProfile', description: 'IAM instance profile-name to apply to the EC2')
+        string(name: 'InstanceRoleName', description: 'IAM instance role-name to use for signalling')
     }
 
     stages {
@@ -88,7 +88,7 @@ options {
                     def TemplateUrl = sh script:'awk -F "=" \'/TemplateUrl/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
                     env.TemplateUrl = TemplateUrl.trim()
-                   
+
                     def AdminPubkeyURL = sh script:'awk -F "=" \'/AdminPubkeyURL/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
                     env.AdminPubkeyURL = AdminPubkeyURL.trim()
@@ -100,7 +100,7 @@ options {
                     def AppVolumeDevice = sh script:'awk -F "=" \'/AppVolumeDevice/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
                     env.AppVolumeDevice = AppVolumeDevice.trim()
-                    
+
                     def AppVolumeMountPath = sh script:'awk -F "=" \'/AppVolumeMountPath/{ print $2 }\' Pipeline.envs',
                         returnStdout: true
                     env.AppVolumeMountPath = AppVolumeMountPath.trim()
@@ -252,154 +252,154 @@ options {
 
                 // Create parameter file to be used with stack-create //
                 writeFile file: 'EC2.parms.json',
-                   text: /
-                         [
-                             {
-                                 "ParameterKey": "BackupBucket",
-                                 "ParameterValue": "${env.BackupBucket}"
-                             },
-                             {
-                                 "ParameterKey": "BackupSchedule",
-                                 "ParameterValue": "${env.BackupSchedule}"
-                             },
-                             {
-                                 "ParameterKey": "BackupScript",
-                                 "ParameterValue": "${env.BackupScript}"
-                             },
-                             {
-                                 "ParameterKey": "BackupUserName",
-                                 "ParameterValue": "${env.BackupUserName}"
-                             },
-                             {
-                                 "ParameterKey": "BackupUserPassword",
-                                 "ParameterValue": "${env.BackupUserPassword}"
-                             },
-                             {
-                                 "ParameterKey": "AdminPubkeyURL",
-                                 "ParameterValue": "${env.AdminPubkeyURL}"
-                             },
-                             {
-                                 "ParameterKey": "AmiId",
-                                 "ParameterValue": "${env.AmiId}"
-                             },
-                             {
-                                 "ParameterKey": "AppVolumeDevice",
-                                 "ParameterValue": "${env.AppVolumeDevice}"
-                             },
-                             {
-                                 "ParameterKey": "AppVolumeMountPath",
-                                 "ParameterValue": "${env.AppVolumeMountPath}"
-                             },
-                             {
-                                 "ParameterKey": "AppVolumeSize",
-                                 "ParameterValue": "${env.AppVolumeSize}"
-                             },
-                             {
-                                 "ParameterKey": "AppVolumeType",
-                                 "ParameterValue": "${env.AppVolumeType}"
-                             },
-                             {
-                                 "ParameterKey": "CloudWatchAgentUrl",
-                                 "ParameterValue": "${env.CloudWatchAgentUrl}"
-                             },
-                             {
-                                 "ParameterKey": "CollibraConsolePassword",
-                                 "ParameterValue": "${env.CollibraConsolePassword}"
-                             },
-                             {
-                                 "ParameterKey": "CollibraDataDir",
-                                 "ParameterValue": "${env.CollibraDataDir}"
-                             },
-                             {
-                                 "ParameterKey": "CollibraDgcComponent",
-                                 "ParameterValue": "${env.CollibraDgcComponent}"
-                             },
-                             {
-                                 "ParameterKey": "CollibraInstallerUrl",
-                                 "ParameterValue": "${env.CollibraInstallerUrl}"
-                             },
-                             {
-                                 "ParameterKey": "CollibraRepoPassword",
-                                 "ParameterValue": "${env.CollibraRepoPassword}"
-                             },
-                             {
-                                 "ParameterKey": "CollibraSoftwareDir",
-                                 "ParameterValue": "${env.CollibraSoftwareDir}"
-                             },
-                             {
-                                 "ParameterKey": "EpelRepoName",
-                                 "ParameterValue": "${env.EpelRepoName}"
-                             },
-                             {
-                                 "ParameterKey": "InstanceRoleName",
-                                 "ParameterValue": "${env.InstanceRoleName}"
-                             },
-                             {
-                                 "ParameterKey": "InstanceRoleProfile",
-                                 "ParameterValue": "${env.InstanceRoleProfile}"
-                             },
-                             {
-                                 "ParameterKey": "InstanceType",
-                                 "ParameterValue": "${env.InstanceType}"
-                             },
-                             {
-                                 "ParameterKey": "KeyPairName",
-                                 "ParameterValue": "${env.KeyPairName}"
-                             },
-                             {
-                                 "ParameterKey": "NoReboot",
-                                 "ParameterValue": "${env.NoReboot}"
-                             },
-                             {
-                                 "ParameterKey": "NoUpdates",
-                                 "ParameterValue": "${env.NoUpdates}"
-                             },
-                             {
-                                 "ParameterKey": "ProvisionUser",
-                                 "ParameterValue": "${env.ProvisionUser}"
-                             },
-                             {
-                                 "ParameterKey": "PypiIndexUrl",
-                                 "ParameterValue": "${env.PypiIndexUrl}"
-                             },
-                             {
-                                 "ParameterKey": "RootVolumeSize",
-                                 "ParameterValue": "${env.RootVolumeSize}"
-                             },
-                             {
-                                 "ParameterKey": "SecurityGroupIds",
-                                 "ParameterValue": "${env.SecurityGroupIds}"
-                             },
-                             {
-                                 "ParameterKey": "SubnetId",
-                                 "ParameterValue": "${env.SubnetId}"
-                             },
-                             {
-                                 "ParameterKey": "WatchmakerAdminGroups",
-                                 "ParameterValue": "${env.WatchmakerAdminGroups}"
-                             },
-                             {
-                                 "ParameterKey": "WatchmakerAdminUsers",
-                                 "ParameterValue": "${env.WatchmakerAdminUsers}"
-                             },
-                             {
-                                 "ParameterKey": "WatchmakerComputerName",
-                                 "ParameterValue": "${env.WatchmakerComputerName}"
-                             },
-                             {
-                                 "ParameterKey": "WatchmakerConfig",
-                                 "ParameterValue": "${env.WatchmakerConfig}"
-                             },
-                             {
-                                 "ParameterKey": "WatchmakerEnvironment",
-                                 "ParameterValue": "${env.WatchmakerEnvironment}"
-                             },
-                             {
-                                 "ParameterKey": "WatchmakerOuPath",
-                                 "ParameterValue": "${env.WatchmakerOuPath}"
-                             }
-                         ]
-                   /
+                    text: /
+                        [
+                            {
+                                "ParameterKey": "BackupBucket",
+                                "ParameterValue": "${env.BackupBucket}"
+                            },
+                            {
+                                "ParameterKey": "BackupSchedule",
+                                "ParameterValue": "${env.BackupSchedule}"
+                            },
+                            {
+                                "ParameterKey": "BackupScript",
+                                "ParameterValue": "${env.BackupScript}"
+                            },
+                            {
+                                "ParameterKey": "BackupUserName",
+                                "ParameterValue": "${env.BackupUserName}"
+                            },
+                            {
+                                "ParameterKey": "BackupUserPassword",
+                                "ParameterValue": "${env.BackupUserPassword}"
+                            },
+                            {
+                                "ParameterKey": "AdminPubkeyURL",
+                                "ParameterValue": "${env.AdminPubkeyURL}"
+                            },
+                            {
+                                "ParameterKey": "AmiId",
+                                "ParameterValue": "${env.AmiId}"
+                            },
+                            {
+                                "ParameterKey": "AppVolumeDevice",
+                                "ParameterValue": "${env.AppVolumeDevice}"
+                            },
+                            {
+                                "ParameterKey": "AppVolumeMountPath",
+                                "ParameterValue": "${env.AppVolumeMountPath}"
+                            },
+                            {
+                                "ParameterKey": "AppVolumeSize",
+                                "ParameterValue": "${env.AppVolumeSize}"
+                            },
+                            {
+                                "ParameterKey": "AppVolumeType",
+                                "ParameterValue": "${env.AppVolumeType}"
+                            },
+                            {
+                                "ParameterKey": "CloudWatchAgentUrl",
+                                "ParameterValue": "${env.CloudWatchAgentUrl}"
+                            },
+                            {
+                                "ParameterKey": "CollibraConsolePassword",
+                                "ParameterValue": "${env.CollibraConsolePassword}"
+                            },
+                            {
+                                "ParameterKey": "CollibraDataDir",
+                                "ParameterValue": "${env.CollibraDataDir}"
+                            },
+                            {
+                                "ParameterKey": "CollibraDgcComponent",
+                                "ParameterValue": "${env.CollibraDgcComponent}"
+                            },
+                            {
+                                "ParameterKey": "CollibraInstallerUrl",
+                                "ParameterValue": "${env.CollibraInstallerUrl}"
+                            },
+                            {
+                                "ParameterKey": "CollibraRepoPassword",
+                                "ParameterValue": "${env.CollibraRepoPassword}"
+                            },
+                            {
+                                "ParameterKey": "CollibraSoftwareDir",
+                                "ParameterValue": "${env.CollibraSoftwareDir}"
+                            },
+                            {
+                                "ParameterKey": "EpelRepoName",
+                                "ParameterValue": "${env.EpelRepoName}"
+                            },
+                            {
+                                "ParameterKey": "InstanceRoleName",
+                                "ParameterValue": "${env.InstanceRoleName}"
+                            },
+                            {
+                                "ParameterKey": "InstanceRoleProfile",
+                                "ParameterValue": "${env.InstanceRoleProfile}"
+                            },
+                            {
+                                "ParameterKey": "InstanceType",
+                                "ParameterValue": "${env.InstanceType}"
+                            },
+                            {
+                                "ParameterKey": "KeyPairName",
+                                "ParameterValue": "${env.KeyPairName}"
+                            },
+                            {
+                                "ParameterKey": "NoReboot",
+                                "ParameterValue": "${env.NoReboot}"
+                            },
+                            {
+                                "ParameterKey": "NoUpdates",
+                                "ParameterValue": "${env.NoUpdates}"
+                            },
+                            {
+                                "ParameterKey": "ProvisionUser",
+                                "ParameterValue": "${env.ProvisionUser}"
+                            },
+                            {
+                                "ParameterKey": "PypiIndexUrl",
+                                "ParameterValue": "${env.PypiIndexUrl}"
+                            },
+                            {
+                                "ParameterKey": "RootVolumeSize",
+                                "ParameterValue": "${env.RootVolumeSize}"
+                            },
+                            {
+                                "ParameterKey": "SecurityGroupIds",
+                                "ParameterValue": "${env.SecurityGroupIds}"
+                            },
+                            {
+                                "ParameterKey": "SubnetId",
+                                "ParameterValue": "${env.SubnetId}"
+                            },
+                            {
+                                "ParameterKey": "WatchmakerAdminGroups",
+                                "ParameterValue": "${env.WatchmakerAdminGroups}"
+                            },
+                            {
+                                "ParameterKey": "WatchmakerAdminUsers",
+                                "ParameterValue": "${env.WatchmakerAdminUsers}"
+                            },
+                            {
+                                "ParameterKey": "WatchmakerComputerName",
+                                "ParameterValue": "${env.WatchmakerComputerName}"
+                            },
+                            {
+                                "ParameterKey": "WatchmakerConfig",
+                                "ParameterValue": "${env.WatchmakerConfig}"
+                            },
+                            {
+                                "ParameterKey": "WatchmakerEnvironment",
+                                "ParameterValue": "${env.WatchmakerEnvironment}"
+                            },
+                            {
+                                "ParameterKey": "WatchmakerOuPath",
+                                "ParameterValue": "${env.WatchmakerOuPath}"
+                            }
+                        ]
+                    /
             }
         }
 
@@ -412,22 +412,22 @@ options {
             steps {
                 // Clean up stale AWS resources //
                 sh '''#!/bin/bash
-                   echo "Attempting to delete any active ${CfnStackRoot}-R53Res-${CollibraDgcComponent} stacks..."
-                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} || true
-                   sleep 5
+                    echo "Attempting to delete any active ${CfnStackRoot}-R53Res-${CollibraDgcComponent} stacks..."
+                    ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} || true
+                    sleep 5
 
-                   # Pause if delete is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q DELETE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-R53Res-${CollibraDgcComponent} to delete..."
-                      sleep 30
-                   done
+                    # Pause if delete is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q DELETE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-R53Res-${CollibraDgcComponent} to delete..."
+                        sleep 30
+                    done
                 '''
             }
         }
@@ -436,22 +436,22 @@ options {
             steps {
                 // Clean up stale AWS resources //
                 sh '''#!/bin/bash
-                   echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} stacks..."
-                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} || true
-                   sleep 5
+                    echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} stacks..."
+                    ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} || true
+                    sleep 5
 
-                   # Pause if delete is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q DELETE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} to delete..."
-                      sleep 30
-                   done
+                    # Pause if delete is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q DELETE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} to delete..."
+                        sleep 30
+                    done
                 '''
             }
         }
@@ -459,38 +459,38 @@ options {
         stage ('Launch EC2 Template') {
             steps {
                 sh '''#!/bin/bash
-                   echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent}..."
-                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
-                       --disable-rollback --template-url "${TemplateUrl}" \
-                       --parameters file://EC2.parms.json
-                   sleep 5
+                    echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent}..."
+                    ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
+                        --disable-rollback --template-url "${TemplateUrl}" \
+                        --parameters file://EC2.parms.json
+                    sleep 5
 
-                   # Pause if create is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q CREATE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} to finish create process..."
-                      sleep 30
-                   done
+                    # Pause if create is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q CREATE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} to finish create process..."
+                        sleep 30
+                    done
 
-                   if [[ $(
-                           ${CFNCMD} describe-stacks \
-                             --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
-                             --query 'Stacks[].{Status:StackStatus}' \
-                             --out text 2> /dev/null | \
-                           grep -q CREATE_COMPLETE
-                          )$? -eq 0 ]]
-                   then
-                      echo "Stack-creation successful"
-                   else
-                      echo "Stack-creation ended with non-successful state"
-                      exit 1
-                   fi
+                    if [[ $(
+                            ${CFNCMD} describe-stacks \
+                              --stack-name ${CfnStackRoot}-Ec2Res-${CollibraDgcComponent} \
+                              --query 'Stacks[].{Status:StackStatus}' \
+                              --out text 2> /dev/null | \
+                            grep -q CREATE_COMPLETE
+                            )$? -eq 0 ]]
+                    then
+                        echo "Stack-creation successful"
+                    else
+                        echo "Stack-creation ended with non-successful state"
+                        exit 1
+                    fi
                 '''
             }
         }
@@ -503,59 +503,59 @@ options {
             }
             steps {
                 writeFile file: 'R53alias.parms.json',
-                   text: /
-                         [
-                             {
-                                 "ParameterKey": "DependsOnStack",
-                                 "ParameterValue": "${CfnStackRoot}-Ec2Res-${CollibraDgcComponent}"
-                             },
-                             {
-                                 "ParameterKey": "PrivateR53Fqdn",
-                                 "ParameterValue": "${env.WatchmakerComputerName}"
-                             },
-                             {
-                                 "ParameterKey": "PrivateR53ZoneId",
-                                 "ParameterValue": "${env.R53ZoneId}"
-                             },
-                             {
-                                 "ParameterKey": "ZoneTtl",
-                                 "ParameterValue": "60"
-                             }
-                         ]
-                   /
+                    text: /
+                        [
+                            {
+                                "ParameterKey": "DependsOnStack",
+                                "ParameterValue": "${CfnStackRoot}-Ec2Res-${CollibraDgcComponent}"
+                            },
+                            {
+                                "ParameterKey": "PrivateR53Fqdn",
+                                "ParameterValue": "${env.WatchmakerComputerName}"
+                            },
+                            {
+                                "ParameterKey": "PrivateR53ZoneId",
+                                "ParameterValue": "${env.R53ZoneId}"
+                            },
+                            {
+                                "ParameterKey": "ZoneTtl",
+                                "ParameterValue": "60"
+                            }
+                        ]
+                    /
                 sh '''#!/bin/bash
-                   echo "Bind a R53 Alias to the ELB"
-                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} \
-                       --template-body file://Templates/make_collibra_R53-record.tmplt.json \
-                       --parameters file://R53alias.parms.json
-                   sleep 5
+                    echo "Bind a R53 Alias to the ELB"
+                    ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} \
+                        --template-body file://Templates/make_collibra_R53-record.tmplt.json \
+                        --parameters file://R53alias.parms.json
+                    sleep 5
 
-                   # Pause if create is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q CREATE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-R53Res-${CollibraDgcComponent} to finish create process..."
-                      sleep 30
-                   done
+                    # Pause if create is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q CREATE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-R53Res-${CollibraDgcComponent} to finish create process..."
+                        sleep 30
+                    done
 
-                   if [[ $(
-                           ${CFNCMD} describe-stacks \
-                             --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} \
-                             --query 'Stacks[].{Status:StackStatus}' \
-                             --out text 2> /dev/null | \
-                           grep -q CREATE_COMPLETE
-                          )$? -eq 0 ]]
-                   then
-                      echo "Stack-creation successful"
-                   else
-                      echo "Stack-creation ended with non-successful state"
-                      exit 1
-                   fi
+                    if [[ $(
+                            ${CFNCMD} describe-stacks \
+                              --stack-name ${CfnStackRoot}-R53Res-${CollibraDgcComponent} \
+                              --query 'Stacks[].{Status:StackStatus}' \
+                              --out text 2> /dev/null | \
+                            grep -q CREATE_COMPLETE
+                            )$? -eq 0 ]]
+                    then
+                        echo "Stack-creation successful"
+                    else
+                        echo "Stack-creation ended with non-successful state"
+                        exit 1
+                    fi
                 '''
             }
         }
@@ -571,7 +571,7 @@ options {
                 if ( env.NotifyEmail != '' ) {
                     mail to: "${env.NotifyEmail}",
                         subject: "Failed Pipeline: ${currentBuild.fullDisplayName}",
-                        body: "Something is wrong with ${env.BUILD_URL}"                    
+                        body: "Something is wrong with ${env.BUILD_URL}"
                 }
             }
         }

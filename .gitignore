@@ -1,2 +1,25 @@
 # Add any directories, files, or patterns you don't want to be tracked by version control
 *arms.json
+
+#  Local .terraform directories
+.terraform/
+.terraform.lock.hcl
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# .tfvars files
+*.tfvars
+
+# tardigrade-ci
+.tardigrade-ci
+tardigrade-ci/
+
+# python cache
+__pycache__
+.python-version
+.pytest_cache
+
+#macOS local dir meta file
+.DS_Store

@@ -23,12 +23,12 @@ pipeline {
     }
 
     parameters {
-         string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
-         string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'RootName', description: 'Substring to match against EC2 tag:Name value')
-         string(name: 'TagName', description: 'Name of the tag to apply')
-         string(name: 'TagValue', description: 'Value of the tag to apply')
+        string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
+        string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
+        string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
+        string(name: 'RootName', description: 'Substring to match against EC2 tag:Name value')
+        string(name: 'TagName', description: 'Name of the tag to apply')
+        string(name: 'TagValue', description: 'Value of the tag to apply')
     }
 
     stages {
@@ -52,9 +52,9 @@ pipeline {
                     sh '''#!/bin/bash
                         # Get list of volumes to tag
                         EBSES2TAG="$( aws ec2 describe-instances \
-                           --query 'Reservations[].Instances[].BlockDeviceMappings[].Ebs.VolumeId' \
-                           --filters 'Name=tag:Name,Values=*'${RootName}'*' \
-                           --output text | tr '\t' ' '
+                            --query 'Reservations[].Instances[].BlockDeviceMappings[].Ebs.VolumeId' \
+                            --filters 'Name=tag:Name,Values=*'${RootName}'*' \
+                            --output text | tr '\t' ' '
                         )"
 
                         # Announce what we're doing
@@ -62,7 +62,7 @@ pipeline {
 
                         # Tag-em
                         aws ec2 create-tags --resources ${EBSES2TAG} \
-                          --tags "Key=${TagName},Value=${TagValue}"
+                            --tags "Key=${TagName},Value=${TagValue}"
                     '''
                 }
             }

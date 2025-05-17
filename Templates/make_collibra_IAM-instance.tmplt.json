@@ -1,258 +1,348 @@
 {
-  "AWSTemplateFormatVersion": "2010-09-09",
-  "Conditions": {
-    "HasPermissionBoundary": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "IamBoundaryName" }, "" ] }
-      ]
-    },
-    "PrefixedRole": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "RolePrefix" }, "" ] }
-      ]
-    },
-    "SetupForCloudwatch": {
-      "Fn::Not": [
-        { "Fn::Equals": [ { "Ref": "CloudwatchBucketName"}, "" ] }
-      ]
-    }
-  },
-  "Description": "This template sets up the IAM role needed by an Collibra instance",
-  "Outputs": {
-    "InstanceRole": {
-      "Description": "Name of the instance role",
-      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRole" } },
-      "Value": { "Ref": "InstanceRole" }
-    },
-    "InstanceRoleArn": {
-      "Description": "ARN of the instance role",
-      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleArn" } },
-      "Value": { "Fn::GetAtt": [ "InstanceRole", "Arn" ] }
-    },
-    "InstanceRoleProfile": {
-      "Description": "Profile of the instance role",
-      "Export": { "Name": { "Fn::Sub": "${AWS::StackName}-InstanceRoleProfile" } },
-      "Value": { "Ref": "InstanceProfile" }
-    }
-  },
-  "Parameters": {
-    "BackupBucketArn": {
-      "Description": "ARN of S3 Bucket to host Collibra backups",
-      "Type": "String"
-    },
-    "CloudwatchBucketName": {
-      "Description": "Name of the S3 Bucket hosting the CloudWatch agent archive files",
-      "Type": "String"
-    },
-    "IamBoundaryName": {
-      "Description": "Name of the permissions-boundary to apply to the to-be-created IAM role",
-      "Type": "String"
-    },
-    "RolePrefix": {
-      "Description": "Prefix to apply to IAM role to make things a bit prettier (optional).",
-      "Type": "String"
-    }
-  },
-  "Resources": {
-    "InstancePolicy": {
-      "Properties": {
-        "Description": "Policy to provide instance-level access to needed AWS-level resources",
-        "Path": "/",
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": [
-                "s3:*"
-              ],
-              "Effect": "Allow",
-              "Resource": [
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Conditions": {
+        "HasPermissionBoundary": {
+            "Fn::Not": [
                 {
-                  "Fn::Join": [
-                    "",
-                    [
-                      { "Ref": "BackupBucketArn" },
-                      ""
+                    "Fn::Equals": [
+                        {
+                            "Ref": "IamBoundaryName"
+                        },
+                        ""
                     ]
-                  ]
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      { "Ref": "BackupBucketArn" },
-                      "/*"
-                    ]
-                  ]
                 }
-              ],
-              "Sid": "BackupsAccess"
-            },
-            {
-              "Action": [
-                "cloudformation:DescribeStackResource",
-                "cloudformation:SignalResource"
-              ],
-              "Effect": "Allow",
-              "Resource": [
-                "*"
-              ],
-              "Sid": "ASGsupport"
-            },
-            {
-              "Action": [
-                "cloudwatch:PutMetricData",
-                "ds:CreateComputer",
-                "ds:DescribeDirectories",
-                "ec2:DescribeInstanceStatus",
-                "ec2messages:AcknowledgeMessage",
-                "ec2messages:DeleteMessage",
-                "ec2messages:FailMessage",
-                "ec2messages:GetEndpoint",
-                "ec2messages:GetMessages",
-                "ec2messages:SendReply",
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:DescribeLogGroups",
-                "logs:DescribeLogStreams",
-                "logs:PutLogEvents",
-                "ssm:DescribeAssociation",
-                "ssm:GetDeployablePatchSnapshotForInstance",
-                "ssm:GetDocument",
-                "ssm:GetParameters",
-                "ssm:ListInstanceAssociations",
-                "ssm:ListAssociations",
-                "ssm:PutInventory",
-                "ssm:UpdateAssociationStatus",
-                "ssm:UpdateInstanceAssociationStatus",
-                "ssm:UpdateInstanceInformation"
-              ],
-              "Effect": "Allow",
-              "Resource": "*",
-              "Sid": "MiscEnablement"
-            },
-            {
-              "Action": [
-                "s3:PutObject",
-                "s3:GetObject",
-                "s3:ListBucketMultipartUploads",
-                "s3:AbortMultipartUpload",
-                "s3:ListMultipartUploadParts"
-              ],
-              "Effect": "Allow",
-              "Resource": [
+            ]
+        },
+        "PrefixedRole": {
+            "Fn::Not": [
                 {
-                  "Fn::If": [
-                    "SetupForCloudwatch",
-                    { "Fn::Join": [ "",
-                        [
-                          "arn:",
-                          { "Ref": "AWS::Partition" },
-                          ":s3:::",
-                          { "Ref": "CloudwatchBucketName" },
-                          "/*"
-                        ]
-                    ]},
-                    { "Ref": "AWS::NoValue" }
-                  ]
-                },
-                { "Fn::Join": [ "", [
-                    "arn:",
-                    { "Ref": "AWS::Partition" },
-                    ":s3:::ssm-",
-                    { "Ref": "AWS::AccountId" },
-                    "/*"
-                ]]}
-              ],
-              "Sid": "CSPBuckets"
-            },
-            {
-              "Action": "s3:ListBucket",
-              "Effect": "Allow",
-              "Resource": {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:",
-                    { "Ref": "AWS::Partition" },
-                    ":s3:::amazon-ssm-packages-*"
-                  ]
-                ]
-              },
-              "Sid": "GetSsmPkgs"
-            }
-          ],
-          "Version": "2012-10-17"
-        },
-        "Roles": [ { "Ref": "InstanceRole" } ]
-      },
-      "Type": "AWS::IAM::ManagedPolicy"
-    },
-    "InstanceProfile": {
-      "Properties": {
-        "Path": "/",
-        "Roles": [ { "Ref": "InstanceRole" } ]
-      },
-      "Type": "AWS::IAM::InstanceProfile"
-    },
-    "InstanceRole": {
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": {
-                "Service": {
-                  "Fn::Join": [
-                    ".",
-                    [
-                      "ec2",
-                      { "Ref": "AWS::URLSuffix" }
+                    "Fn::Equals": [
+                        {
+                            "Ref": "RolePrefix"
+                        },
+                        ""
                     ]
-                  ]
                 }
-              }
-            }
-          ],
-          "Version": "2012-10-17"
+            ]
         },
-        "Path": "/",
-        "PermissionsBoundary": {
-          "Fn::If": [
-            "HasPermissionBoundary",
-            {
-              "Fn::Join": [
-                "",
-                [
-                  "arn:",
-                  { "Ref": "AWS::Partition" },
-                  ":iam::",
-                  { "Ref": "AWS::AccountId" },
-                  ":",
-                  { "Ref": "IamBoundaryName" }
-                ]
-              ]
-            },
-            { "Ref": "AWS::NoValue" }
-          ]
-        },
-        "RoleName": {
-          "Fn::If": [
-            "PrefixedRole",
-            {
-              "Fn::Join": [
-                "",
-                [
-                  { "Ref": "RolePrefix" },
-                  { "Ref": "AWS::StackName" }
-                ]
-              ]
-            },
-            { "Ref": "AWS::NoValue" }
-          ]
+        "SetupForCloudwatch": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "CloudwatchBucketName"
+                        },
+                        ""
+                    ]
+                }
+            ]
         }
-      },
-      "Type": "AWS::IAM::Role"
+    },
+    "Description": "This template sets up the IAM role needed by an Collibra instance",
+    "Outputs": {
+        "InstanceRole": {
+            "Description": "Name of the instance role",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-InstanceRole"
+                }
+            },
+            "Value": {
+                "Ref": "InstanceRole"
+            }
+        },
+        "InstanceRoleArn": {
+            "Description": "ARN of the instance role",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-InstanceRoleArn"
+                }
+            },
+            "Value": {
+                "Fn::GetAtt": [
+                    "InstanceRole",
+                    "Arn"
+                ]
+            }
+        },
+        "InstanceRoleProfile": {
+            "Description": "Profile of the instance role",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-InstanceRoleProfile"
+                }
+            },
+            "Value": {
+                "Ref": "InstanceProfile"
+            }
+        }
+    },
+    "Parameters": {
+        "BackupBucketArn": {
+            "Description": "ARN of S3 Bucket to host Collibra backups",
+            "Type": "String"
+        },
+        "CloudwatchBucketName": {
+            "Description": "Name of the S3 Bucket hosting the CloudWatch agent archive files",
+            "Type": "String"
+        },
+        "IamBoundaryName": {
+            "Description": "Name of the permissions-boundary to apply to the to-be-created IAM role",
+            "Type": "String"
+        },
+        "RolePrefix": {
+            "Description": "Prefix to apply to IAM role to make things a bit prettier (optional).",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "InstancePolicy": {
+            "Properties": {
+                "Description": "Policy to provide instance-level access to needed AWS-level resources",
+                "Path": "/",
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "s3:*"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            {
+                                                "Ref": "BackupBucketArn"
+                                            },
+                                            ""
+                                        ]
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            {
+                                                "Ref": "BackupBucketArn"
+                                            },
+                                            "/*"
+                                        ]
+                                    ]
+                                }
+                            ],
+                            "Sid": "BackupsAccess"
+                        },
+                        {
+                            "Action": [
+                                "cloudformation:DescribeStackResource",
+                                "cloudformation:SignalResource"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                                "*"
+                            ],
+                            "Sid": "ASGsupport"
+                        },
+                        {
+                            "Action": [
+                                "cloudwatch:PutMetricData",
+                                "ds:CreateComputer",
+                                "ds:DescribeDirectories",
+                                "ec2:DescribeInstanceStatus",
+                                "ec2messages:AcknowledgeMessage",
+                                "ec2messages:DeleteMessage",
+                                "ec2messages:FailMessage",
+                                "ec2messages:GetEndpoint",
+                                "ec2messages:GetMessages",
+                                "ec2messages:SendReply",
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:DescribeLogGroups",
+                                "logs:DescribeLogStreams",
+                                "logs:PutLogEvents",
+                                "ssm:DescribeAssociation",
+                                "ssm:GetDeployablePatchSnapshotForInstance",
+                                "ssm:GetDocument",
+                                "ssm:GetParameters",
+                                "ssm:ListInstanceAssociations",
+                                "ssm:ListAssociations",
+                                "ssm:PutInventory",
+                                "ssm:UpdateAssociationStatus",
+                                "ssm:UpdateInstanceAssociationStatus",
+                                "ssm:UpdateInstanceInformation"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": "*",
+                            "Sid": "MiscEnablement"
+                        },
+                        {
+                            "Action": [
+                                "s3:PutObject",
+                                "s3:GetObject",
+                                "s3:ListBucketMultipartUploads",
+                                "s3:AbortMultipartUpload",
+                                "s3:ListMultipartUploadParts"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                                {
+                                    "Fn::If": [
+                                        "SetupForCloudwatch",
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:",
+                                                    {
+                                                        "Ref": "AWS::Partition"
+                                                    },
+                                                    ":s3:::",
+                                                    {
+                                                        "Ref": "CloudwatchBucketName"
+                                                    },
+                                                    "/*"
+                                                ]
+                                            ]
+                                        },
+                                        {
+                                            "Ref": "AWS::NoValue"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "arn:",
+                                            {
+                                                "Ref": "AWS::Partition"
+                                            },
+                                            ":s3:::ssm-",
+                                            {
+                                                "Ref": "AWS::AccountId"
+                                            },
+                                            "/*"
+                                        ]
+                                    ]
+                                }
+                            ],
+                            "Sid": "CSPBuckets"
+                        },
+                        {
+                            "Action": "s3:ListBucket",
+                            "Effect": "Allow",
+                            "Resource": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:",
+                                        {
+                                            "Ref": "AWS::Partition"
+                                        },
+                                        ":s3:::amazon-ssm-packages-*"
+                                    ]
+                                ]
+                            },
+                            "Sid": "GetSsmPkgs"
+                        }
+                    ],
+                    "Version": "2012-10-17"
+                },
+                "Roles": [
+                    {
+                        "Ref": "InstanceRole"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::ManagedPolicy"
+        },
+        "InstanceProfile": {
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "InstanceRole"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::InstanceProfile"
+        },
+        "InstanceRole": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": "sts:AssumeRole",
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": {
+                                    "Fn::Join": [
+                                        ".",
+                                        [
+                                            "ec2",
+                                            {
+                                                "Ref": "AWS::URLSuffix"
+                                            }
+                                        ]
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "Version": "2012-10-17"
+                },
+                "Path": "/",
+                "PermissionsBoundary": {
+                    "Fn::If": [
+                        "HasPermissionBoundary",
+                        {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    "arn:",
+                                    {
+                                        "Ref": "AWS::Partition"
+                                    },
+                                    ":iam::",
+                                    {
+                                        "Ref": "AWS::AccountId"
+                                    },
+                                    ":",
+                                    {
+                                        "Ref": "IamBoundaryName"
+                                    }
+                                ]
+                            ]
+                        },
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                },
+                "RoleName": {
+                    "Fn::If": [
+                        "PrefixedRole",
+                        {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "RolePrefix"
+                                    },
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    }
+                                ]
+                            ]
+                        },
+                        {
+                            "Ref": "AWS::NoValue"
+                        }
+                    ]
+                }
+            },
+            "Type": "AWS::IAM::Role"
+        }
     }
-  }
 }

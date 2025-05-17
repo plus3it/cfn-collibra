@@ -306,12 +306,6 @@
             "c4.xlarge": {
                 "SupportsNvme": "false"
             },
-            "c5.large": {
-                "SupportsNvme": "true"
-            },
-            "c5.xlarge": {
-                "SupportsNvme": "true"
-            },
             "c5.2xlarge": {
                 "SupportsNvme": "true"
             },
@@ -321,17 +315,17 @@
             "c5.8xlarge": {
                 "SupportsNvme": "true"
             },
+            "c5.large": {
+                "SupportsNvme": "true"
+            },
+            "c5.xlarge": {
+                "SupportsNvme": "true"
+            },
             "m4.large": {
                 "SupportsNvme": "false"
             },
             "m4.xlarge": {
                 "SupportsNvme": "false"
-            },
-            "m5.large": {
-                "SupportsNvme": "true"
-            },
-            "m5.xlarge": {
-                "SupportsNvme": "true"
             },
             "m5.2large": {
                 "SupportsNvme": "true"
@@ -342,10 +336,10 @@
             "m5.8xlarge": {
                 "SupportsNvme": "true"
             },
-            "r5.large": {
+            "m5.large": {
                 "SupportsNvme": "true"
             },
-            "r5.xlarge": {
+            "m5.xlarge": {
                 "SupportsNvme": "true"
             },
             "r5.2large": {
@@ -355,6 +349,12 @@
                 "SupportsNvme": "true"
             },
             "r5.8xlarge": {
+                "SupportsNvme": "true"
+            },
+            "r5.large": {
+                "SupportsNvme": "true"
+            },
+            "r5.xlarge": {
                 "SupportsNvme": "true"
             },
             "t2.large": {

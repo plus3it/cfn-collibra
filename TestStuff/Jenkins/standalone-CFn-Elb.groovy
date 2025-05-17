@@ -24,26 +24,26 @@ pipeline {
     }
 
     parameters {
-         string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
-         string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-FQDN as necessary')
-         string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
-         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
-         string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
-         string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
-         choice(name: 'ProxyForService', choices:[ 'Console', 'DGC' ], description: 'Which DGC component this ELB proxies')
-         string(name: 'UserProxyFqdn', description: 'FQDN of name to register within R53 for ELB')
-         string(name: 'R53ZoneId', description: 'Route53 ZoneId to create proxy-alias DNS record')
-         string(name: 'ElbShortName', description: 'A short, human-friendly label to assign to the ELB (no capital letters)')
-         string(name: 'CollibraInstanceId', defaultValue: '', description: 'ID of the EC2-instance this template should create a proxy for (typically left blank)')
-         string(name: 'CollibraListenPort', defaultValue: '443', description: 'Public-facing TCP Port number on which the ELB listens for requests to proxy')
-         string(name: 'HaSubnets', description: 'Provide a comma-separated list of user-facing subnet IDs in which to create service-listeners')
-         choice(name: 'CertHostingService', choices:[ 'IAM', 'ACM' ], description: 'AWS service containing the certificate to SSL-enable the ELB')
-         string(name: 'CollibraListenerCert', description: 'AWS Certificate Manager Certificate ID to bind to SSL listener')
-         string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the ELB')
-         string(name: 'TargetVPC', description: 'ID of the VPC to deploy cluster nodes into')
-         choice(name: 'PublicFacing', choices:[ 'false', 'true' ], description: 'Whether or not proxy is "internet-facing"')
+        string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
+        string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
+        string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-FQDN as necessary')
+        string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
+        string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
+        string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
+        string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
+        string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
+        choice(name: 'ProxyForService', choices:[ 'Console', 'DGC' ], description: 'Which DGC component this ELB proxies')
+        string(name: 'UserProxyFqdn', description: 'FQDN of name to register within R53 for ELB')
+        string(name: 'R53ZoneId', description: 'Route53 ZoneId to create proxy-alias DNS record')
+        string(name: 'ElbShortName', description: 'A short, human-friendly label to assign to the ELB (no capital letters)')
+        string(name: 'CollibraInstanceId', defaultValue: '', description: 'ID of the EC2-instance this template should create a proxy for (typically left blank)')
+        string(name: 'CollibraListenPort', defaultValue: '443', description: 'Public-facing TCP Port number on which the ELB listens for requests to proxy')
+        string(name: 'HaSubnets', description: 'Provide a comma-separated list of user-facing subnet IDs in which to create service-listeners')
+        choice(name: 'CertHostingService', choices:[ 'IAM', 'ACM' ], description: 'AWS service containing the certificate to SSL-enable the ELB')
+        string(name: 'CollibraListenerCert', description: 'AWS Certificate Manager Certificate ID to bind to SSL listener')
+        string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the ELB')
+        string(name: 'TargetVPC', description: 'ID of the VPC to deploy cluster nodes into')
+        choice(name: 'PublicFacing', choices:[ 'false', 'true' ], description: 'Whether or not proxy is "internet-facing"')
     }
 
     stages {
@@ -71,50 +71,50 @@ pipeline {
 
                 // Create parameter file to be used with stack-create //
                 writeFile file: 'ELB.parms.json',
-                   text: /
-                       [
-                           {
-                               "ParameterKey": "ProxyForService",
-                               "ParameterValue": "${env.ProxyForService}"
-                           },
-                           {
-                               "ParameterKey": "CollibraInstanceId",
-                               "ParameterValue": "${env.CollibraInstanceId}"
-                           },
-                           {
-                               "ParameterKey": "CollibraListenPort",
-                               "ParameterValue": "${env.CollibraListenPort}"
-                           },
-                           {
-                               "ParameterKey": "CertHostingService",
-                               "ParameterValue": "${env.CertHostingService}"
-                           },
-                           {
-                               "ParameterKey": "CollibraListenerCert",
-                               "ParameterValue": "${env.CollibraListenerCert}"
-                           },
-                           {
-                               "ParameterKey": "HaSubnets",
-                               "ParameterValue": "${env.HaSubnets}"
-                           },
-                           {
-                               "ParameterKey": "ProxyPrettyName",
-                               "ParameterValue": "${env.ElbShortName}"
-                           },
-                           {
-                               "ParameterKey": "PublicFacing",
-                               "ParameterValue": "${env.PublicFacing}"
-                           },
-                           {
-                               "ParameterKey": "SecurityGroupIds",
-                               "ParameterValue": "${env.SecurityGroupIds}"
-                           },
-                           {
-                               "ParameterKey": "TargetVPC",
-                               "ParameterValue": "${env.TargetVPC}"
-                           }
-                       ]
-                   /
+                    text: /
+                        [
+                            {
+                                "ParameterKey": "ProxyForService",
+                                "ParameterValue": "${env.ProxyForService}"
+                            },
+                            {
+                                "ParameterKey": "CollibraInstanceId",
+                                "ParameterValue": "${env.CollibraInstanceId}"
+                            },
+                            {
+                                "ParameterKey": "CollibraListenPort",
+                                "ParameterValue": "${env.CollibraListenPort}"
+                            },
+                            {
+                                "ParameterKey": "CertHostingService",
+                                "ParameterValue": "${env.CertHostingService}"
+                            },
+                            {
+                                "ParameterKey": "CollibraListenerCert",
+                                "ParameterValue": "${env.CollibraListenerCert}"
+                            },
+                            {
+                                "ParameterKey": "HaSubnets",
+                                "ParameterValue": "${env.HaSubnets}"
+                            },
+                            {
+                                "ParameterKey": "ProxyPrettyName",
+                                "ParameterValue": "${env.ElbShortName}"
+                            },
+                            {
+                                "ParameterKey": "PublicFacing",
+                                "ParameterValue": "${env.PublicFacing}"
+                            },
+                            {
+                                "ParameterKey": "SecurityGroupIds",
+                                "ParameterValue": "${env.SecurityGroupIds}"
+                            },
+                            {
+                                "ParameterKey": "TargetVPC",
+                                "ParameterValue": "${env.TargetVPC}"
+                            }
+                        ]
+                    /
 
                 // Pull AWS credentials from Jenkins credential-store
                 withCredentials(
@@ -143,42 +143,42 @@ pipeline {
                     }
 
                     sh '''#!/bin/bash
-                       if [[ -v ${R53ZoneId+x} ]]
-                       then
-                          echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
-                          ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
-                          sleep 5
+                        if [[ -v ${R53ZoneId+x} ]]
+                        then
+                            echo "Attempting to delete any active ${CfnStackRoot}-R53AliasRes-${ProxyForService} stacks..."
+                            ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} || true
+                            sleep 5
 
-                          # Pause if delete is slow
-                          while [[ $(
-                                      ${CFNCMD} describe-stacks \
-                                        --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
-                                        --query 'Stacks[].{Status:StackStatus}' \
-                                        --out text 2> /dev/null | \
-                                      grep -q DELETE_IN_PROGRESS
-                                     )$? -eq 0 ]]
-                          do
-                             echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${ProxyForService} to delete..."
-                             sleep 30
-                          done
-                       fi
+                            # Pause if delete is slow
+                            while [[ $(
+                                        ${CFNCMD} describe-stacks \
+                                          --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
+                                          --query 'Stacks[].{Status:StackStatus}' \
+                                          --out text 2> /dev/null | \
+                                        grep -q DELETE_IN_PROGRESS
+                                      )$? -eq 0 ]]
+                            do
+                              echo "Waiting for stack ${CfnStackRoot}-R53AliasRes-${ProxyForService} to delete..."
+                              sleep 30
+                            done
+                        fi
 
-                       echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${ProxyForService} stacks..."
-                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} || true
-                       sleep 5
+                        echo "Attempting to delete any active ${CfnStackRoot}-ElbRes-${ProxyForService} stacks..."
+                        ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} || true
+                        sleep 5
 
-                       # Pause if delete is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q DELETE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to delete..."
-                          sleep 30
-                       done
+                        # Pause if delete is slow
+                        while [[ $(
+                                    ${CFNCMD} describe-stacks \
+                                      --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
+                                      --query 'Stacks[].{Status:StackStatus}' \
+                                      --out text 2> /dev/null | \
+                                    grep -q DELETE_IN_PROGRESS
+                                    )$? -eq 0 ]]
+                        do
+                            echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to delete..."
+                            sleep 30
+                        done
                     '''
                 }
             }
@@ -186,38 +186,38 @@ pipeline {
         stage ('Launch ELB Template') {
             steps {
                 sh '''#!/bin/bash
-                   echo "Attempting to create stack ${CfnStackRoot}-ElbRes-${ProxyForService}..."
-                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
-                       --template-body file://Templates/make_collibra_ELBv2.tmplt.json \
-                       --parameters file://ELB.parms.json
-                   sleep 5
+                    echo "Attempting to create stack ${CfnStackRoot}-ElbRes-${ProxyForService}..."
+                    ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
+                        --template-body file://Templates/make_collibra_ELBv2.tmplt.json \
+                        --parameters file://ELB.parms.json
+                    sleep 5
 
-                   # Pause if create is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q CREATE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to finish create process..."
-                      sleep 30
-                   done
+                    # Pause if create is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q CREATE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to finish create process..."
+                        sleep 30
+                    done
 
-                   if [[ $(
-                           ${CFNCMD} describe-stacks \
-                             --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
-                             --query 'Stacks[].{Status:StackStatus}' \
-                             --out text 2> /dev/null | \
-                           grep -q CREATE_COMPLETE
-                          )$? -eq 0 ]]
-                   then
-                      echo "Stack-creation successful"
-                   else
-                      echo "Stack-creation ended with non-successful state"
-                      exit 1
-                   fi
+                    if [[ $(
+                            ${CFNCMD} describe-stacks \
+                              --stack-name ${CfnStackRoot}-ElbRes-${ProxyForService} \
+                              --query 'Stacks[].{Status:StackStatus}' \
+                              --out text 2> /dev/null | \
+                            grep -q CREATE_COMPLETE
+                            )$? -eq 0 ]]
+                    then
+                        echo "Stack-creation successful"
+                    else
+                        echo "Stack-creation ended with non-successful state"
+                        exit 1
+                    fi
                 '''
             }
         }
@@ -229,55 +229,55 @@ pipeline {
             }
             steps {
                 writeFile file: 'R53alias.parms.json',
-                   text: /
-                       [
-                           {
-                               "ParameterKey": "AliasName",
-                               "ParameterValue": "${env.UserProxyFqdn}"
-                           },
-                           {
-                               "ParameterKey": "AliasR53ZoneId",
-                               "ParameterValue": "${env.R53ZoneId}"
-                           },
-                           {
-                               "ParameterKey": "DependsOnStack",
-                               "ParameterValue": "${CfnStackRoot}-ElbRes-${ProxyForService}"
-                           }
-                       ]
-                   /
+                    text: /
+                        [
+                            {
+                                "ParameterKey": "AliasName",
+                                "ParameterValue": "${env.UserProxyFqdn}"
+                            },
+                            {
+                                "ParameterKey": "AliasR53ZoneId",
+                                "ParameterValue": "${env.R53ZoneId}"
+                            },
+                            {
+                                "ParameterKey": "DependsOnStack",
+                                "ParameterValue": "${CfnStackRoot}-ElbRes-${ProxyForService}"
+                            }
+                        ]
+                    /
                 sh '''#!/bin/bash
-                   echo "Bind a Route53 Alias to the ELB"
-                   aws cloudformation create-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
-                       --template-body file://Templates/make_collibra_R53-ElbAlias.tmplt.json \
-                       --parameters file://R53alias.parms.json
-                   sleep 5
+                    echo "Bind a Route53 Alias to the ELB"
+                    aws cloudformation create-stack --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
+                        --template-body file://Templates/make_collibra_R53-ElbAlias.tmplt.json \
+                        --parameters file://R53alias.parms.json
+                    sleep 5
 
-                   # Pause if create is slow
-                   while [[ $(
-                               aws cloudformation describe-stacks \
-                                 --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q CREATE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to finish create process..."
-                      sleep 30
-                   done
+                    # Pause if create is slow
+                    while [[ $(
+                                aws cloudformation describe-stacks \
+                                  --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q CREATE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-ElbRes-${ProxyForService} to finish create process..."
+                        sleep 30
+                    done
 
-                   if [[ $(
-                           aws cloudformation describe-stacks \
-                             --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
-                             --query 'Stacks[].{Status:StackStatus}' \
-                             --out text 2> /dev/null | \
-                           grep -q CREATE_COMPLETE
-                          )$? -eq 0 ]]
-                   then
-                      echo "Stack-creation successful"
-                   else
-                      echo "Stack-creation ended with non-successful state"
-                      exit 1
-                   fi
+                    if [[ $(
+                            aws cloudformation describe-stacks \
+                              --stack-name ${CfnStackRoot}-R53AliasRes-${ProxyForService} \
+                              --query 'Stacks[].{Status:StackStatus}' \
+                              --out text 2> /dev/null | \
+                            grep -q CREATE_COMPLETE
+                            )$? -eq 0 ]]
+                    then
+                        echo "Stack-creation successful"
+                    else
+                        echo "Stack-creation ended with non-successful state"
+                        exit 1
+                    fi
                 '''
             }
         }

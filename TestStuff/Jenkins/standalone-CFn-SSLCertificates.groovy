@@ -24,17 +24,17 @@ pipeline {
     }
 
     parameters {
-         string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
-         string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-domain as necessary')
-         string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'JobRoot', description: 'Unique token to prepend to all stack-element names')
-         string(name: 'ConsoleCert', description: 'S3 URL to Collibra Console SSL certificate')
-         string(name: 'ConsolePrivateKey', description: 'S3 URL to Collibra Console private key file')
-         string(name: 'ConsoleTrustChain', description: 'S3 URL to certificate trust-chain file')
-         string(name: 'DgcCert', description: 'S3 URL to Collibra DGC SSL certificate')
-         string(name: 'DgcPrivateKey', description: 'S3 URL to Collibra DGC private key file')
-         string(name: 'DgcTrustChain', description: 'S3 URL to certificate trust-chain file')
+        string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
+        string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
+        string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-domain as necessary')
+        string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
+        string(name: 'JobRoot', description: 'Unique token to prepend to all stack-element names')
+        string(name: 'ConsoleCert', description: 'S3 URL to Collibra Console SSL certificate')
+        string(name: 'ConsolePrivateKey', description: 'S3 URL to Collibra Console private key file')
+        string(name: 'ConsoleTrustChain', description: 'S3 URL to certificate trust-chain file')
+        string(name: 'DgcCert', description: 'S3 URL to Collibra DGC SSL certificate')
+        string(name: 'DgcPrivateKey', description: 'S3 URL to Collibra DGC private key file')
+        string(name: 'DgcTrustChain', description: 'S3 URL to certificate trust-chain file')
     }
 
     stages {
@@ -73,44 +73,44 @@ pipeline {
                 stage ('Console') {
                     steps {
                         sh '''#!/bin/bash
-                           CERTNAME="${JobRoot}-Console-Cert"
-                           printf "Looking for existing certificate [%s]... " "${CERTNAME}"
-                           CERTEXISTS=$( ${IAMCMD} get-server-certificate \
-                                           --server-certificate-name "${CERTNAME}" \
-                                           > /dev/null 2>&1 )$?
-            
-                           if [[ ${CERTEXISTS} -eq 0 ]]
-                           then
-                              echo "Found"
-                              printf "Nuking certificate [%s]... " "${CERTNAME}"
-                              ${IAMCMD} delete-server-certificate --server-certificate-name \
-                                "${CERTNAME}" > /dev/null 2>&1 && echo Success || \
-                                ( echo "FAILED" ; exit 1 )
-                           else
-                              echo "No such certificate exists"
-                           fi
+                            CERTNAME="${JobRoot}-Console-Cert"
+                            printf "Looking for existing certificate [%s]... " "${CERTNAME}"
+                            CERTEXISTS=$( ${IAMCMD} get-server-certificate \
+                                            --server-certificate-name "${CERTNAME}" \
+                                            > /dev/null 2>&1 )$?
+
+                            if [[ ${CERTEXISTS} -eq 0 ]]
+                            then
+                                echo "Found"
+                                printf "Nuking certificate [%s]... " "${CERTNAME}"
+                                ${IAMCMD} delete-server-certificate --server-certificate-name \
+                                  "${CERTNAME}" > /dev/null 2>&1 && echo Success || \
+                                  ( echo "FAILED" ; exit 1 )
+                            else
+                                echo "No such certificate exists"
+                            fi
                         '''
                     }
                 }
                 stage ('DGC') {
                     steps {
                         sh '''#!/bin/bash
-                           CERTNAME="${JobRoot}-DGC-Cert"
-                           printf "Looking for existing certificate [%s]... " "${CERTNAME}"
-                           CERTEXISTS=$( ${IAMCMD} get-server-certificate \
-                                           --server-certificate-name "${CERTNAME}" \
-                                           > /dev/null 2>&1 )$?
-    
-                           if [[ ${CERTEXISTS} -eq 0 ]]
-                           then
-                              echo "Found"
-                              printf "Nuking certificate [%s]... " "${CERTNAME}"
-                              ${IAMCMD} delete-server-certificate --server-certificate-name \
-                                "${CERTNAME}" > /dev/null 2>&1 && echo Success || \
-                                ( echo "FAILED" ; exit 1 )
-                           else
-                              echo "No such certificate exists"
-                           fi
+                            CERTNAME="${JobRoot}-DGC-Cert"
+                            printf "Looking for existing certificate [%s]... " "${CERTNAME}"
+                            CERTEXISTS=$( ${IAMCMD} get-server-certificate \
+                                            --server-certificate-name "${CERTNAME}" \
+                                            > /dev/null 2>&1 )$?
+
+                            if [[ ${CERTEXISTS} -eq 0 ]]
+                            then
+                                echo "Found"
+                                printf "Nuking certificate [%s]... " "${CERTNAME}"
+                                ${IAMCMD} delete-server-certificate --server-certificate-name \
+                                  "${CERTNAME}" > /dev/null 2>&1 && echo Success || \
+                                  ( echo "FAILED" ; exit 1 )
+                            else
+                                echo "No such certificate exists"
+                            fi
                         '''
                     }
                 }
@@ -121,26 +121,26 @@ pipeline {
                 stage ('Console') {
                     steps {
                         sh '''#!/bin/bash
-                           CERTNAME="${JobRoot}-Console-Cert"
-                           printf "Uploading certificate [%s]... " "${CERTNAME}"
-                           ${IAMCMD} upload-server-certificate --server-certificate-name "${CERTNAME}" \
-                             --certificate-chain "${ConsoleTrustChain}" \
-                             --certificate-body "${ConsoleCert}" \
-                             --private-key "${ConsolePrivateKey}" > /dev/null 2>&1 \
-                               && echo "Success" || ( echo "FAILED" ; exit 1 )
+                            CERTNAME="${JobRoot}-Console-Cert"
+                            printf "Uploading certificate [%s]... " "${CERTNAME}"
+                            ${IAMCMD} upload-server-certificate --server-certificate-name "${CERTNAME}" \
+                              --certificate-chain "${ConsoleTrustChain}" \
+                              --certificate-body "${ConsoleCert}" \
+                              --private-key "${ConsolePrivateKey}" > /dev/null 2>&1 \
+                                && echo "Success" || ( echo "FAILED" ; exit 1 )
                         '''
                     }
                 }
                 stage ('DGC') {
                     steps {
                         sh '''#!/bin/bash
-                           CERTNAME="${JobRoot}-DGC-Cert"
-                           printf "Uploading certificate [%s]... " "${CERTNAME}"
-                           ${IAMCMD} upload-server-certificate --server-certificate-name "${CERTNAME}" \
-                             --certificate-chain "${DgcTrustChain}" \
-                             --certificate-body "${ConsoleCert}" \
-                             --private-key "${ConsolePrivateKey}" > /dev/null 2>&1 \
-                               && echo "Success" || ( echo "FAILED" ; exit 1 )
+                            CERTNAME="${JobRoot}-DGC-Cert"
+                            printf "Uploading certificate [%s]... " "${CERTNAME}"
+                            ${IAMCMD} upload-server-certificate --server-certificate-name "${CERTNAME}" \
+                              --certificate-chain "${DgcTrustChain}" \
+                              --certificate-body "${ConsoleCert}" \
+                              --private-key "${ConsolePrivateKey}" > /dev/null 2>&1 \
+                                && echo "Success" || ( echo "FAILED" ; exit 1 )
                         '''
                     }
                 }
@@ -151,40 +151,40 @@ pipeline {
                 stage ('Console') {
                     steps {
                         sh '''#!/bin/bash
-                           CERTNAME="${JobRoot}-Console-Cert"
-                           echo "Verifying [${CERTNAME}] upload..."
-                           CERTRET=$( ${IAMCMD} get-server-certificate \
-                                        --server-certificate-name "${CERTNAME}" \
-                                        --query 'ServerCertificate.ServerCertificateMetadata' \
-                                        2> /dev/null )
+                            CERTNAME="${JobRoot}-Console-Cert"
+                            echo "Verifying [${CERTNAME}] upload..."
+                            CERTRET=$( ${IAMCMD} get-server-certificate \
+                                          --server-certificate-name "${CERTNAME}" \
+                                          --query 'ServerCertificate.ServerCertificateMetadata' \
+                                          2> /dev/null )
 
-                           if [[ -z ${CERTRET} ]]
-                           then
-                              echo "Failed to upload certificate [${CERTNAME}]"
-                              exit 1
-                           else
-                              echo "${CERTRET}"
-                           fi
+                            if [[ -z ${CERTRET} ]]
+                            then
+                                echo "Failed to upload certificate [${CERTNAME}]"
+                                exit 1
+                            else
+                                echo "${CERTRET}"
+                            fi
                         '''
                     }
                 }
                 stage ('DGC') {
                     steps {
                         sh '''#!/bin/bash
-                           CERTNAME="${JobRoot}-DGC-Cert"
-                           echo "Verifying [${CERTNAME}] upload..."
-                           CERTRET=$( ${IAMCMD} get-server-certificate \
-                                        --server-certificate-name "${CERTNAME}" \
-                                        --query 'ServerCertificate.ServerCertificateMetadata' \
-                                        2> /dev/null )
+                            CERTNAME="${JobRoot}-DGC-Cert"
+                            echo "Verifying [${CERTNAME}] upload..."
+                            CERTRET=$( ${IAMCMD} get-server-certificate \
+                                          --server-certificate-name "${CERTNAME}" \
+                                          --query 'ServerCertificate.ServerCertificateMetadata' \
+                                          2> /dev/null )
 
-                           if [[ -z ${CERTRET} ]]
-                           then
-                              echo "Failed to upload certificate [${CERTNAME}]"
-                              exit 1
-                           else
-                              echo "${CERTRET}"
-                           fi
+                            if [[ -z ${CERTRET} ]]
+                            then
+                                echo "Failed to upload certificate [${CERTNAME}]"
+                                exit 1
+                            else
+                                echo "${CERTRET}"
+                            fi
                         '''
                     }
                 }
