@@ -24,12 +24,12 @@ pipeline {
     }
 
     parameters {
-         string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
-         string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-domain as necessary')
-         string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
-         string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
+        string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
+        string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
+        string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-domain as necessary')
+        string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
+        string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
+        string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
     }
 
     stages {
@@ -126,84 +126,84 @@ pipeline {
 
                 // Create parameter file to be used with stack-create //
                 writeFile file: 'IAM.parms.json',
-                   text: /
-                         [
-                             {
-                                 "ParameterKey": "BackupBucketArn",
-                                 "ParameterValue": "${env.BackupBucketArn}"
-                             },
-                             {
-                                 "ParameterKey": "RolePrefix",
-                                 "ParameterValue": "${env.RolePrefix}"
-                             },
-                             {
-                                 "ParameterKey": "IamBoundaryName",
-                                 "ParameterValue": "${env.IamBoundaryName}"
-                             },
-                             {
-                                 "ParameterKey": "CloudwatchBucketName",
-                                 "ParameterValue": "${env.CloudwatchBucketName}"
-                             }
-                         ]
-                   /
+                    text: /
+                        [
+                            {
+                                "ParameterKey": "BackupBucketArn",
+                                "ParameterValue": "${env.BackupBucketArn}"
+                            },
+                            {
+                                "ParameterKey": "RolePrefix",
+                                "ParameterValue": "${env.RolePrefix}"
+                            },
+                            {
+                                "ParameterKey": "IamBoundaryName",
+                                "ParameterValue": "${env.IamBoundaryName}"
+                            },
+                            {
+                                "ParameterKey": "CloudwatchBucketName",
+                                "ParameterValue": "${env.CloudwatchBucketName}"
+                            }
+                        ]
+                    /
 
                 // Clean up stale AWS resources //
                 sh '''#!/bin/bash
-                   echo "Attempting to delete any active ${CfnStackRoot}-IamRes stacks..."
-                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-IamRes || true
-                   sleep 5
+                    echo "Attempting to delete any active ${CfnStackRoot}-IamRes stacks..."
+                    ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-IamRes || true
+                    sleep 5
 
-                   # Pause if delete is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-IamRes \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q DELETE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-IamRes to delete..."
-                      sleep 30
-                   done
+                    # Pause if delete is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-IamRes \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q DELETE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-IamRes to delete..."
+                        sleep 30
+                    done
                 '''
             }
         }
         stage ('Launch IAM Template') {
             steps {
                 sh '''#!/bin/bash
-                   echo "Attempting to create stack ${CfnStackRoot}-IamRes..."
-                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-IamRes \
-                       --capabilities CAPABILITY_NAMED_IAM \
-                       --template-body file://Templates/make_collibra_IAM-instance.tmplt.json \
-                       --parameters file://IAM.parms.json
-                   sleep 5
+                    echo "Attempting to create stack ${CfnStackRoot}-IamRes..."
+                    ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-IamRes \
+                        --capabilities CAPABILITY_NAMED_IAM \
+                        --template-body file://Templates/make_collibra_IAM-instance.tmplt.json \
+                        --parameters file://IAM.parms.json
+                    sleep 5
 
-                   # Pause if create is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-IamRes \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q CREATE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-IamRes to finish create process..."
-                      sleep 30
-                   done
+                    # Pause if create is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-IamRes \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q CREATE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-IamRes to finish create process..."
+                        sleep 30
+                    done
 
-                   if [[ $(
-                           ${CFNCMD} describe-stacks \
-                             --stack-name ${CfnStackRoot}-IamRes \
-                             --query 'Stacks[].{Status:StackStatus}' \
-                             --out text 2> /dev/null | \
-                           grep -q CREATE_COMPLETE
-                          )$? -eq 0 ]]
-                   then
-                      echo "Stack-creation successful"
-                   else
-                      echo "Stack-creation ended with non-successful state"
-                      exit 1
-                   fi
+                    if [[ $(
+                            ${CFNCMD} describe-stacks \
+                              --stack-name ${CfnStackRoot}-IamRes \
+                              --query 'Stacks[].{Status:StackStatus}' \
+                              --out text 2> /dev/null | \
+                            grep -q CREATE_COMPLETE
+                            )$? -eq 0 ]]
+                    then
+                        echo "Stack-creation successful"
+                    else
+                        echo "Stack-creation ended with non-successful state"
+                        exit 1
+                    fi
                 '''
             }
         }

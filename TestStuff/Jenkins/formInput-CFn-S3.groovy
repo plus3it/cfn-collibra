@@ -24,16 +24,16 @@ pipeline {
     }
 
     parameters {
-         string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
-         string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-domain as necessary')
-         string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
-         string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
+        string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
+        string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
+        string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-domain as necessary')
+        string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
+        string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
+        string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
     }
 
     stages {
-        
+
         stage ('Cross-stage Env-setup') {
             steps {
                 // Make sure work-directory is clean //
@@ -167,88 +167,88 @@ pipeline {
 
                 // Create parameter file to be used with stack-create //
                 writeFile file: 'S3bucket.parms.json',
-                   text: /
-                         [
-                             {
-                                 "ParameterKey": "BackupBucket",
-                                 "ParameterValue": "${env.BackupBucket}"
-                             },
-                             {
-                                 "ParameterKey": "BackupBucketInventoryTracking",
-                                 "ParameterValue": "${env.BackupBucketInventoryTracking}"
-                             },
-                             {
-                                 "ParameterKey": "BackupReportingBucket",
-                                 "ParameterValue": "${env.BackupReportingBucket}"
-                             },
-                             {
-                                 "ParameterKey": "BucketLoggingDestination",
-                                 "ParameterValue": "${env.BucketLoggingDestination}"
-                             },
-                             {
-                                 "ParameterKey": "BucketSecurityToggle",
-                                 "ParameterValue": "${env.BucketSecurityToggle}"
-                             },
-                             {
-                                 "ParameterKey": "BucketSecurityBlockPublicAcls",
-                                 "ParameterValue": "${env.BucketSecurityBlockPublicAcls}"
-                             },
-                             {
-                                 "ParameterKey": "BucketSecurityBlockPublicPolicy",
-                                 "ParameterValue": "${env.BucketSecurityBlockPublicPolicy}"
-                             },
-                             {
-                                 "ParameterKey": "BucketSecurityIgnorePublicAcls",
-                                 "ParameterValue": "${env.BucketSecurityIgnorePublicAcls}"
-                             },
-                             {
-                                 "ParameterKey": "BucketSecurityRestrictPublicBuckets",
-                                 "ParameterValue": "${env.BucketSecurityRestrictPublicBuckets}"
-                             },
-                             {
-                                 "ParameterKey": "ComplianceRetention",
-                                 "ParameterValue": "${env.ComplianceRetention}"
-                             },
-                             {
-                                 "ParameterKey": "EncryptionKeyArn",
-                                 "ParameterValue": "${env.EncryptionKeyArn}"
-                             },
-                             {
-                                 "ParameterKey": "FinalExpirationDays",
-                                 "ParameterValue": "${env.FinalExpirationDays}"
-                             },
-                             {
-                                 "ParameterKey": "RetainIncompleteDays",
-                                 "ParameterValue": "${env.RetainIncompleteDays}"
-                             },
-                             {
-                                 "ParameterKey": "TierToGlacierDays",
-                                 "ParameterValue": "${env.TierToGlacierDays}"
-                             }
-                         ]
-                   /
+                    text: /
+                        [
+                            {
+                                "ParameterKey": "BackupBucket",
+                                "ParameterValue": "${env.BackupBucket}"
+                            },
+                            {
+                                "ParameterKey": "BackupBucketInventoryTracking",
+                                "ParameterValue": "${env.BackupBucketInventoryTracking}"
+                            },
+                            {
+                                "ParameterKey": "BackupReportingBucket",
+                                "ParameterValue": "${env.BackupReportingBucket}"
+                            },
+                            {
+                                "ParameterKey": "BucketLoggingDestination",
+                                "ParameterValue": "${env.BucketLoggingDestination}"
+                            },
+                            {
+                                "ParameterKey": "BucketSecurityToggle",
+                                "ParameterValue": "${env.BucketSecurityToggle}"
+                            },
+                            {
+                                "ParameterKey": "BucketSecurityBlockPublicAcls",
+                                "ParameterValue": "${env.BucketSecurityBlockPublicAcls}"
+                            },
+                            {
+                                "ParameterKey": "BucketSecurityBlockPublicPolicy",
+                                "ParameterValue": "${env.BucketSecurityBlockPublicPolicy}"
+                            },
+                            {
+                                "ParameterKey": "BucketSecurityIgnorePublicAcls",
+                                "ParameterValue": "${env.BucketSecurityIgnorePublicAcls}"
+                            },
+                            {
+                                "ParameterKey": "BucketSecurityRestrictPublicBuckets",
+                                "ParameterValue": "${env.BucketSecurityRestrictPublicBuckets}"
+                            },
+                            {
+                                "ParameterKey": "ComplianceRetention",
+                                "ParameterValue": "${env.ComplianceRetention}"
+                            },
+                            {
+                                "ParameterKey": "EncryptionKeyArn",
+                                "ParameterValue": "${env.EncryptionKeyArn}"
+                            },
+                            {
+                                "ParameterKey": "FinalExpirationDays",
+                                "ParameterValue": "${env.FinalExpirationDays}"
+                            },
+                            {
+                                "ParameterKey": "RetainIncompleteDays",
+                                "ParameterValue": "${env.RetainIncompleteDays}"
+                            },
+                            {
+                                "ParameterKey": "TierToGlacierDays",
+                                "ParameterValue": "${env.TierToGlacierDays}"
+                            }
+                        ]
+                    /
 
                 // Clean up stale AWS resources //
                 sh '''#!/bin/bash
-                   # Bail on failures
-                   set -euo pipefail
+                    # Bail on failures
+                    set -euo pipefail
 
-                   echo "Attempting to delete any active ${CfnStackRoot}-S3Res stacks..."
-                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-S3Res || true
-                   sleep 5
+                    echo "Attempting to delete any active ${CfnStackRoot}-S3Res stacks..."
+                    ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-S3Res || true
+                    sleep 5
 
-                   # Pause if delete is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-S3Res \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q DELETE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-S3Res to delete..."
-                      sleep 30
-                   done
+                    # Pause if delete is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-S3Res \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q DELETE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-S3Res to delete..."
+                        sleep 30
+                    done
                 '''
             }
         }
@@ -256,44 +256,44 @@ pipeline {
         stage ('Launch Bucket Template') {
             steps {
                 sh '''#!/bin/bash
-                   # Bail on failures
-                   set -euo pipefail
+                    # Bail on failures
+                    set -euo pipefail
 
-                   echo "Attempting to create stack ${CfnStackRoot}-S3Res..."
-                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-S3Res \
-                       --template-body file://Templates/make_collibra_S3-bucket.tmplt.json \
-                       --parameters file://S3bucket.parms.json
-                   sleep 5
+                    echo "Attempting to create stack ${CfnStackRoot}-S3Res..."
+                    ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-S3Res \
+                        --template-body file://Templates/make_collibra_S3-bucket.tmplt.json \
+                        --parameters file://S3bucket.parms.json
+                    sleep 5
 
-                   # Pause if create is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-S3Res \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q CREATE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-S3Res to finish create process..."
-                      sleep 30
-                   done
+                    # Pause if create is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-S3Res \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q CREATE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-S3Res to finish create process..."
+                        sleep 30
+                    done
 
-                   if [[ $(
-                           ${CFNCMD} describe-stacks \
-                             --stack-name ${CfnStackRoot}-S3Res \
-                             --query 'Stacks[].{Status:StackStatus}' \
-                             --out text 2> /dev/null | \
-                           grep -q CREATE_COMPLETE
-                          )$? -eq 0 ]]
-                   then
-                      echo "Success. Created:"
-                      aws cloudformation describe-stacks --stack-name ${CfnStackRoot}-S3Res \
-                        --query 'Stacks[].Outputs[].{Description:Description,Value:OutputValue}' \
-                        --output table | sed 's/^/    /'
-                   else
-                      echo "Stack-creation ended with non-successful state"
-                      exit 1
-                   fi
+                    if [[ $(
+                            ${CFNCMD} describe-stacks \
+                              --stack-name ${CfnStackRoot}-S3Res \
+                              --query 'Stacks[].{Status:StackStatus}' \
+                              --out text 2> /dev/null | \
+                            grep -q CREATE_COMPLETE
+                            )$? -eq 0 ]]
+                    then
+                        echo "Success. Created:"
+                        aws cloudformation describe-stacks --stack-name ${CfnStackRoot}-S3Res \
+                          --query 'Stacks[].Outputs[].{Description:Description,Value:OutputValue}' \
+                          --output table | sed 's/^/    /'
+                    else
+                        echo "Stack-creation ended with non-successful state"
+                        exit 1
+                    fi
                 '''
             }
         }

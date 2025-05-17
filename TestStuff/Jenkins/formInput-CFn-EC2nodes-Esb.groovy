@@ -24,15 +24,15 @@ pipeline {
     }
 
     parameters {
-         string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
-         string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcDomain',  description: 'Override the AWS service-endpoints DNS FQDNs as necessary')
-         string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
-         string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
-         string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the EC2')
-         string(name: 'InstanceRoleProfile', description: 'IAM instance profile-name to apply to the EC2')
-         string(name: 'InstanceRoleName', description: 'IAM instance role-name to use for signalling')
+        string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
+        string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
+        string(name: 'AwsSvcDomain',  description: 'Override the AWS service-endpoints DNS FQDNs as necessary')
+        string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
+        string(name: 'ParmFileS3location', description: 'S3 URL for parameter file (e.g., "s3://<bucket>/<object_key>")')
+        string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
+        string(name: 'SecurityGroupIds', description: 'List of security groups to apply to the EC2')
+        string(name: 'InstanceRoleProfile', description: 'IAM instance profile-name to apply to the EC2')
+        string(name: 'InstanceRoleName', description: 'IAM instance role-name to use for signalling')
     }
 
     stages {
@@ -217,118 +217,118 @@ pipeline {
 
                 // Create parameter file to be used with stack-create //
                 writeFile file: 'EC2.parms.json',
-                   text: /
-                         [
-                             {
-                                 "ParameterKey": "AdminPubkeyURL",
-                                 "ParameterValue": "${env.AdminPubkeyURL}"
-                             },
-                             {
-                                 "ParameterKey": "AmiId",
-                                 "ParameterValue": "${env.AmiId}"
-                             },
-                             {
-                                 "ParameterKey": "AppVolumeDevice",
-                                 "ParameterValue": "${env.AppVolumeDevice}"
-                             },
-                             {
-                                 "ParameterKey": "AppVolumeMountPath",
-                                 "ParameterValue": "${env.AppVolumeMountPath}"
-                             },
-                             {
-                                 "ParameterKey": "AppVolumeSize",
-                                 "ParameterValue": "${env.AppVolumeSize}"
-                             },
-                             {
-                                 "ParameterKey": "AppVolumeType",
-                                 "ParameterValue": "${env.AppVolumeType}"
-                             },
-                             {
-                                 "ParameterKey": "BackupSchedule",
-                                 "ParameterValue": "${env.BackupSchedule}"
-                             },
-                             {
-                                 "ParameterKey": "CloudWatchAgentUrl",
-                                 "ParameterValue": "${env.CloudWatchAgentUrl}"
-                             },
-                             {
-                                 "ParameterKey": "InstanceRoleName",
-                                 "ParameterValue": "${env.InstanceRoleName}"
-                             },
-                             {
-                                 "ParameterKey": "InstanceRoleProfile",
-                                 "ParameterValue": "${env.InstanceRoleProfile}"
-                             },
-                             {
-                                 "ParameterKey": "InstanceType",
-                                 "ParameterValue": "${env.InstanceType}"
-                             },
-                             {
-                                 "ParameterKey": "KeyPairName",
-                                 "ParameterValue": "${env.KeyPairName}"
-                             },
-                             {
-                                 "ParameterKey": "MuleLicenseUri",
-                                 "ParameterValue": "${env.MuleLicenseUri}"
-                             },
-                             {
-                                 "ParameterKey": "MuleUri",
-                                 "ParameterValue": "${env.MuleUri}"
-                             },
-                             {
-                                 "ParameterKey": "NoReboot",
-                                 "ParameterValue": "${env.NoReboot}"
-                             },
-                             {
-                                 "ParameterKey": "NoUpdates",
-                                 "ParameterValue": "${env.NoUpdates}"
-                             },
-                             {
-                                 "ParameterKey": "ProvisionUser",
-                                 "ParameterValue": "${env.ProvisionUser}"
-                             },
-                             {
-                                 "ParameterKey": "PypiIndexUrl",
-                                 "ParameterValue": "${env.PypiIndexUrl}"
-                             },
-                             {
-                                 "ParameterKey": "RootVolumeSize",
-                                 "ParameterValue": "${env.RootVolumeSize}"
-                             },
-                             {
-                                 "ParameterKey": "SecurityGroupIds",
-                                 "ParameterValue": "${env.SecurityGroupIds}"
-                             },
-                             {
-                                 "ParameterKey": "SubnetId",
-                                 "ParameterValue": "${env.SubnetId}"
-                             },
-                             {
-                                 "ParameterKey": "WatchmakerAdminGroups",
-                                 "ParameterValue": "${env.WatchmakerAdminGroups}"
-                             },
-                             {
-                                 "ParameterKey": "WatchmakerAdminUsers",
-                                 "ParameterValue": "${env.WatchmakerAdminUsers}"
-                             },
-                             {
-                                 "ParameterKey": "WatchmakerComputerName",
-                                 "ParameterValue": "${env.WatchmakerComputerName}"
-                             },
-                             {
-                                 "ParameterKey": "WatchmakerConfig",
-                                 "ParameterValue": "${env.WatchmakerConfig}"
-                             },
-                             {
-                                 "ParameterKey": "WatchmakerEnvironment",
-                                 "ParameterValue": "${env.WatchmakerEnvironment}"
-                             },
-                             {
-                                 "ParameterKey": "WatchmakerOuPath",
-                                 "ParameterValue": "${env.WatchmakerOuPath}"
-                             }
-                         ]
-                   /
+                    text: /
+                        [
+                            {
+                                "ParameterKey": "AdminPubkeyURL",
+                                "ParameterValue": "${env.AdminPubkeyURL}"
+                            },
+                            {
+                                "ParameterKey": "AmiId",
+                                "ParameterValue": "${env.AmiId}"
+                            },
+                            {
+                                "ParameterKey": "AppVolumeDevice",
+                                "ParameterValue": "${env.AppVolumeDevice}"
+                            },
+                            {
+                                "ParameterKey": "AppVolumeMountPath",
+                                "ParameterValue": "${env.AppVolumeMountPath}"
+                            },
+                            {
+                                "ParameterKey": "AppVolumeSize",
+                                "ParameterValue": "${env.AppVolumeSize}"
+                            },
+                            {
+                                "ParameterKey": "AppVolumeType",
+                                "ParameterValue": "${env.AppVolumeType}"
+                            },
+                            {
+                                "ParameterKey": "BackupSchedule",
+                                "ParameterValue": "${env.BackupSchedule}"
+                            },
+                            {
+                                "ParameterKey": "CloudWatchAgentUrl",
+                                "ParameterValue": "${env.CloudWatchAgentUrl}"
+                            },
+                            {
+                                "ParameterKey": "InstanceRoleName",
+                                "ParameterValue": "${env.InstanceRoleName}"
+                            },
+                            {
+                                "ParameterKey": "InstanceRoleProfile",
+                                "ParameterValue": "${env.InstanceRoleProfile}"
+                            },
+                            {
+                                "ParameterKey": "InstanceType",
+                                "ParameterValue": "${env.InstanceType}"
+                            },
+                            {
+                                "ParameterKey": "KeyPairName",
+                                "ParameterValue": "${env.KeyPairName}"
+                            },
+                            {
+                                "ParameterKey": "MuleLicenseUri",
+                                "ParameterValue": "${env.MuleLicenseUri}"
+                            },
+                            {
+                                "ParameterKey": "MuleUri",
+                                "ParameterValue": "${env.MuleUri}"
+                            },
+                            {
+                                "ParameterKey": "NoReboot",
+                                "ParameterValue": "${env.NoReboot}"
+                            },
+                            {
+                                "ParameterKey": "NoUpdates",
+                                "ParameterValue": "${env.NoUpdates}"
+                            },
+                            {
+                                "ParameterKey": "ProvisionUser",
+                                "ParameterValue": "${env.ProvisionUser}"
+                            },
+                            {
+                                "ParameterKey": "PypiIndexUrl",
+                                "ParameterValue": "${env.PypiIndexUrl}"
+                            },
+                            {
+                                "ParameterKey": "RootVolumeSize",
+                                "ParameterValue": "${env.RootVolumeSize}"
+                            },
+                            {
+                                "ParameterKey": "SecurityGroupIds",
+                                "ParameterValue": "${env.SecurityGroupIds}"
+                            },
+                            {
+                                "ParameterKey": "SubnetId",
+                                "ParameterValue": "${env.SubnetId}"
+                            },
+                            {
+                                "ParameterKey": "WatchmakerAdminGroups",
+                                "ParameterValue": "${env.WatchmakerAdminGroups}"
+                            },
+                            {
+                                "ParameterKey": "WatchmakerAdminUsers",
+                                "ParameterValue": "${env.WatchmakerAdminUsers}"
+                            },
+                            {
+                                "ParameterKey": "WatchmakerComputerName",
+                                "ParameterValue": "${env.WatchmakerComputerName}"
+                            },
+                            {
+                                "ParameterKey": "WatchmakerConfig",
+                                "ParameterValue": "${env.WatchmakerConfig}"
+                            },
+                            {
+                                "ParameterKey": "WatchmakerEnvironment",
+                                "ParameterValue": "${env.WatchmakerEnvironment}"
+                            },
+                            {
+                                "ParameterKey": "WatchmakerOuPath",
+                                "ParameterValue": "${env.WatchmakerOuPath}"
+                            }
+                        ]
+                    /
             }
         }
 
@@ -341,22 +341,22 @@ pipeline {
             }
             steps {
                 sh '''#!/bin/bash
-                   echo "Attempting to delete any active ${CfnStackRoot}-R53Res-ESB stacks..."
-                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-ESB || true
-                   sleep 5
+                    echo "Attempting to delete any active ${CfnStackRoot}-R53Res-ESB stacks..."
+                    ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-R53Res-ESB || true
+                    sleep 5
 
-                   # Pause if delete is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-R53Res-ESB \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q DELETE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-R53Res-ESB to delete..."
-                      sleep 30
-                   done
+                    # Pause if delete is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-R53Res-ESB \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q DELETE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-R53Res-ESB to delete..."
+                        sleep 30
+                    done
                 '''
             }
         }
@@ -365,22 +365,22 @@ pipeline {
         stage ('Nuke Stale EC2') {
             steps {
                 sh '''#!/bin/bash
-                   echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-ESB stacks..."
-                   ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB || true
-                   sleep 5
+                    echo "Attempting to delete any active ${CfnStackRoot}-Ec2Res-ESB stacks..."
+                    ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB || true
+                    sleep 5
 
-                   # Pause if delete is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-Ec2Res-ESB \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q DELETE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-Ec2Res-ESB to delete..."
-                      sleep 30
-                   done
+                    # Pause if delete is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-Ec2Res-ESB \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q DELETE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-Ec2Res-ESB to delete..."
+                        sleep 30
+                    done
                 '''
             }
         }
@@ -388,39 +388,39 @@ pipeline {
         stage ('Launch EC2 Template') {
             steps {
                 sh '''#!/bin/bash
-                   # For compatibility with ancient AWS CLI utilities
-                   echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-ESB..."
-                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB \
-                       --disable-rollback --template-url "${TemplateUrl}" \
-                       --parameters file://EC2.parms.json
-                   sleep 5
+                    # For compatibility with ancient AWS CLI utilities
+                    echo "Attempting to create stack ${CfnStackRoot}-Ec2Res-ESB..."
+                    ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-Ec2Res-ESB \
+                        --disable-rollback --template-url "${TemplateUrl}" \
+                        --parameters file://EC2.parms.json
+                    sleep 5
 
-                   # Pause if create is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-Ec2Res-ESB \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q CREATE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-Ec2Res-ESB to finish create process..."
-                      sleep 30
-                   done
+                    # Pause if create is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-Ec2Res-ESB \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q CREATE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-Ec2Res-ESB to finish create process..."
+                        sleep 30
+                    done
 
-                   if [[ $(
-                           ${CFNCMD} describe-stacks \
-                             --stack-name ${CfnStackRoot}-Ec2Res-ESB \
-                             --query 'Stacks[].{Status:StackStatus}' \
-                             --out text 2> /dev/null | \
-                           grep -q CREATE_COMPLETE
-                          )$? -eq 0 ]]
-                   then
-                      echo "Stack-creation successful"
-                   else
-                      echo "Stack-creation ended with non-successful state"
-                      exit 1
-                   fi
+                    if [[ $(
+                            ${CFNCMD} describe-stacks \
+                              --stack-name ${CfnStackRoot}-Ec2Res-ESB \
+                              --query 'Stacks[].{Status:StackStatus}' \
+                              --out text 2> /dev/null | \
+                            grep -q CREATE_COMPLETE
+                            )$? -eq 0 ]]
+                    then
+                        echo "Stack-creation successful"
+                    else
+                        echo "Stack-creation ended with non-successful state"
+                        exit 1
+                    fi
                 '''
             }
         }
@@ -434,62 +434,62 @@ pipeline {
             steps {
                 // Write a parm-file for use with template
                 writeFile file: 'R53alias.parms.json',
-                   text: /
-                         [
-                             {
-                                 "ParameterKey": "DependsOnStack",
-                                 "ParameterValue": "${CfnStackRoot}-Ec2Res-ESB"
-                             },
-                             {
-                                 "ParameterKey": "PrivateR53Fqdn",
-                                 "ParameterValue": "${env.WatchmakerComputerName}"
-                             },
-                             {
-                                 "ParameterKey": "PrivateR53ZoneId",
-                                 "ParameterValue": "${env.R53ZoneId}"
-                             },
-                             {
-                                 "ParameterKey": "ZoneTtl",
-                                 "ParameterValue": "60"
-                             }
-                         ]
-                   /
+                    text: /
+                        [
+                            {
+                                "ParameterKey": "DependsOnStack",
+                                "ParameterValue": "${CfnStackRoot}-Ec2Res-ESB"
+                            },
+                            {
+                                "ParameterKey": "PrivateR53Fqdn",
+                                "ParameterValue": "${env.WatchmakerComputerName}"
+                            },
+                            {
+                                "ParameterKey": "PrivateR53ZoneId",
+                                "ParameterValue": "${env.R53ZoneId}"
+                            },
+                            {
+                                "ParameterKey": "ZoneTtl",
+                                "ParameterValue": "60"
+                            }
+                        ]
+                    /
 
                 // AWS creds-setup
                 // Use AWS CLI to execute CFn tasks
                 sh '''#!/bin/bash
-                   echo "Bind a R53 Alias to the ELB"
-                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-R53Res-ESB \
-                       --template-body file://Templates/make_collibra_R53-record.tmplt.json \
-                       --parameters file://R53alias.parms.json
-                   sleep 5
+                    echo "Bind a R53 Alias to the ELB"
+                    ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-R53Res-ESB \
+                        --template-body file://Templates/make_collibra_R53-record.tmplt.json \
+                        --parameters file://R53alias.parms.json
+                    sleep 5
 
-                   # Pause if create is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-R53Res-ESB \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q CREATE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-R53Res-ESB to finish create process..."
-                      sleep 30
-                   done
+                    # Pause if create is slow
+                    while [[ $(
+                                ${CFNCMD} describe-stacks \
+                                  --stack-name ${CfnStackRoot}-R53Res-ESB \
+                                  --query 'Stacks[].{Status:StackStatus}' \
+                                  --out text 2> /dev/null | \
+                                grep -q CREATE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-R53Res-ESB to finish create process..."
+                        sleep 30
+                    done
 
-                   if [[ $(
-                           ${CFNCMD} describe-stacks \
-                             --stack-name ${CfnStackRoot}-R53Res-ESB \
-                             --query 'Stacks[].{Status:StackStatus}' \
-                             --out text 2> /dev/null | \
-                           grep -q CREATE_COMPLETE
-                          )$? -eq 0 ]]
-                   then
-                      echo "Stack-creation successful"
-                   else
-                      echo "Stack-creation ended with non-successful state"
-                      exit 1
-                   fi
+                    if [[ $(
+                            ${CFNCMD} describe-stacks \
+                              --stack-name ${CfnStackRoot}-R53Res-ESB \
+                              --query 'Stacks[].{Status:StackStatus}' \
+                              --out text 2> /dev/null | \
+                            grep -q CREATE_COMPLETE
+                            )$? -eq 0 ]]
+                    then
+                        echo "Stack-creation successful"
+                    else
+                        echo "Stack-creation ended with non-successful state"
+                        exit 1
+                    fi
                 '''
             }
         }

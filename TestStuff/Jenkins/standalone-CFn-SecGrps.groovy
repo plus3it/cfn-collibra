@@ -24,15 +24,15 @@ pipeline {
     }
 
     parameters {
-         string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
-         string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
-         string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-FQDN as necessary')
-         string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
-         string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
-         string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
-         string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
-         string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
-         string(name: 'TargetVPC', description: 'ID of the VPC to deploy cluster nodes into')
+        string(name: 'NotifyEmail', description: 'Email address to send job-status notifications to')
+        string(name: 'AwsRegion', defaultValue: 'us-east-1', description: 'Amazon region to deploy resources into')
+        string(name: 'AwsSvcDomain',  description: 'Override the service-endpoint DNS-FQDN as necessary')
+        string(name: 'AwsCred', description: 'Jenkins-stored AWS credential with which to execute cloud-layer commands')
+        string(name: 'GitCred', description: 'Jenkins-stored Git credential with which to execute git commands')
+        string(name: 'GitProjUrl', description: 'SSH URL from which to download the Collibra git project')
+        string(name: 'GitProjBranch', description: 'Project-branch to use from the Collibra git project')
+        string(name: 'CfnStackRoot', description: 'Unique token to prepend to all stack-element names')
+        string(name: 'TargetVPC', description: 'ID of the VPC to deploy cluster nodes into')
     }
 
     stages {
@@ -61,14 +61,14 @@ pipeline {
                 // Create parameter file to be used with stack-create //
 
                 writeFile file: 'SG.parms.json',
-                   text: /
-                         [
-                             {
-                                 "ParameterKey": "TargetVPC",
-                                 "ParameterValue": "${env.TargetVPC}"
-                             }
-                         ]
-                   /
+                    text: /
+                          [
+                              {
+                                  "ParameterKey": "TargetVPC",
+                                  "ParameterValue": "${env.TargetVPC}"
+                              }
+                          ]
+                    /
                 // Pull AWS credentials from Jenkins credential-store
                 withCredentials(
                     [
@@ -96,22 +96,22 @@ pipeline {
                     }
 
                     sh '''#!/bin/bash
-                       echo "Attempting to delete any active ${CfnStackRoot}-SgRes stacks..."
-                       ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-SgRes || true
-                       sleep 5
+                        echo "Attempting to delete any active ${CfnStackRoot}-SgRes stacks..."
+                        ${CFNCMD} delete-stack --stack-name ${CfnStackRoot}-SgRes || true
+                        sleep 5
 
-                       # Pause if delete is slow
-                       while [[ $(
-                                   ${CFNCMD} describe-stacks \
-                                     --stack-name ${CfnStackRoot}-SgRes \
-                                     --query 'Stacks[].{Status:StackStatus}' \
-                                     --out text 2> /dev/null | \
-                                   grep -q DELETE_IN_PROGRESS
-                                  )$? -eq 0 ]]
-                       do
-                          echo "Waiting for stack ${CfnStackRoot}-SgRes to delete..."
-                          sleep 30
-                       done
+                        # Pause if delete is slow
+                        while [[ $(
+                                    ${CFNCMD} describe-stacks \
+                                      --stack-name ${CfnStackRoot}-SgRes \
+                                      --query 'Stacks[].{Status:StackStatus}' \
+                                      --out text 2> /dev/null | \
+                                    grep -q DELETE_IN_PROGRESS
+                                    )$? -eq 0 ]]
+                        do
+                            echo "Waiting for stack ${CfnStackRoot}-SgRes to delete..."
+                            sleep 30
+                        done
                     '''
                 }
             }
@@ -119,41 +119,41 @@ pipeline {
         stage ('Launch SecGrp Template') {
             steps {
                 sh '''#!/bin/bash
-                   echo "Attempting to create stack ${CfnStackRoot}-SgRes..."
-                   ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-SgRes \
-                       --template-body file://Templates/make_collibra_SecGrps.tmplt.json \
-                       --parameters file://SG.parms.json
-                   sleep 5
+                    echo "Attempting to create stack ${CfnStackRoot}-SgRes..."
+                    ${CFNCMD} create-stack --stack-name ${CfnStackRoot}-SgRes \
+                        --template-body file://Templates/make_collibra_SecGrps.tmplt.json \
+                        --parameters file://SG.parms.json
+                    sleep 5
 
-                   # Pause if create is slow
-                   while [[ $(
-                               ${CFNCMD} describe-stacks \
-                                 --stack-name ${CfnStackRoot}-SgRes \
-                                 --query 'Stacks[].{Status:StackStatus}' \
-                                 --out text 2> /dev/null | \
-                               grep -q CREATE_IN_PROGRESS
-                              )$? -eq 0 ]]
-                   do
-                      echo "Waiting for stack ${CfnStackRoot}-SgRes to finish create process..."
-                      sleep 30
-                   done
+                    # Pause if create is slow
+                    while [[ $(
+                                  ${CFNCMD} describe-stacks \
+                                    --stack-name ${CfnStackRoot}-SgRes \
+                                    --query 'Stacks[].{Status:StackStatus}' \
+                                    --out text 2> /dev/null | \
+                                  grep -q CREATE_IN_PROGRESS
+                                )$? -eq 0 ]]
+                    do
+                        echo "Waiting for stack ${CfnStackRoot}-SgRes to finish create process..."
+                        sleep 30
+                    done
 
-                   if [[ $(
-                           ${CFNCMD} describe-stacks \
-                             --stack-name ${CfnStackRoot}-SgRes \
-                             --query 'Stacks[].{Status:StackStatus}' \
-                             --out text 2> /dev/null | \
-                           grep -q CREATE_COMPLETE
-                          )$? -eq 0 ]]
-                   then
-                      echo "Success. Created:"
-                      aws cloudformation describe-stacks --stack-name ${CfnStackRoot}-SgRes \
-                        --query 'Stacks[].Outputs[].{Description:Description,Value:OutputValue}' \
-                        --output table | sed 's/^/    /' 
-                   else
-                      echo "Stack-creation ended with non-successful state"
-                      exit 1
-                   fi
+                    if [[ $(
+                              ${CFNCMD} describe-stacks \
+                                --stack-name ${CfnStackRoot}-SgRes \
+                                --query 'Stacks[].{Status:StackStatus}' \
+                                --out text 2> /dev/null | \
+                              grep -q CREATE_COMPLETE
+                            )$? -eq 0 ]]
+                    then
+                        echo "Success. Created:"
+                        aws cloudformation describe-stacks --stack-name ${CfnStackRoot}-SgRes \
+                          --query 'Stacks[].Outputs[].{Description:Description,Value:OutputValue}' \
+                          --output table | sed 's/^/    /'
+                    else
+                        echo "Stack-creation ended with non-successful state"
+                        exit 1
+                    fi
                 '''
             }
         }
